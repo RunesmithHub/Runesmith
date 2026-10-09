@@ -37,6 +37,20 @@ RUNESMITH_HOME=/tmp/runesmith-hub RUNESMITH_HUB_ROOT=/tmp/hub-index/root/1.json 
 `RUNESMITH_HUB_ROOT` names the trust root and `RUNESMITH_HUB_INDEX_URL` the index. They are for development only: Release builds ignore
 both. The sample index expires three days after it is written; write a new one then.
 
+## Bundled plugins
+
+Runesmith ships the official plugins, each developed in its own repository in the [RunesmithHub](https://github.com/RunesmithHub)
+organization, such as [plugin-csharp](https://github.com/RunesmithHub/plugin-csharp). `bundled-plugins.json` pins each by id, version and
+package SHA-256, and the app's build fetches them from the plugin hub.
+
+To update one, set its `version` to a published version and its `sha256` to that version's `package.sha256` in the plugin's
+record in the hub index (<https://runesmithhub.github.io/registry/>). The build checks both against the signed index and fails when they
+differ or the version is not published.
+
+To work on an official plugin, change it in its repository and run `dotnet build src/<Project> -t:InstallPlugin` there: a local copy with
+the same or a newer version runs instead of the bundled one. [Building and testing](website/content/developers/building.mdx#bundled-plugins)
+has the details.
+
 ## Making a change
 
 1. Fork the repository and create a branch from `main`.

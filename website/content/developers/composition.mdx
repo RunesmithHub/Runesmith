@@ -12,12 +12,12 @@ who change it; plugin authors need only [Plugins](/plugins).
 <Steps>
 
 1. **Find.** `PluginDiscovery` looks at every subfolder of the built-in `plugins` folder next to the executable, then of the user's plugins
-   folder, for a `plugin.json`. `PluginManifest` reads the packaged manifest (`schemaVersion` 1) with `RunesmithHub.Protocol`, or an
-   older manifest without `schemaVersion`. Discovery checks the manifest: the required fields, a `runesmithApi` range this Runesmith
-   supports, assemblies that exist inside the plugin's folder, an id no plugin before it took, and the user's `plugins.disabled` setting.
-   Plugins the hub installed (`CompositionOptions.HubPlugins`) load as hub plugins, and a newer hub copy of a bundled plugin runs in its
-   place while the bundled copy stays as the fallback. Plugins the hub withholds (`CompositionOptions.WithheldPlugins`), such as blocked
-   ones and their dependents, stay off with the reason.
+   folder, for a `plugin.json`. `PluginManifest` reads the packaged manifest (`schemaVersion` 1) with `RunesmithHub.Protocol`, or an older
+   manifest without `schemaVersion`. Discovery checks the manifest: the required fields, a `runesmithApi` range this Runesmith supports,
+   assemblies that exist inside the plugin's folder, an id no plugin before it took, and the user's `plugins.disabled` setting. Plugins the
+   hub installed (`CompositionOptions.HubPlugins`) load as hub plugins. A newer hub copy of a bundled plugin, or a local copy with the same
+   or a newer version, runs in its place while the bundled copy stays as the fallback. Plugins the hub withholds
+   (`CompositionOptions.WithheldPlugins`), such as blocked ones and their dependents, stay off with the reason.
 2. **Order.** `PluginLoader` sorts the plugins so that each comes after the plugins it depends on. A plugin whose dependency is missing,
    turned off, failed, of a version outside the range, or part of a cycle fails with a reason that names the dependency.
 3. **Load.** Each plugin's contracts assembly loads into the one `ContractsLoadContext`, after a check that it references only .NET, the

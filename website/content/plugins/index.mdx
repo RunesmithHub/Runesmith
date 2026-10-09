@@ -20,9 +20,9 @@ Both reference the `Runesmith.Sdk` package and export parts with the `System.Com
 `[Export(typeof(ICommandContributor))]`. Runesmith finds the exports in the implementation assembly when it starts and creates each part the
 first time something needs it, so a plugin that is not used costs almost nothing.
 
-Each plugin loads apart from the others, so two plugins can carry different versions of the same library. A plugin sees its own
-assemblies, the contracts of the plugins it depends on, and the libraries Runesmith shares with every plugin: the SDK, Avalonia, HammerUI and
-.NET itself. It cannot load another plugin's implementation.
+Each plugin loads apart from the others, so two plugins can carry different versions of the same library. A plugin sees its own assemblies,
+the contracts of the plugins it depends on, and the libraries Runesmith shares with every plugin: the SDK, Avalonia, HammerUI and .NET
+itself. It cannot load another plugin's implementation.
 
 ## Where plugins live
 
@@ -49,7 +49,7 @@ An installed plugin's folder holds the manifest the build writes, its assemblies
 | --- | --- |
 | `plugin.json` | The packaged manifest: your manifest's fields, plus the file name and SHA-256 hash of every assembly. |
 | `lib/` | The contracts and implementation assemblies and the libraries the plugin carries. |
-| `icon/64.png`, `icon/128.png` | The plugin's icon. |
+| `icon/64.png`, `icon/128.png` | The plugin's icon. The build copies `icon.png` from the plugin's root to both, unless the `RunesmithPluginIcon64` and `RunesmithPluginIcon128` properties name other files. |
 
 `dotnet build -t:InstallPlugin` on the implementation project writes this folder into your plugins folder; see
 [Create a plugin](./create-a-plugin.mdx). To remove a plugin, delete its folder.
@@ -161,18 +161,18 @@ and the rest of Runesmith works as usual.
 
 ## When a plugin does not load
 
-The [plugin manager](/guide/plugins#the-plugin-manager) lists every plugin Runesmith found, whether it loaded and why not, and the **Plugins** channel of the **Output** panel says why a plugin failed. `--diagnostics` writes the same list to the
-**Diagnostics** channel.
+The [plugin manager](/guide/plugins#the-plugin-manager) lists every plugin Runesmith found, whether it loaded and why not, and the
+**Plugins** channel of the **Output** panel says why a plugin failed. `--diagnostics` writes the same list to the **Diagnostics** channel.
 
-The usual reasons are a manifest with a missing or wrong field, a `runesmithApi` range this Runesmith does not support, an assembly that does
-not exist, a second plugin with the same id, or a dependency that did not load.
+The usual reasons are a manifest with a missing or wrong field, a `runesmithApi` range this Runesmith does not support, an assembly that
+does not exist, a second plugin with the same id, or a dependency that did not load.
 
 ## Related
 
 - [Create a plugin](./create-a-plugin.mdx) with the `runesmith-plugin` template.
 - [API overview](./api.mdx): what a plugin can export and import.
-- [C# support](./csharp.mdx), the built-in plugin.
+- [C# support](./csharp.mdx), an official plugin with its source in
+  [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp).
 - [Git](./git.mdx): changes, commits, branches, history, diffs, cloning and pull requests.
 - [GitHub](./github.mdx): signing in to GitHub, cloning from your account and organizations, links and pull requests.
-- [Forgejo](./forgejo.mdx): signing in to Codeberg and other Forgejo servers, cloning, links and pull requests.
-- [Gitea](./gitea.mdx): signing in to gitea.com and other Gitea servers, cloning, links and pull requests.
+- [Gitea and Forgejo](./gitea.mdx): signing in to gitea.com, Codeberg and other Gitea and Forgejo servers, cloning, links and pull requests.

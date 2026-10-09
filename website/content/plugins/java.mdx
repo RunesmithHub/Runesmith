@@ -3,7 +3,8 @@ title: Java support
 description: "How Runesmith edits and builds Java: highlighting, completion, hover, go to definition and problems from its own Java analyzer, and building with Maven or Gradle."
 ---
 
-Runesmith supports Java through a built-in plugin, `runesmith.java`. It highlights `.java` files, understands them with Runesmith's own
+Runesmith supports Java through an official plugin that ships with it, `runesmith.java`, developed in
+[RunesmithHub/plugin-java](https://github.com/RunesmithHub/plugin-java). It highlights `.java` files, understands them with Runesmith's own
 Java analyzer, and builds projects with Maven or Gradle. The analyzer is written in C# and runs inside Runesmith: it needs no JVM, no
 language server and no build to answer, so completion appears within milliseconds of a key press.
 
@@ -109,8 +110,9 @@ from the default JDK you pick there when it serves the project's release, and fi
 
 ## Templates
 
-**File › New Project** offers four Java templates. They come from a separate built-in plugin, **Java templates**
-(`runesmith.java-templates`), which you can turn off in **Settings › Plugins** without losing Java support.
+**File › New Project** offers four Java templates. They come from a separate plugin that ships with Runesmith, **Java templates**
+(`runesmith.java-templates`, developed in [RunesmithHub/plugin-java-templates](https://github.com/RunesmithHub/plugin-java-templates)),
+which you can turn off in **Settings › Plugins** without losing Java support.
 
 | Template | What it creates |
 | --- | --- |

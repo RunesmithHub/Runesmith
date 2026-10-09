@@ -11,6 +11,12 @@ Runesmith follows the same rules as its sibling projects. This page lists them; 
 - For a larger change, such as a new panel or a new project, open an issue first, so the approach is agreed on before you write the code.
 - A new project in `src/` must pass every item of the checklist in [Projects and when to add one](./projects.mdx).
 
+## Official plugins
+
+The official plugins, such as C# and Git support, each have their own repository in the [RunesmithHub](https://github.com/RunesmithHub)
+organization; open issues and pull requests for them there. [Work on an official plugin](./building.mdx#work-on-an-official-plugin) shows
+how to run your build of one in Runesmith.
+
 ## Code
 
 - The solution builds without warnings; CI builds with `-warnaserror`.
@@ -32,7 +38,7 @@ When behavior, a setting, a command, a key binding or the plugin API changes, up
 Write each commit message as a [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/), such as
 `fix(editor): keep the caret in view after a paste`. The types are `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `ci`, `chore` and
 `revert`. The scope names the part of Runesmith, such as `text`, `lsp`, `sdk`, `composition`, `workspace`, `languages`, `editor`, `shell`,
-`app`, `csharp` or `templates`. The Checks workflow checks every commit of a pull request.
+`app`, `hub` or `templates`. The Checks workflow checks every commit of a pull request.
 
 ## Pull requests
 

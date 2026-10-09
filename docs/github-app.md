@@ -15,8 +15,9 @@ how.
 | Client ID | `Iv23li1DdS0IT4aRfQxi` |
 | Owner | `DutchyD` |
 
-The app's identity is not in the code. It is in `plugins/Runesmith.GitHub/Runesmith.GitHub/github-app.json`, which is copied next to the
-plugin's assembly and read once when Runesmith starts:
+The app's identity is not in the code. It is in `src/Runesmith.GitHub/github-app.json` in the GitHub plugin's repository,
+[RunesmithHub/plugin-github](https://github.com/RunesmithHub/plugin-github), which the build embeds in the plugin's assembly as a resource
+named `github-app.json`. The plugin reads it once when it starts:
 
 ```json
 {
@@ -30,9 +31,9 @@ plugin's assembly and read once when Runesmith starts:
 Runesmith picks the app in this order:
 
 1. The `github.clientId` setting, with `github.appSlug`, when the user set their own app (**Settings > GitHub > Advanced**).
-2. `github-app.json` next to the plugin's assembly, in `plugins/runesmith.github/lib`.
+2. The `github-app.json` resource in the plugin's assembly.
 
-When neither gives a client ID, because the file is missing, unreadable or has no `clientId`, signing in through the browser shows how
+When neither gives a client ID, because the resource is missing, unreadable or has no `clientId`, signing in through the browser shows how
 to register an app, and the GitHub CLI's sign-in and tokens still work.
 
 ### Why the IDs are safe in the repository
@@ -78,8 +79,9 @@ A fork, a company build or a single user can sign in with a GitHub App of their 
 
   **Back to Runesmith's app** clears both. Sign in again after switching apps.
 
-- **For a build of Runesmith:** replace `plugins/Runesmith.GitHub/Runesmith.GitHub/github-app.json` with your app's values, so every
-  user of the build signs in with it without setting anything.
+- **For a build of the plugin:** replace `src/Runesmith.GitHub/github-app.json` in the plugin's repository with your app's values and
+  build the plugin, so every user of that build signs in with it without setting anything. Ship it as a plugin of your own, or install it
+  as a local plugin, which runs instead of the bundled one.
 
 The app name is optional with the settings: once the app is installed anywhere, Runesmith learns it from the installation. Until then,
 **Add an organization** is not offered and **Manage Access** opens GitHub's list of installed apps.

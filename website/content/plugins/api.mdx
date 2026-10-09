@@ -136,15 +136,15 @@ registry.AddMenuItem(new MenuItemDefinition(ContextMenus.Explorer, "todo.addHere
 | `IsDirectory` | True for a folder in the Explorer. |
 | `Lines` | In the editor, the first and last line the selection covers, counted from 1; a selection that ends at the start of a line leaves that line out. Null in the Explorer. |
 
-The editor's menu has items from plugins only for files saved on disk. A command of Runesmith's own that you place in a context menu, such as
-`CommandIds.RollbackLines`, moves into your group instead of showing twice. When the same command runs from the palette or a key, its
+The editor's menu has items from plugins only for files saved on disk. A command of Runesmith's own that you place in a context menu, such
+as `CommandIds.RollbackLines`, moves into your group instead of showing twice. When the same command runs from the palette or a key, its
 argument is null.
 
 ## Panels
 
 Export an `IToolWindowProvider`. Its `ToolWindowDefinition` gives the id, title, icon and the area it opens in until the user moves it:
-`DockSide.Left`, `Right` or `Bottom`, which also decides the stripe its button is on. `CreateContent` creates the panel's Avalonia control the
-first time it shows. Runesmith adds a stripe button, a **Show** item to the **View** menu and a command for it.
+`DockSide.Left`, `Right` or `Bottom`, which also decides the stripe its button is on. `CreateContent` creates the panel's Avalonia control
+the first time it shows. Runesmith adds a stripe button, a **Show** item to the **View** menu and a command for it.
 
 ```csharp
 [Export(typeof(IToolWindowProvider))]
@@ -221,9 +221,13 @@ A language analyzer understands one or more languages and runs in Runesmith's ow
 receives every edit as the changes that made it, and answers requests that Runesmith schedules so typing never waits for them. Runesmith's
 C# support is an analyzer.
 
-The contract, `ILanguageAnalyzer`, is in `Runesmith.LanguageServices`, which is not published as a package yet. A plugin built in the
-Runesmith repository references the project as `plugins/Runesmith.CSharp/Runesmith.CSharp/Runesmith.CSharp.csproj` does, with `Private="false"` and
-`ExcludeAssets="runtime"`, because Runesmith supplies the assembly at run time.
+The contract, `ILanguageAnalyzer`, is in the `Runesmith.LanguageServices` package on the hub feed. Reference it with
+`ExcludeAssets="runtime"`, as the [C# plugin](https://github.com/RunesmithHub/plugin-csharp) does, because Runesmith supplies the assembly
+at run time:
+
+```xml
+<PackageReference Include="Runesmith.LanguageServices" ExcludeAssets="runtime" />
+```
 
 ### Export an analyzer
 
@@ -261,7 +265,8 @@ public sealed class CSharpAnalysis
 | `DisposeAsync()` | Called when Runesmith closes. |
 
 To offer quick fixes and refactorings, rename, formatting and inlay hints too, implement `ICodeActionAnalyzer`, `IRenameAnalyzer`,
-`IFormattingAnalyzer` and `IInlayHintAnalyzer`; see [From language servers and analyzers](./language-features.mdx#from-language-servers-and-analyzers).
+`IFormattingAnalyzer` and `IInlayHintAnalyzer`; see [From language servers and
+analyzers](./language-features.mdx#from-language-servers-and-analyzers).
 
 Each `SourceDocument` is a path, a language id, a version number and an immutable `TextSnapshot`. An analyzer answers what it can and
 returns null or an empty list for the rest. An exception from an analyzer is written to the **Language analyzers** channel of the **Output**
@@ -377,8 +382,8 @@ icons come through the same contributors.
 ## Builds and problems
 
 Export an `IBuildProvider` to build a kind of project. `CanBuild` says whether it can build the open folder, and `BuildAsync` builds it,
-writing to `BuildContext.Output` and reporting each problem with `BuildContext.ReportDiagnostic` as soon as it is found. The .NET provider in
-the C# plugin is a complete example.
+writing to `BuildContext.Output` and reporting each problem with `BuildContext.ReportDiagnostic` as soon as it is found. The .NET provider
+in the C# plugin is a complete example.
 
 To report problems outside a build, call `IDiagnosticService.Set` with your source's name, a file and its `Diagnostic`s; each call replaces
 what that source reported for the file.
@@ -395,8 +400,8 @@ Export an `IEditorKeyHook` to see keys in editors before the editor handles them
 ### Change markers
 
 The editor marks lines that differ from a base version of the file in the gutter: added lines green, changed lines blue, and deleted lines
-as a red triangle between lines. Clicking a marker shows the old lines with **Rollback**. Export an `IChangeBaseProvider` to supply the base,
-such as the file as it is in the last commit. This one compares each file with a backup next to it:
+as a red triangle between lines. Clicking a marker shows the old lines with **Rollback**. Export an `IChangeBaseProvider` to supply the
+base, such as the file as it is in the last commit. This one compares each file with a backup next to it:
 
 ```csharp
 [Export(typeof(IChangeBaseProvider))]
@@ -482,7 +487,8 @@ file or folder in the file manager. A plugin needs the `process` [capability](./
 ## Messages
 
 `IMessageBus` passes messages, which are any class such as a record. Runesmith publishes `WorkspaceOpenedMessage` when a folder opens or
-closes, `ThemeChangedMessage` when the color theme, the accent or the syntax colors change and `FilesChangedMessage` when files of the open folder change on disk.
+closes, `ThemeChangedMessage` when the color theme, the accent or the syntax colors change and `FilesChangedMessage` when files of the open
+folder change on disk.
 
 ## Folders
 

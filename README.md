@@ -30,7 +30,10 @@ cd Runesmith
 dotnet run --project src/Runesmith.App
 ```
 
-Its UI library, [HammerUI](https://github.com/RunesmithHub/HammerUI), comes from the Runesmith Hub feed, with no sign-in.
+Its UI library, [HammerUI](https://github.com/RunesmithHub/HammerUI), comes from the Runesmith Hub feed, with no sign-in. The official
+plugins, such as C#, Java and Git support, live in their own repositories; the build fetches the versions `bundled-plugins.json` pins from
+the plugin hub and checks them against its signed index (see
+[Bundled plugins](website/content/developers/building.mdx#bundled-plugins)).
 
 C# completion, hover and problems work without installing anything else. Loading your C# projects uses MSBuild, which needs the .NET SDK,
 as building does.

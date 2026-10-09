@@ -88,9 +88,10 @@ public sealed class TodoHighlighterCommands(INotificationService notifications) 
 
 ## Install and update
 
-`dotnet build TodoHighlighter -t:InstallPlugin` builds the plugin, lays it out as Runesmith loads it, with the packaged `plugin.json` and the
-assemblies in `lib/`, and copies it into a subfolder of your plugins folder named after the plugin's id. Run it again after each change and
-restart Runesmith to load the new build. Set `RUNESMITH_HOME` to install into a separate Runesmith home, such as one you test with.
+`dotnet build TodoHighlighter -t:InstallPlugin` builds the plugin, lays it out as Runesmith loads it, with the packaged `plugin.json`, the
+assemblies in `lib/` and the icons in `icon/`, and copies it into a subfolder of your plugins folder named after the plugin's id. Run it
+again after each change and restart Runesmith to load the new build. Set `RUNESMITH_HOME` to install into a separate Runesmith home, such as
+one you test with.
 
 Runesmith holds the installed plugin to its manifest: the secret store and the launcher refuse it unless it declares the
 [capabilities](./index.mdx#capabilities) they need.
@@ -123,4 +124,5 @@ To use another plugin, reference its contracts package and add it to `dependenci
 ## Related
 
 - [Plugins](./index.mdx): the manifest, capabilities, dependencies and API versions.
-- [C# support](./csharp.mdx), a complete plugin that ships with Runesmith.
+- [C# support](./csharp.mdx), a complete plugin that ships with Runesmith; its source is in
+  [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp).

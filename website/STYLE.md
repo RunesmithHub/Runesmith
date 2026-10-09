@@ -70,7 +70,8 @@ Add `sidebar_label` only when the sidebar needs a shorter title.
 - C# follows the repository's style: file-scoped namespaces, four-space indentation, `var` where the type is obvious, expression
   bodies for one-liners, `_camelCase` private fields, braces on their own lines.
 - Samples must compile against the current API. Check every type and member against `src/Runesmith.Sdk`, and prefer adapting code that
-  already runs, such as the C# plugin in `plugins/Runesmith.CSharp` or the plugin template.
+  already runs, such as the C# plugin in [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp) or the plugin
+  template.
 - Every setting, command, key binding and path a page names must exist in the code. Take them from the source, not from memory.
 - Show complete files for setup, with a `title="plugin.json"` on the code block. Shorter snippets are fine elsewhere if the surrounding code
   is obvious.

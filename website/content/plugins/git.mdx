@@ -3,10 +3,11 @@ title: Git
 description: "How Runesmith works with Git: the Commit window, branches, fetch, pull and push, the log and its graph, diffs, cloning, links to hosting services and pull requests."
 ---
 
-Runesmith brings Git into the editor through a built-in plugin, `runesmith.git`. It runs the `git` command line, so your configuration,
-hooks, signing keys, SSH setup and credential helpers keep working. Hosting services are plugins on top of it: [GitHub](./github.mdx),
-[Forgejo](./forgejo.mdx) and [Gitea](./gitea.mdx) add their accounts to the clone dialog, the **Pull Requests** window and the links to
-their pages. [Version control](/guide/version-control) walks through the everyday tasks; this page describes each part and its settings.
+Runesmith brings Git into the editor through an official plugin that ships with it, `runesmith.git`, developed in
+[RunesmithHub/plugin-git](https://github.com/RunesmithHub/plugin-git). It runs the `git` command line, so your configuration, hooks, signing
+keys, SSH setup and credential helpers keep working. Hosting services are plugins on top of it: [GitHub](./github.mdx) and [Gitea and
+Forgejo](./gitea.mdx) add their accounts to the clone dialog, the **Pull Requests** window and the links to their pages. [Version
+control](/guide/version-control) walks through the everyday tasks; this page describes each part and its settings.
 
 ## How Runesmith runs Git
 
@@ -241,8 +242,8 @@ plugins, such as **GitHub** or **Codeberg**, and a **URL** tab for any other Git
 </Steps>
 
 An account you are not signed in to shows **Sign in to** *service* on its tab instead of the list. **Add Account** at the top right of the
-dialog lists each hosting plugin, such as **Forgejo Account...**, to sign in to another account or server; its tab opens once you are signed
-in.
+dialog lists each hosting service, such as **Forgejo Account...**, to sign in to another account or server; its tab opens once you are
+signed in.
 
 The dialog shows Git's own progress while it receives objects and resolves deltas, and the status bar shows the clone as a background task
 with **Cancel**. When it is done, Runesmith opens the folder. If you close the dialog first, the clone goes on in the background. When Git

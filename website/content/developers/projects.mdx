@@ -3,19 +3,26 @@ title: "Projects and when to add one"
 description: "How the solution is split into projects, the checklist a new project must pass, and why each project exists."
 ---
 
-Runesmith is split into C# projects so that each part has one job, carries only the dependencies that job needs, and can be built and tested on its own. A project is not free, though: it adds a build step, a test project, a place to look for code and a seam that has to stay stable. This page says when a new project is worth that cost.
+Runesmith is split into C# projects so that each part has one job, carries only the dependencies that job needs, and can be built and tested
+on its own. A project is not free, though: it adds a build step, a test project, a place to look for code and a seam that has to stay
+stable. This page says when a new project is worth that cost.
 
 ## The checklist
 
 Add a project under `src/` only when **every** item holds. If one does not, put the code in the existing project it belongs to.
 
-- [ ] **One responsibility you can name in a few words**, such as "the text buffer" or "the language server client", and no existing project already has it.
-- [ ] **A clean place in the dependency graph.** It depends only on projects below it, nothing below it would need to depend on it, and the split creates no cycle.
-- [ ] **A dependency reason.** It carries a dependency that other projects must not carry, such as Avalonia, VS-MEF or TextMateSharp, or other projects must be able to use it without carrying its dependencies.
+- [ ] **One responsibility you can name in a few words**, such as "the text buffer" or "the language server client", and no existing project
+  already has it.
+- [ ] **A clean place in the dependency graph.** It depends only on projects below it, nothing below it would need to depend on it, and the
+  split creates no cycle.
+- [ ] **A dependency reason.** It carries a dependency that other projects must not carry, such as Avalonia, VS-MEF or TextMateSharp, or
+  other projects must be able to use it without carrying its dependencies.
 - [ ] **A small public surface.** Callers use it through a handful of public types, and its internals can change without touching them.
 - [ ] **It works on its own.** It can be built, tested and benchmarked without the shell, for example headless or without a window.
-- [ ] **Real code today.** It holds several types of code that exists now or is part of the current plan, not a single class and not code that might come one day.
-- [ ] **Not a dumping ground.** It is not a `Common`, `Utilities` or `Helpers` project. Shared code goes into the lowest project that needs it.
+- [ ] **Real code today.** It holds several types of code that exists now or is part of the current plan, not a single class and not code
+  that might come one day.
+- [ ] **Not a dumping ground.** It is not a `Common`, `Utilities` or `Helpers` project. Shared code goes into the lowest project that needs
+  it.
 - [ ] **Its costs are paid.** It gets a test project in `tests/`, a row on this page and on the [architecture](./architecture.mdx) page.
 
 These are signs that code should stay where it is:
@@ -24,7 +31,9 @@ These are signs that code should stay where it is:
 - It always changes together with another project.
 - Splitting it out would need many `internal` members to become `public`.
 
-Built-in plugins are the one exception to the size rule: each lives in `plugins/` as its own project, because a plugin must load through the same pipeline as a third-party one to prove that pipeline works.
+The official plugins, such as C# and Java support, are not projects in this repository. Each lives in its own repository in the
+[RunesmithHub](https://github.com/RunesmithHub) organization, builds against the published packages, and reaches Runesmith through the
+plugin hub like a third-party plugin, which proves that pipeline works. See [Bundled plugins](./building.mdx#bundled-plugins).
 
 ## The projects
 
@@ -47,12 +56,8 @@ graph TD
   Composition --> Sdk
   Sdk --> Text[Runesmith.Text]
   LanguageServices --> Text
-  CSharp[plugins/Runesmith.CSharp] --> Sdk
-  CSharp --> CSharpAnalyzer[Runesmith.Languages.CSharp]
-  CSharpAnalyzer --> LanguageServices
-  Java[plugins/Runesmith.Java] --> Sdk
-  Java --> JavaAnalyzer[Runesmith.Languages.Java]
-  JavaAnalyzer --> JavaSyntax[Runesmith.Languages.Java.Syntax]
+  CSharpAnalyzer[Runesmith.Languages.CSharp] --> LanguageServices
+  JavaAnalyzer[Runesmith.Languages.Java] --> JavaSyntax[Runesmith.Languages.Java.Syntax]
   JavaAnalyzer --> LanguageServices
 ```
 
@@ -73,8 +78,7 @@ graph TD
 | `Runesmith.Editor` | The text editor control: layout, rendering, input, completion, hover, diagnostics and the find bar | The largest UI component. It depends on the SDK contracts only, not on TextMate or language servers, so it can be developed and tested on its own. |
 | `Runesmith.Shell` | The IDE window: docking, commands, menus, the command palette, settings, the status bar and the tool windows | It wires everything together; nothing depends on it except the application. |
 | `Runesmith.App` | The executable: the command line, the single running instance and the desktop platform | Keeps the desktop backend out of the shell, so the shell can run headless. |
-| `plugins/Runesmith.CSharp` | C# support: the language, the C# analyzer and the `dotnet build` provider | A built-in plugin, loaded like any other plugin. |
-| `plugins/Runesmith.Java` | Java support: the language, the Java analyzer and the Maven and Gradle build provider | A built-in plugin, loaded like any other plugin. |
+| `tools/Runesmith.BundledPlugins` | Fetches, checks and unpacks the bundled plugins during the app's build | A build tool, run by `src/Runesmith.App`; nothing ships it. |
 
-Each project has a matching project in `tests/`. `benchmarks/Runesmith.Benchmarks` holds the benchmarks, and `benchmarks/Runesmith.TypingBenchmark`
-the typing benchmark.
+Each project has a matching project in `tests/`. `benchmarks/Runesmith.Benchmarks` holds the benchmarks, and
+`benchmarks/Runesmith.TypingBenchmark` the typing benchmark.

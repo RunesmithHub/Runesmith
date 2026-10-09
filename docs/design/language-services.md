@@ -45,8 +45,9 @@ graph TD
 Each passes the [project checklist](../../website/content/developers/projects.mdx): the core carries no compiler; Roslyn stays out of
 everything but the C# analyzer; the Java syntax has no dependencies and is tested and benchmarked on its own.
 
-The plugins `Runesmith.CSharp` and `Runesmith.Java` export the language definitions, the analyzers and the build providers. The C# plugin
-no longer starts an external server.
+The C# and Java plugins, in [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp) and
+[RunesmithHub/plugin-java](https://github.com/RunesmithHub/plugin-java), export the language definitions, the analyzers and the build
+providers. The C# plugin no longer starts an external server.
 
 ### In process or out of process
 
@@ -153,8 +154,9 @@ The C# analyzer is built on Roslyn, the C# compiler, used as a library. It suppo
 newest (C# 14 with Roslyn 5.9), chosen per project from its `LangVersion`.
 
 - **Loading.** `MSBuildWorkspace`, whose build host finds the installed .NET SDK, opens the folder's solution (`.slnx` or `.sln`) or its
-  projects, in the background. The compiler's services are composed on a background thread too, since that takes about half a second. Until a project is loaded, its files get a default project with the newest language version and the
-  runtime's reference assemblies, so completion works from the first second, without project references.
+  projects, in the background. The compiler's services are composed on a background thread too, since that takes about half a second. Until
+  a project is loaded, its files get a default project with the newest language version and the runtime's reference assemblies, so
+  completion works from the first second, without project references.
 - **Edits.** A change is applied with `SourceText.WithChanges` and `Solution.WithDocumentText`, so Roslyn reparses incrementally and keeps
   everything it can.
 - **Completion.** Roslyn's `CompletionService` produces the candidates. The analyzer turns them into the core's compact items, filters,

@@ -29,8 +29,6 @@ graph TD
   Server[Runesmith.LanguageServer] --> Services
   Server --> Lsp
   Server --> CSharpAnalyzer
-  CSharp[plugins/Runesmith.CSharp] --> Sdk
-  CSharp --> CSharpAnalyzer
 ```
 
 | Project | What it holds |
@@ -48,10 +46,11 @@ graph TD
 | `src/Runesmith.Editor` | The editor control: drawing, input, editing operations, completion, signature help, hover and the find bar. |
 | `src/Runesmith.Shell` | The window: menus, commands and key bindings, docking, panels, pages, the command palette, sessions and builds. |
 | `src/Runesmith.App` | The executable: the command line, one running instance, crash logs and startup. |
-| `plugins/Runesmith.CSharp` | C# support, a plugin like any other: the language, the C# analyzer and the .NET build provider, in a contracts project and an implementation project with a `plugin.json`. It carries the compiler in its folder. |
+| `tools/Runesmith.BundledPlugins` | Fetches the plugins `bundled-plugins.json` pins from the plugin hub during the app's build, checks them against the signed index and unpacks them into `plugins/<id>`. See [Bundled plugins](./building.mdx#bundled-plugins). |
 | `templates/Runesmith.Templates` | The `dotnet new runesmith-plugin` template. |
 
-`tests/` has a test project for each project in `src/` except the SDK and the app, and `benchmarks/Runesmith.Benchmarks` holds the benchmarks.
+`tests/` has a test project for each project in `src/` except the SDK and the app, and `benchmarks/Runesmith.Benchmarks` holds the
+benchmarks.
 
 ## Startup
 

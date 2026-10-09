@@ -3,8 +3,9 @@ title: Building and testing
 description: Install the tools, build Runesmith without warnings with or without a HammerUI checkout, and run the tests, benchmarks and documentation site.
 ---
 
-Runesmith is one solution, `Runesmith.slnx`, with the projects in `src/`, the built-in plugin in `plugins/`, the template in `templates/`,
-the test projects in `tests/` and the benchmarks in `benchmarks/`. This page covers the tools you need and the commands CI runs, so a change
+Runesmith is one solution, `Runesmith.slnx`, with the projects in `src/`, the build tools in `tools/`, the template in `templates/`,
+the test projects in `tests/` and the benchmarks in `benchmarks/`. The official plugins live in their own repositories in the
+[RunesmithHub](https://github.com/RunesmithHub) organization. This page covers the tools you need and the commands CI runs, so a change
 that passes here passes there.
 
 ## Tools
@@ -59,9 +60,47 @@ dotnet build Runesmith.slnx -warnaserror
 The build has no warnings, and CI treats any warning as an error. Analyzers run at the `latest-recommended` level, and `BannedSymbols.txt`
 rejects calls that are easy to get wrong; each entry says why and what to use instead.
 
-Building `src/Runesmith.App` also builds the bundled plugins and lays each out in `plugins/<id>` next to the executable, as an installed
-plugin is: the packaged `plugin.json`, the assemblies in `lib/` and the icons in `icon/`. The `RunesmithPluginLayout` target in
-`src/Runesmith.Sdk/build/Runesmith.Sdk.targets` does this, the same target the SDK package gives other plugins.
+Building `src/Runesmith.App` also brings in the bundled plugins; see [Bundled plugins](#bundled-plugins).
+
+## Bundled plugins
+
+Runesmith ships the official plugins as published on the plugin hub. `bundled-plugins.json` at the repository root pins each one by id,
+version and the SHA-256 of its package:
+
+```json title="bundled-plugins.json"
+{
+  "index": "https://runesmithhub.github.io/registry/",
+  "plugins": [
+    { "id": "runesmith.csharp", "version": "0.1.0", "sha256": "b985baa0..." }
+  ]
+}
+```
+
+After `src/Runesmith.App` builds, `tools/Runesmith.BundledPlugins` runs. It updates its copy of the hub's signed index, starting from the
+root in `src/Runesmith.App/Hub/root.json`, and checks that each pinned version is published, not blocked or frozen, and published with the
+pinned SHA-256. It downloads each package, checks its length and hash, and unpacks it into `plugins/<id>` next to the executable, in the
+same layout as a plugin the hub installs. Publishing copies the same folders.
+
+The index and the packages are kept under `src/Runesmith.App/obj/bundled-plugins`, packages by their hash, so later builds work without a
+network connection. Without a connection and without that cache, Debug builds warn and leave the plugins out; Release builds and
+publishing fail. The tool never uses a package the signed index does not pin.
+
+To update a bundled plugin, set its `version` and `sha256` to those of a published version in the hub's index. The build checks both
+and fails when they do not match.
+
+### Work on an official plugin
+
+Each official plugin has its own repository, such as [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp), built
+against the SDK and language packages from the hub feed. To run your changes in Runesmith, build the plugin and install it as a local
+plugin from the plugin's repository:
+
+```bash
+dotnet build src/Runesmith.CSharp -t:InstallPlugin
+```
+
+`InstallPlugin` writes the plugin into the user's plugins folder, under `RUNESMITH_HOME` when it is set. At the next start, a local copy
+with the same or a newer version runs instead of the bundled copy, as a newer copy from the hub does. The plugin manager's **Installed**
+tab shows which copy runs. Remove the local copy to go back to the bundled one.
 
 ## Test
 

@@ -17,7 +17,7 @@ Language Server Protocol, and how to measure all of it. To write an analyzer in 
 | `src/Runesmith.Languages.CSharp` | `CSharpAnalyzer`, on the C# compiler (Roslyn 5.9). The only project that carries the compiler. |
 | `src/Runesmith.Languages` | `AnalyzerBridge`, which runs the analyzers plugins export inside Runesmith, and the providers that give their answers to the editor. |
 | `src/Runesmith.LanguageServer` | `runesmith-language-server`, which serves analyzers over the Language Server Protocol on standard input and output. |
-| `plugins/Runesmith.CSharp` | Exports the C# analyzer, and ships it and the compiler in the plugin's folder. |
+| The C# plugin | Exports the C# analyzer, and ships it and the compiler in the plugin's folder. Its source is in [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp). |
 
 ## The host
 

@@ -3,10 +3,11 @@ title: C# support
 description: "How Runesmith edits, builds and runs C#: highlighting, Runesmith's own C# analyzer on the C# compiler, building with dotnet build, and run configurations."
 ---
 
-Runesmith supports C# through a built-in plugin, `runesmith.csharp`. It highlights `.cs` and `.csx` files, gives completion, hover, go to
-definition, signature help, problems, quick fixes, rename, formatting and inlay hints from Runesmith's own C# analyzer, and builds solutions and
-projects with `dotnet build`. This page covers what the analyzer does, how it finds your projects, how fast it is and what it does not do
-yet.
+Runesmith supports C# through an official plugin that ships with it, `runesmith.csharp`, developed in
+[RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp). It highlights `.cs` and `.csx` files, gives completion, hover,
+go to definition, signature help, problems, quick fixes, rename, formatting and inlay hints from Runesmith's own C# analyzer, and builds
+solutions and projects with `dotnet build`. This page covers what the analyzer does, how it finds your projects, how fast it is and what it
+does not do yet.
 
 ## Set up
 
@@ -138,8 +139,10 @@ When the default .NET SDK is one Runesmith installed, **Build** runs the `dotnet
 ## Templates
 
 **File › New Project** lists the project templates of every .NET SDK Runesmith finds and of every template package you installed with
-`dotnet new install`, so a package you install shows up the next time the dialog opens. They come from a separate built-in plugin,
-**C# templates** (`runesmith.csharp-templates`); turn it off in **Settings › Plugins** to hide them and keep the rest of C# support.
+`dotnet new install`, so a package you install shows up the next time the dialog opens. They come from a separate plugin that ships with
+Runesmith, **C# templates** (`runesmith.csharp-templates`, developed in
+[RunesmithHub/plugin-csharp-templates](https://github.com/RunesmithHub/plugin-csharp-templates)); turn it off in **Settings › Plugins** to
+hide them and keep the rest of C# support.
 
 The plugin reads the packages without unpacking them:
 

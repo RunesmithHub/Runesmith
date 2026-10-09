@@ -1,6 +1,6 @@
 # Registering an OAuth2 application on Forgejo and Gitea
 
-Runesmith's Forgejo and Gitea plugins sign in through the browser with OAuth2 where an OAuth2 application for Runesmith is registered on
+Runesmith's Gitea and Forgejo plugin signs in through the browser with OAuth2 where an OAuth2 application for Runesmith is registered on
 the server, and with an access token everywhere else. This page explains how to register that application on one server, such as
 Codeberg, gitea.com or a server of your own, and where its client ID goes.
 
@@ -47,13 +47,13 @@ Either:
   sign-in**; select it, paste the client ID and select **Save and Sign In**.
 - Or set it in **Settings › Forgejo** or **Settings › Gitea**, as a `server=ID` pair in **OAuth2 client IDs**:
 
-| Plugin | Setting | Example |
+| Service | Setting | Example |
 | --- | --- | --- |
 | Forgejo | `forgejo.oauthClientIds` | `codeberg.org=1a2b3c4d-..., git.example.com:3000=5e6f7a8b-...` |
 | Gitea | `gitea.oauthClientIds` | `gitea.com=1a2b3c4d-..., example.com/git=5e6f7a8b-...` |
 
 The server is written the way Runesmith shows it: the host, then `:port` when the server is not on the usual port, then the path when it
-lives under one. An ID without a server is for the plugin's default server, Codeberg or gitea.com.
+lives under one. An ID without a server is for the service's default server, Codeberg or gitea.com.
 
 ## 5. Sign in
 
@@ -87,6 +87,7 @@ Paste it into Runesmith's sign-in dialog. Runesmith checks it with `GET /api/v1/
 
 ## References
 
-- Forgejo: [OAuth2 provider](https://forgejo.org/docs/latest/user/oauth2-provider/), [API usage](https://forgejo.org/docs/latest/user/api-usage/)
+- Forgejo: [OAuth2 provider](https://forgejo.org/docs/latest/user/oauth2-provider/), [API
+  usage](https://forgejo.org/docs/latest/user/api-usage/)
 - Gitea: [OAuth2 provider](https://docs.gitea.com/development/oauth2-provider), [API usage](https://docs.gitea.com/development/api-usage)
 - [RFC 7636, PKCE](https://www.rfc-editor.org/rfc/rfc7636) and [RFC 8252, OAuth 2.0 for native apps](https://www.rfc-editor.org/rfc/rfc8252)

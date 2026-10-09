@@ -42,12 +42,12 @@ GitHub Apps give short-lived tokens (8 hours) with a refresh token, fine-grained
 controls per repository, which is why they are the right kind of app here. The app asks for: Contents (read and write), Metadata (read),
 Pull requests (read and write), Workflows (read and write, so commits that change workflows can be pushed) and the user's email address.
 
-The app's identity (app ID, client ID, slug and name) ships in `github-app.json` next to the plugin, read once at startup; a build of
-Runesmith replaces that file to ship its own app. The `github.clientId` and `github.appSlug` settings, empty by default, override it for
-users who register their own app (**Settings > GitHub > Advanced > Use your own GitHub App**, with **Back to Runesmith's app** to clear
-them). When neither names a client ID, the sign-in dialog shows how to register an app. Client and app IDs are public by design: the
-device flow uses no secret, so nothing secret ships. Signing out deletes the tokens. A token the GitHub CLI already has
-(`gh auth token`) can be used instead, for people who prefer it.
+The app's identity (app ID, client ID, slug and name) ships in `github-app.json`, embedded in the plugin's assembly and read once at
+startup; a build of the plugin replaces that file to ship its own app. The `github.clientId` and `github.appSlug` settings, empty by
+default, override it for users who register their own app (**Settings > GitHub > Advanced > Use your own GitHub App**, with **Back to
+Runesmith's app** to clear them). When neither names a client ID, the sign-in dialog shows how to register an app. Client and app IDs are
+public by design: the device flow uses no secret, so nothing secret ships. Signing out deletes the tokens. A token the GitHub CLI already
+has (`gh auth token`) can be used instead, for people who prefer it.
 
 ### Organization access
 
@@ -155,8 +155,9 @@ and the Windows Credential Manager. Where none is available it falls back to a f
 - **Layers:** in the Git plugin, `Git/` drives the command line and knows nothing about the UI, `Repositories/` follows the open folder's
   repository, `Hosting/` finds the host of a remote over the hosting plugins' providers, and `Views/` are the controls. In the GitHub
   plugin, `GitHub/` speaks the REST and GraphQL APIs and the device flow and implements the hosting contracts, and `Views/` holds the
-  sign-in dialog, the account button and the settings section. The avatar cache and small view builders in `plugins/Shared/Views` are
-  compiled into both.
+  sign-in dialog, the account button and the settings section. Each plugin carries its own copy of the avatar cache and small view
+  builders. The plugins live in [RunesmithHub/plugin-git](https://github.com/RunesmithHub/plugin-git) and
+  [RunesmithHub/plugin-github](https://github.com/RunesmithHub/plugin-github).
 - **Tests** run real Git in temporary repositories: status in every state (staged, unstaged, renamed, conflicted, untracked), commits
   with amend, branches, fetch and push against a local bare remote, log parsing with merges, and diffs; the clone dialog's and the
   Pull Requests window's models run over a fake host. The GitHub client is tested against recorded responses, and the device flow against
@@ -174,7 +175,7 @@ and the Windows Credential Manager. Where none is available it falls back to a f
 
 Git itself does not depend on where a repository is hosted, so it lives in its own plugin, `runesmith.git`: the Commit and Git windows,
 the branch widget, history, diffs, change markers, the clone dialog and the Pull Requests window. Hosting services are plugins on top of it:
-`runesmith.github`, `runesmith.forgejo` and `runesmith.gitea`. Each can be switched off on its own.
+`runesmith.github` and `runesmith.gitea`, which serves both Gitea and Forgejo. Each can be switched off on its own.
 
 The contracts between them are in `Runesmith.Sdk.VersionControl`, so every plugin shares them:
 
@@ -193,9 +194,10 @@ The contracts between them are in `Runesmith.Sdk.VersionControl`, so every plugi
 
 ### Forgejo and Gitea
 
-Forgejo started as a fork of Gitea and keeps its REST API (`/api/v1`) compatible, so both plugins share one client and differ in their
-names, icons, default servers and how they recognize a server: **Forgejo** starts with Codeberg (`codeberg.org`) and **Gitea** with
-`gitea.com`, and both add any self-hosted server by its address, checking `/api/v1/version` (and `/api/forgejo/v1/version` for Forgejo).
+Forgejo started as a fork of Gitea and keeps its REST API (`/api/v1`) compatible, so one plugin, **Gitea and Forgejo** (`runesmith.gitea`),
+serves both with one client. The two services keep separate accounts and settings and differ in their names, icons, default servers and how
+they recognize a server: **Forgejo** starts with Codeberg (`codeberg.org`) and **Gitea** with `gitea.com`, and both add any self-hosted
+server by its address, checking `/api/v1/version` (and `/api/forgejo/v1/version` for Forgejo).
 
 Signing in uses OAuth2 with PKCE and a loopback redirect where an OAuth2 application is registered for the server, and otherwise an access
 token the user creates on the server's settings page, with the scopes Runesmith needs listed and a link to that page. Tokens live in the
