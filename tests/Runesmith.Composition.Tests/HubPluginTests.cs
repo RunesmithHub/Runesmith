@@ -53,15 +53,49 @@ public sealed class HubPluginTests : IDisposable
     }
 
     [Fact]
-    public void ALocalCopyOfABundledPluginIsStillADuplicate()
+    public void ALocalCopyWithTheSameVersionRunsInsteadOfTheBundledOne()
     {
         bundled.Add(Greeters.Greeter);
-        user.Add(Greeters.Greeter with { Version = "2.0.0" });
+        user.Add(Greeters.Greeter);
+
+        var plugins = Discover(hub: []);
+
+        Assert.Equal((PluginState.Replaced, "Version 1.0.0 installed locally runs instead."), (plugins[0].State, plugins[0].Error));
+        Assert.Equal((PluginState.Loaded, PluginSource.Local), (plugins[1].State, plugins[1].Source));
+        Assert.Equal(1, Assert.Single(new PluginLoader(plugins).Load()).Index);
+    }
+
+    [Fact]
+    public void TheBundledCopyStaysWhenTheLocalCopyIsOlder()
+    {
+        bundled.Add(Greeters.Greeter with { Version = "1.5.0" });
+        user.Add(Greeters.Greeter with { Version = "1.2.0" });
 
         var plugins = Discover(hub: []);
 
         Assert.Equal(PluginState.Loaded, plugins[0].State);
-        Assert.Equal((PluginState.Failed, PluginSource.Local), (plugins[1].State, plugins[1].Source));
+        Assert.Equal((PluginState.Replaced, PluginSource.Local), (plugins[1].State, plugins[1].Source));
+        Assert.Equal("Runesmith ships version 1.5.0, which runs instead.", plugins[1].Error);
+    }
+
+    [Fact]
+    public void TwoLocalCopiesOfAPluginAreDuplicates()
+    {
+        user.Add(Greeters.Greeter);
+        var other = new TestPluginFolder();
+        try
+        {
+            other.Add(Greeters.Greeter with { Version = "2.0.0" });
+
+            var plugins = PluginDiscovery.Discover([(user.PluginsPath, PluginSource.Local), (other.PluginsPath, PluginSource.Local)], new HashSet<string>());
+
+            Assert.Equal(PluginState.Loaded, plugins[0].State);
+            Assert.Equal((PluginState.Failed, "Another plugin with the id tests.greeter was loaded first."), (plugins[1].State, plugins[1].Error));
+        }
+        finally
+        {
+            other.Dispose();
+        }
     }
 
     [Fact]

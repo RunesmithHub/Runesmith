@@ -135,7 +135,7 @@ public sealed class PluginManagerModel
             if (source == InstalledSource.Bundled && tier is null)
                 tier = PluginTier.Official;
 
-            var replacedBy = all.FirstOrDefault(p => p.Manifest.Id == id && p.State == PluginState.Replaced && p.Source == PluginSource.Hub);
+            var replacedBy = all.FirstOrDefault(p => p.Manifest.Id == id && p.State == PluginState.Replaced && p.Source is PluginSource.Hub or PluginSource.Local);
             var (note, problem) = Note(plugin, hub, state, source, replacesBundled, replacedBy);
             rows.Add(new InstalledRow(id, plugin.Manifest.Name, plugin.Manifest.Version, source == InstalledSource.Local ? null : tier, source, note, problem,
                 !off.Contains(id) && !report.Withheld.ContainsKey(id), CanToggle: !report.Withheld.ContainsKey(id) || plugin.Source == PluginSource.Bundled)

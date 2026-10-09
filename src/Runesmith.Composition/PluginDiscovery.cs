@@ -15,7 +15,7 @@ public static class PluginDiscovery
     public static SemanticVersion OldestSupportedApiVersion { get; } = ToSemanticVersion(RunesmithApi.OldestSupported);
 
     /// <summary>Finds the plugins in the given folders; earlier folders come first, and a plugin found again later is reported as a
-    /// duplicate, except that a newer copy the hub installed replaces the one Runesmith ships.</summary>
+    /// duplicate, except that a newer copy the hub installed, or a local copy at least as new, replaces the one Runesmith ships.</summary>
     /// <param name="disabledIds">The ids of plugins the user turned off.</param>
     /// <param name="hubIds">The ids of the plugins in a local folder that the plugin hub installed.</param>
     /// <param name="withheld">The plugins Runesmith keeps from loading, with why.</param>
@@ -54,13 +54,13 @@ public static class PluginDiscovery
                 {
                     if (ReplacesBundled(plugin, plugins[earlier]))
                     {
-                        plugins[earlier] = plugins[earlier] with { State = PluginState.Replaced, Error = $"Version {plugin.Manifest.Version} from the hub runs instead." };
+                        plugins[earlier] = plugins[earlier] with { State = PluginState.Replaced, Error = $"Version {plugin.Manifest.Version} {Origin(plugin)} runs instead." };
                         seen[plugin.Manifest.Id] = plugins.Count;
                     }
-                    else if (plugin.Source == PluginSource.Hub && plugins[earlier].Source == PluginSource.Bundled)
+                    else if (plugin.Source is PluginSource.Hub or PluginSource.Local && plugins[earlier].Source == PluginSource.Bundled)
                     {
                         var instead = $"Runesmith ships version {plugins[earlier].Manifest.Version}, which runs instead.";
-                        plugin = plugin with { State = PluginState.Replaced, Error = plugin.Error is { } error ? $"Version {plugin.Manifest.Version} from the hub could not load: {error} {instead}" : instead };
+                        plugin = plugin with { State = PluginState.Replaced, Error = plugin.Error is { } error ? $"Version {plugin.Manifest.Version} {Origin(plugin)} could not load: {error} {instead}" : instead };
                     }
                     else
                     {
@@ -79,10 +79,14 @@ public static class PluginDiscovery
         return plugins;
     }
 
-    // A hub copy replaces the bundled one only when it can run and is newer, so the bundled copy stays the fallback.
-    private static bool ReplacesBundled(PluginInfo hub, PluginInfo bundled) =>
-        hub.Source == PluginSource.Hub && bundled.Source == PluginSource.Bundled && hub.State == PluginState.Loaded
-        && SemanticVersion.TryParse(hub.Manifest.Version, out var newer) && SemanticVersion.TryParse(bundled.Manifest.Version, out var older) && newer > older;
+    // A copy replaces the bundled one only when it can run and is newer, so the bundled copy stays the fallback; a local copy, as a plugin's
+    // developer installs it, may also have the same version.
+    private static bool ReplacesBundled(PluginInfo copy, PluginInfo bundled) =>
+        copy.Source is PluginSource.Hub or PluginSource.Local && bundled.Source == PluginSource.Bundled && copy.State == PluginState.Loaded
+        && SemanticVersion.TryParse(copy.Manifest.Version, out var version) && SemanticVersion.TryParse(bundled.Manifest.Version, out var shipped)
+        && (version > shipped || (copy.Source == PluginSource.Local && version == shipped));
+
+    private static string Origin(PluginInfo plugin) => plugin.Source == PluginSource.Hub ? "from the hub" : "installed locally";
 
     /// <summary>Gets whether a plugin that works with the API versions in <paramref name="range"/> runs on an API: the API's version is in
     /// the range, and the range's lowest version, the one the plugin was built against, is at least the oldest version the API supports.</summary>
