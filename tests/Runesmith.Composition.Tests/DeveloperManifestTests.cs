@@ -7,26 +7,6 @@ public sealed class DeveloperManifestTests
 {
     private static readonly string Repository = FindRepository();
 
-    public static TheoryData<string> BundledPlugins() =>
-        [.. Directory.EnumerateDirectories(Path.Combine(Repository, "plugins"), "Runesmith.*").Select(path => Path.GetFileName(path))];
-
-    [Theory]
-    [MemberData(nameof(BundledPlugins))]
-    public void EveryBundledPluginHasAValidManifestWithItsProjectsAndIcon(string plugin)
-    {
-        var root = Path.Combine(Repository, "plugins", plugin);
-
-        var result = ManifestValidator.Validate(File.ReadAllBytes(Path.Combine(root, "plugin.json")));
-
-        Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Problems));
-        Assert.Equal($"{plugin}.Contracts/{plugin}.Contracts.csproj", result.Manifest.Projects?.Contracts);
-        Assert.Equal($"{plugin}/{plugin}.csproj", result.Manifest.Projects?.Implementation);
-        Assert.True(File.Exists(Path.Combine(root, result.Manifest.Projects!.Contracts!)));
-        Assert.True(File.Exists(Path.Combine(root, result.Manifest.Projects.Implementation!)));
-        Assert.True(File.Exists(Path.Combine(root, result.Manifest.Icon!)));
-        Assert.Equal("https://github.com/RunesmithHub/Runesmith", result.Manifest.Repository);
-    }
-
     [Fact]
     public void ThePluginTemplatesManifestIsValidOnceCreated()
     {

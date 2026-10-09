@@ -35,36 +35,40 @@
     <InternalsVisibleTo Include="Runesmith.App.Tests" />
   </ItemGroup>
 
-  <!-- The built-in plugins load like any other plugin, from plugins/<id> next to the executable, laid out as the SDK's RunesmithPluginLayout
-       target does. -->
-  <ItemGroup>
-    <BundledPlugin Include="..\..\plugins\Runesmith.CSharp\Runesmith.CSharp\Runesmith.CSharp.csproj" />
-    <BundledPlugin Include="..\..\plugins\Runesmith.Java\Runesmith.Java\Runesmith.Java.csproj" />
-    <BundledPlugin Include="..\..\plugins\Runesmith.Git\Runesmith.Git\Runesmith.Git.csproj" />
-    <BundledPlugin Include="..\..\plugins\Runesmith.GitHub\Runesmith.GitHub\Runesmith.GitHub.csproj" />
-    <BundledPlugin Include="..\..\plugins\Runesmith.Forgejo\Runesmith.Forgejo\Runesmith.Forgejo.csproj" />
-    <BundledPlugin Include="..\..\plugins\Runesmith.Gitea\Runesmith.Gitea\Runesmith.Gitea.csproj" />
-    <BundledPlugin Include="..\..\plugins\Runesmith.CSharp.Templates\Runesmith.CSharp.Templates\Runesmith.CSharp.Templates.csproj" />
-    <BundledPlugin Include="..\..\plugins\Runesmith.Java.Templates\Runesmith.Java.Templates\Runesmith.Java.Templates.csproj" />
-  </ItemGroup>
-  <Target Name="BuildBundledPlugins" AfterTargets="Build">
-    <!-- Restoring the app does not restore the plugins, which are not its references; a fresh checkout restores them here. -->
-    <ItemGroup>
-      <_UnrestoredBundledPlugin Include="@(BundledPlugin)" Condition="!Exists('%(RootDir)%(Directory)obj/project.assets.json')" />
-    </ItemGroup>
-    <MSBuild Projects="@(_UnrestoredBundledPlugin)" Targets="Restore" Condition="'@(_UnrestoredBundledPlugin)' != ''"
+  <!-- The official plugins Runesmith ships, pinned in bundled-plugins.json: tools/Runesmith.BundledPlugins fetches them from the plugin hub,
+       checks them against its signed index and unpacks them, and they load like any other plugin from plugins/<id> next to the executable.
+       Without a network connection, Debug builds leave out the plugins they have not fetched before; Release builds and publishing fail. -->
+  <PropertyGroup>
+    <BundledPluginsFile>$(MSBuildThisFileDirectory)../../bundled-plugins.json</BundledPluginsFile>
+    <BundledPluginsTool>$(MSBuildThisFileDirectory)../../tools/Runesmith.BundledPlugins/Runesmith.BundledPlugins.csproj</BundledPluginsTool>
+    <BundledPluginsCache>$(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)bundled-plugins</BundledPluginsCache>
+  </PropertyGroup>
+  <Target Name="BundlePlugins" AfterTargets="Build">
+    <!-- Restoring the app does not restore the tool, which is not its reference; a fresh checkout restores it here. -->
+    <MSBuild Projects="$(BundledPluginsTool)" Targets="Restore" Condition="!Exists('$(MSBuildThisFileDirectory)../../tools/Runesmith.BundledPlugins/obj/project.assets.json')"
              Properties="Configuration=$(Configuration);MSBuildRestoreSessionId=$([System.Guid]::NewGuid())" RemoveProperties="RuntimeIdentifier;SelfContained;PublishDir;_IsPublishing" />
-    <!-- Plugins do not depend on the platform, so a publish for one runtime must not pass the runtime on to them. -->
-    <MSBuild Projects="@(BundledPlugin)" Targets="RunesmithPluginLayout" Properties="Configuration=$(Configuration)" RemoveProperties="RuntimeIdentifier;SelfContained;PublishDir;_IsPublishing">
-      <Output TaskParameter="TargetOutputs" ItemName="_BundledPluginFile" />
+    <MSBuild Projects="$(BundledPluginsTool)" Targets="Build" Properties="Configuration=$(Configuration)" RemoveProperties="RuntimeIdentifier;SelfContained;PublishDir;_IsPublishing">
+      <Output TaskParameter="TargetOutputs" PropertyName="_BundledPluginsToolPath" />
     </MSBuild>
+    <PropertyGroup>
+      <_DotnetHost>$(DOTNET_HOST_PATH)</_DotnetHost>
+      <_DotnetHost Condition="'$(_DotnetHost)' == ''">dotnet</_DotnetHost>
+      <_BundledPluginsRequired Condition="'$(Configuration)' == 'Release' or '$(_IsPublishing)' == 'true'"> --require</_BundledPluginsRequired>
+    </PropertyGroup>
+    <Exec Command="&quot;$(_DotnetHost)&quot; &quot;$(_BundledPluginsToolPath)&quot; &quot;$(BundledPluginsFile)&quot; &quot;$(MSBuildThisFileDirectory)Hub/root.json&quot; &quot;$(BundledPluginsCache)&quot;$(_BundledPluginsRequired)"
+          StandardOutputImportance="high" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="_BundledPluginsExitCode" />
+    </Exec>
+    <!-- The tool reports its own errors and then exits with 1; any other failure is a crash. -->
+    <Error Condition="'$(_BundledPluginsExitCode)' != '0' and '$(_BundledPluginsExitCode)' != '1'" Text="Runesmith.BundledPlugins stopped with exit code $(_BundledPluginsExitCode)." />
     <ItemGroup>
-      <_StaleBundledPluginFile Include="$(OutDir)plugins/**/*" Exclude="@(_BundledPluginFile->'$(OutDir)plugins/%(PluginId)/%(RelativePath)')" />
+      <_BundledPluginFile Include="$(BundledPluginsCache)/plugins/**/*" />
+      <_StaleBundledPluginFile Include="$(OutDir)plugins/**/*" Exclude="@(_BundledPluginFile->'$(OutDir)plugins/%(RecursiveDir)%(Filename)%(Extension)')" />
     </ItemGroup>
     <Delete Files="@(_StaleBundledPluginFile)" />
-    <Copy SourceFiles="@(_BundledPluginFile)" DestinationFiles="@(_BundledPluginFile->'$(OutDir)plugins/%(PluginId)/%(RelativePath)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_BundledPluginFile)" DestinationFiles="@(_BundledPluginFile->'$(OutDir)plugins/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
-  <Target Name="PublishBundledPlugins" AfterTargets="Publish" DependsOnTargets="BuildBundledPlugins">
-    <Copy SourceFiles="@(_BundledPluginFile)" DestinationFiles="@(_BundledPluginFile->'$(PublishDir)plugins/%(PluginId)/%(RelativePath)')" SkipUnchangedFiles="true" />
+  <Target Name="PublishBundledPlugins" AfterTargets="Publish" DependsOnTargets="BundlePlugins">
+    <Copy SourceFiles="@(_BundledPluginFile)" DestinationFiles="@(_BundledPluginFile->'$(PublishDir)plugins/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 </Project>

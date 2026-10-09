@@ -1,0 +1,12 @@
+{
+  "index": "https://runesmithhub.github.io/registry/",
+  "plugins": [
+    { "id": "runesmith.csharp", "version": "0.1.0", "sha256": "b985baa080ce4bd3cdcf5dec5d6904777dda662da243da8cdd4d86b053afbad3" },
+    { "id": "runesmith.csharp-templates", "version": "0.1.0", "sha256": "735469113b5bc9f15f02edc94748d674236dbb16e6afd15d8105664ea0305c87" },
+    { "id": "runesmith.java", "version": "0.1.0", "sha256": "902fb29354dbd4ce5cf1edd85864d68234ff4fff604f09aee3e2e190e423218e" },
+    { "id": "runesmith.java-templates", "version": "0.1.0", "sha256": "d6fb5350a33caa56feea86757ed7f7cf33cfafd59e8867b0cf7d7ed8518d4b4b" },
+    { "id": "runesmith.git", "version": "0.1.0", "sha256": "aa827f7217dd83ce6b0f3633205e074138558c16443ee5f0c51ef69228bbfd81" },
+    { "id": "runesmith.github", "version": "0.1.0", "sha256": "a1f9b20db9cebaffaac5eea24db82a4037ccdb12466aeb2b7f00bd5e359f6f87" },
+    { "id": "runesmith.gitea", "version": "0.1.0", "sha256": "16c2a8a0c6a1f7c097f663d43a126efdc7aeaec65050c32914c5a2517a6bacfb" }
+  ]
+}

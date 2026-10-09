@@ -1,5 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <Description>The public API of the Gitea plugin, for plugins that depend on it. Empty while the plugin offers none.</Description>
-  </PropertyGroup>
-</Project>

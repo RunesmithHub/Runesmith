@@ -12,19 +12,6 @@
     <PackageReference Include="RunesmithHub.Protocol" Condition="!Exists('$(HubProtocolProject)')" />
   </ItemGroup>
 
-  <!-- Runesmith's own plugins lay themselves out with the SDK package's targets, with Runesmith's logo as their icon. -->
-  <PropertyGroup Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)plugins'))">
-    <RunesmithPluginIcon64>$(MSBuildThisFileDirectory)packaging/linux/share/icons/hicolor/64x64/apps/runesmith.png</RunesmithPluginIcon64>
-    <RunesmithPluginIcon128>$(MSBuildThisFileDirectory)packaging/linux/share/icons/hicolor/128x128/apps/runesmith.png</RunesmithPluginIcon128>
-  </PropertyGroup>
-  <Import Project="$(MSBuildThisFileDirectory)src/Runesmith.Sdk/build/Runesmith.Sdk.targets" Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)plugins'))" />
-
-  <!-- Plugins that set UsesHostHammerUI build against HammerUI and load Runesmith's own copy, so none of it lands next to the plugin. -->
-  <ItemGroup Condition="'$(UsesHostHammerUI)' == 'true'">
-    <ProjectReference Include="$(HammerUIProject)" Condition="Exists('$(HammerUIProject)')" Private="false" ExcludeAssets="runtime" />
-    <PackageReference Include="HammerUI" Condition="!Exists('$(HammerUIProject)')" ExcludeAssets="runtime" />
-  </ItemGroup>
-
   <!-- Published applications carry the licenses of what they ship in a licenses folder: Runesmith's own, and the license and notices
        files of every NuGet package that contributes files. -->
   <Target Name="PublishLicenses" AfterTargets="ComputeResolvedFilesToPublishList" Condition="'$(OutputType)' == 'Exe' or '$(OutputType)' == 'WinExe'">

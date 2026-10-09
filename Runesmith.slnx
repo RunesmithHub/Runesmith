@@ -16,23 +16,8 @@
     <Project Path="src/Runesmith.Shell/Runesmith.Shell.csproj" />
     <Project Path="src/Runesmith.App/Runesmith.App.csproj" />
   </Folder>
-  <Folder Name="/plugins/">
-    <Project Path="plugins/Runesmith.CSharp/Runesmith.CSharp/Runesmith.CSharp.csproj" />
-    <Project Path="plugins/Runesmith.CSharp/Runesmith.CSharp.Contracts/Runesmith.CSharp.Contracts.csproj" />
-    <Project Path="plugins/Runesmith.CSharp.Templates/Runesmith.CSharp.Templates/Runesmith.CSharp.Templates.csproj" />
-    <Project Path="plugins/Runesmith.CSharp.Templates/Runesmith.CSharp.Templates.Contracts/Runesmith.CSharp.Templates.Contracts.csproj" />
-    <Project Path="plugins/Runesmith.Forgejo/Runesmith.Forgejo/Runesmith.Forgejo.csproj" />
-    <Project Path="plugins/Runesmith.Forgejo/Runesmith.Forgejo.Contracts/Runesmith.Forgejo.Contracts.csproj" />
-    <Project Path="plugins/Runesmith.Git/Runesmith.Git/Runesmith.Git.csproj" />
-    <Project Path="plugins/Runesmith.Git/Runesmith.Git.Contracts/Runesmith.Git.Contracts.csproj" />
-    <Project Path="plugins/Runesmith.GitHub/Runesmith.GitHub/Runesmith.GitHub.csproj" />
-    <Project Path="plugins/Runesmith.GitHub/Runesmith.GitHub.Contracts/Runesmith.GitHub.Contracts.csproj" />
-    <Project Path="plugins/Runesmith.Gitea/Runesmith.Gitea/Runesmith.Gitea.csproj" />
-    <Project Path="plugins/Runesmith.Gitea/Runesmith.Gitea.Contracts/Runesmith.Gitea.Contracts.csproj" />
-    <Project Path="plugins/Runesmith.Java/Runesmith.Java/Runesmith.Java.csproj" />
-    <Project Path="plugins/Runesmith.Java/Runesmith.Java.Contracts/Runesmith.Java.Contracts.csproj" />
-    <Project Path="plugins/Runesmith.Java.Templates/Runesmith.Java.Templates/Runesmith.Java.Templates.csproj" />
-    <Project Path="plugins/Runesmith.Java.Templates/Runesmith.Java.Templates.Contracts/Runesmith.Java.Templates.Contracts.csproj" />
+  <Folder Name="/tools/">
+    <Project Path="tools/Runesmith.BundledPlugins/Runesmith.BundledPlugins.csproj" />
   </Folder>
   <Folder Name="/templates/">
     <Project Path="templates/Runesmith.Templates/Runesmith.Templates.csproj" />
@@ -53,14 +38,6 @@
     <Project Path="tests/Runesmith.Editor.Tests/Runesmith.Editor.Tests.csproj" />
     <Project Path="tests/Runesmith.Shell.Tests/Runesmith.Shell.Tests.csproj" />
     <Project Path="tests/Runesmith.App.Tests/Runesmith.App.Tests.csproj" />
-    <Project Path="tests/Runesmith.CSharp.Tests/Runesmith.CSharp.Tests.csproj" />
-    <Project Path="tests/Runesmith.CSharp.Templates.Tests/Runesmith.CSharp.Templates.Tests.csproj" />
-    <Project Path="tests/Runesmith.Forgejo.Tests/Runesmith.Forgejo.Tests.csproj" />
-    <Project Path="tests/Runesmith.Git.Tests/Runesmith.Git.Tests.csproj" />
-    <Project Path="tests/Runesmith.GitHub.Tests/Runesmith.GitHub.Tests.csproj" />
-    <Project Path="tests/Runesmith.Gitea.Tests/Runesmith.Gitea.Tests.csproj" />
-    <Project Path="tests/Runesmith.Java.Tests/Runesmith.Java.Tests.csproj" />
-    <Project Path="tests/Runesmith.Java.Templates.Tests/Runesmith.Java.Templates.Tests.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/Runesmith.Benchmarks/Runesmith.Benchmarks.csproj" />

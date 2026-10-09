@@ -1,5 +1,0 @@
-HTTP/2 200 
-access-control-expose-headers: Link, X-Total-Count
-content-type: application/json;charset=utf-8
-link: <https://codeberg.org/api/v1/repos/forgejo/forgejo/pulls?limit=2&page=2&state=open>; rel="next",<https://codeberg.org/api/v1/repos/forgejo/forgejo/pulls?limit=2&page=76&state=open>; rel="last"
-x-total-count: 152
