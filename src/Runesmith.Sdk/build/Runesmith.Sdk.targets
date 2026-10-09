@@ -1,8 +1,11 @@
 <Project>
   <!-- Lays out a plugin's implementation project as Runesmith loads it: plugin.json written from the plugin's own plugin.json, the build
-       output in lib/ and, when given, the icons in icon/. dotnet build -t:InstallPlugin copies that folder into the user's plugins folder. -->
+       output in lib/ and the icons in icon/. dotnet build -t:InstallPlugin copies that folder into the user's plugins folder. -->
   <PropertyGroup>
     <RunesmithPluginRoot Condition="'$(RunesmithPluginRoot)' == ''">$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '..'))</RunesmithPluginRoot>
+    <!-- The icon sizes default to icon.png in the plugin root. -->
+    <RunesmithPluginIcon64 Condition="'$(RunesmithPluginIcon64)' == '' and Exists('$(RunesmithPluginRoot)icon.png')">$(RunesmithPluginRoot)icon.png</RunesmithPluginIcon64>
+    <RunesmithPluginIcon128 Condition="'$(RunesmithPluginIcon128)' == '' and Exists('$(RunesmithPluginRoot)icon.png')">$(RunesmithPluginRoot)icon.png</RunesmithPluginIcon128>
     <RunesmithPluginLayoutDir Condition="'$(RunesmithPluginLayoutDir)' == ''">$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(BaseOutputPath)', '$(Configuration)', 'plugin'))</RunesmithPluginLayoutDir>
   </PropertyGroup>
 
