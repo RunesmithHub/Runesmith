@@ -123,7 +123,8 @@ public sealed class AnalyzerEditingTests : IDisposable
         var settings = new TestSettings();
         var provider = new AnalyzerDecorationProvider(bridge, settings);
         var changes = 0;
-        provider.Changed += (_, _) => changes++;
+        // The analyzer finishing its check of the document also raises Changed, with the document's path, at a time the test cannot control.
+        provider.Changed += (_, e) => changes += e.FilePath is null ? 1 : 0;
         var request = new DecorationRequest(document, document.Buffer.Current);
 
         var off = await provider.GetDecorationsAsync(request, Token);

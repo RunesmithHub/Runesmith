@@ -39,7 +39,8 @@ internal sealed class TempRepository : IDisposable
     public static async Task<TempRepository> CloneAsync(string source)
     {
         var path = Directory.CreateTempSubdirectory("runesmith-clone-").FullName;
-        await GitProcess.RunCheckedAsync(path, ["clone", "--quiet", source, "."], Token);
+        // The checkout happens during the clone, before ConfigureAsync, so line endings must be settled here too.
+        await GitProcess.RunCheckedAsync(path, ["clone", "--quiet", "--config", "core.autocrlf=false", source, "."], Token);
         await ConfigureAsync(path);
         return await OpenAsync(path, null);
     }
