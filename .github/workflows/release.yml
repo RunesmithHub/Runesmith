@@ -156,13 +156,13 @@ jobs:
               path: "https://nuget.runesmith.dev/", baseURI: "https://nuget.runesmith.dev/", accessKeyId: $accessKeyId, secretAccessKey: $secretAccessKey}]}' \
             > "$RUNNER_TEMP/sleet.json"
 
-      # Without --force, a version already on the feed fails the push, so published packages never change.
+      # Versions already on the feed are skipped, never overwritten, so a re-run finishes what a failed run started.
       - name: Push to the hub feed
         # R2 rejects the whole-object checksums the AWS SDK adds to multipart uploads.
         env:
           AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
           AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
-        run: '"$RUNNER_TEMP/tools/sleet" push packages --config "$RUNNER_TEMP/sleet.json" --source hub-feed'
+        run: '"$RUNNER_TEMP/tools/sleet" push packages --config "$RUNNER_TEMP/sleet.json" --source hub-feed --skip-existing'
 
       - name: Remove the Sleet configuration
         if: ${{ always() }}
