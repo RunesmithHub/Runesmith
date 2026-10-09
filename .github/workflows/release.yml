@@ -1,8 +1,7 @@
-# When a version tag such as v0.2.0 is pushed: publishes Runesmith for each platform, creates a GitHub release with the archives,
-# and pushes the plugin SDK, text, language and template packages to the plugin hub's feed. A tag such as sdk/v0.2.0 pushes only the
-# packages. Pull
-# requests that change this workflow, the app, the bundled plugins or the build targets, and runs on demand, build everything without
-# releasing it.
+# When a version tag such as v0.2.0 is pushed: publishes Runesmith for each platform with the plugins bundled-plugins.json pins, creates a
+# GitHub release with the archives, and pushes the plugin SDK, text, language and template packages to the plugin hub's feed. A tag such
+# as sdk/v0.2.0 pushes only the packages. Pull requests that change this workflow, the app, the bundled plugins or the build targets, and
+# runs on demand, build everything without releasing it.
 name: Release
 
 on:
@@ -12,7 +11,8 @@ on:
     paths:
       - .github/workflows/release.yml
       - src/Runesmith.App/**
-      - plugins/**
+      - bundled-plugins.json
+      - tools/**
       - Directory.Build.targets
   workflow_dispatch:
 
@@ -63,6 +63,12 @@ jobs:
 
       - name: Publish
         run: dotnet publish src/Runesmith.App --configuration Release --runtime ${{ matrix.rid }} --self-contained --output "artifacts/runesmith" -warnaserror
+
+      - name: Check that every bundled plugin is in the output
+        run: |
+          for id in $(jq -r ".plugins[].id" bundled-plugins.json | tr -d "\r"); do
+            if [[ ! -f "artifacts/runesmith/plugins/$id/plugin.json" ]]; then echo "::error::The published app has no plugins/$id."; exit 1; fi
+          done
 
       - name: Archive
         env:
