@@ -1,12 +1,13 @@
 # When a version tag such as v0.2.0 is pushed: publishes Runesmith for each platform, creates a GitHub release with the archives,
-# and pushes the plugin SDK, text and template packages to the plugin hub's feed. Pull
+# and pushes the plugin SDK, text, language and template packages to the plugin hub's feed. A tag such as sdk/v0.2.0 pushes only the
+# packages. Pull
 # requests that change this workflow, the app, the bundled plugins or the build targets, and runs on demand, build everything without
 # releasing it.
 name: Release
 
 on:
   push:
-    tags: ["v*"]
+    tags: ["v*", "sdk/v*"]
   pull_request:
     paths:
       - .github/workflows/release.yml
@@ -26,6 +27,7 @@ env:
 jobs:
   publish:
     name: Publish for ${{ matrix.rid }}
+    if: ${{ !startsWith(github.ref, 'refs/tags/sdk/') }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
@@ -44,6 +46,8 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
 
       - name: Set up .NET from global.json
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
@@ -77,7 +81,7 @@ jobs:
           if-no-files-found: error
 
   packages:
-    name: Pack the plugin SDK and template
+    name: Pack the plugin SDK, language and template packages
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -85,6 +89,8 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
 
       - name: Set up .NET from global.json
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
@@ -94,14 +100,20 @@ jobs:
       - name: Take the version from the tag
         run: |
           base=$(dotnet msbuild src/Runesmith.Sdk -getProperty:RunesmithVersion)
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version="${GITHUB_REF_NAME#v}"; else version="$base-ci.$GITHUB_RUN_NUMBER"; fi
+          case "$GITHUB_REF" in
+            refs/tags/sdk/v*) version="${GITHUB_REF_NAME#sdk/v}" ;;
+            refs/tags/v*) version="${GITHUB_REF_NAME#v}" ;;
+            *) version="$base-ci.$GITHUB_RUN_NUMBER" ;;
+          esac
           echo "RunesmithVersion=$version" >> "$GITHUB_ENV"
 
-      # Plugins build against the SDK package, which depends on the text package; the template creates such plugins.
+      # Plugins build against the SDK package, which depends on the text package, and the language plugins against the language engines;
+      # the template creates such plugins.
       - name: Pack
         run: |
-          dotnet pack src/Runesmith.Text --configuration Release --output artifacts/packages -warnaserror
-          dotnet pack src/Runesmith.Sdk --configuration Release --output artifacts/packages -warnaserror
+          for project in Runesmith.Text Runesmith.Sdk Runesmith.LanguageServices Runesmith.Languages.Java.Syntax Runesmith.Languages.Java Runesmith.Languages.CSharp; do
+            dotnet pack "src/$project" --configuration Release --output artifacts/packages -warnaserror
+          done
           dotnet pack templates/Runesmith.Templates --configuration Release --output artifacts/packages -warnaserror
 
       # Plugins restore Runesmith.Sdk, and through it Runesmith.Text, from the hub feed, and plugin authors install the template from it.
@@ -112,6 +124,8 @@ jobs:
           path: |
             artifacts/packages/Runesmith.Sdk.*.nupkg
             artifacts/packages/Runesmith.Text.*.nupkg
+            artifacts/packages/Runesmith.LanguageServices.*.nupkg
+            artifacts/packages/Runesmith.Languages.*.nupkg
             artifacts/packages/Runesmith.Templates.*.nupkg
           retention-days: 7
           if-no-files-found: error
@@ -119,7 +133,7 @@ jobs:
   hub-feed:
     name: Push the packages to the hub feed
     needs: packages
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/sdk/v')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: hub-feed
