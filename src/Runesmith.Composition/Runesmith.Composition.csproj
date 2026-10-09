@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Finds, validates and loads plugins, and composes them with VS-MEF behind a cached composition.</Description>
+    <UsesHubProtocol>true</UsesHubProtocol>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.Composition" />
+    <!-- Plugins load System.Composition from the host, so the host ships the version plugins such as the compiler are built against. -->
+    <PackageReference Include="System.Composition.Convention" />
+    <PackageReference Include="System.Composition.Hosting" />
+    <PackageReference Include="System.Composition.Runtime" />
+    <PackageReference Include="System.Composition.TypedParts" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Sdk\Runesmith.Sdk.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Composition.Tests" />
+  </ItemGroup>
+</Project>

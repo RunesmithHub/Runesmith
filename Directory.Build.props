@@ -1,0 +1,41 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <!-- Plugins build against the SDK package, which depends on the text buffer; nothing else is published to NuGet. -->
+    <IsPackable>false</IsPackable>
+    <IsPackable Condition="'$(MSBuildProjectName)' == 'Runesmith.Sdk' or '$(MSBuildProjectName)' == 'Runesmith.Text'">true</IsPackable>
+    <Authors>Dylan de Beer</Authors>
+    <Product>Runesmith</Product>
+    <Copyright>Copyright 2026 Dylan de Beer</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/RunesmithHub/Runesmith</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/RunesmithHub/Runesmith</RepositoryUrl>
+    <!-- Releases set RunesmithVersion from the tag, as an environment variable. -->
+    <RunesmithVersion Condition="'$(RunesmithVersion)' == ''">0.1.0</RunesmithVersion>
+    <Version>$(RunesmithVersion)</Version>
+    <!-- The HammerUI and hub checkouts beside this one, used instead of their packages while they exist. -->
+    <HammerUIProject>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../HammerUI/src/HammerUI/HammerUI.csproj'))</HammerUIProject>
+    <HubProtocolProject>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../hub/src/RunesmithHub.Protocol/RunesmithHub.Protocol.csproj'))</HubProtocolProject>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true' and '$(IsBenchmarkProject)' != 'true'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573;CA1051;CA1716;CA1720</NoWarn>
+  </PropertyGroup>
+
+  <!-- Rejects calls that are easy to get wrong; BannedSymbols.txt says why for each one and what to use instead. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+
+  <!-- Lets CI save a dump of a test run that hangs and stop it. Items see the project's own properties, so this reaches every test project. -->
+  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+    <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,69 @@
+// Renovate opens a pull request for each dependency update. It never merges one: every update waits for green CI and a review.
+// Pending updates are listed in the Dependency Dashboard issue. Its commits follow Conventional Commits, as every commit must.
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: ['config:recommended', 'helpers:pinGitHubActionDigests', ':semanticCommits', ':semanticCommitTypeAll(chore)'],
+  automerge: false,
+  timezone: 'Europe/Amsterdam',
+  schedule: ['before 9am on monday'],
+  prConcurrentLimit: 10,
+  prHourlyLimit: 5,
+  labels: ['dependencies'],
+  osvVulnerabilityAlerts: true,
+  vulnerabilityAlerts: {
+    labels: ['dependencies', 'security'],
+    schedule: ['at any time'],
+  },
+  lockFileMaintenance: {
+    enabled: true,
+    schedule: ['before 9am on the first day of the month'],
+  },
+  packageRules: [
+    {
+      description: 'Updates to the actions change the workflows, so their commits are ci(deps) rather than chore(deps).',
+      matchManagers: ['github-actions'],
+      semanticCommitType: 'ci',
+    },
+    {
+      description: 'Give new npm releases three days, in which a broken or compromised release is usually pulled.',
+      matchDatasources: ['npm'],
+      minimumReleaseAge: '3 days',
+    },
+    {
+      description: 'global.json sets the oldest SDK that builds the repository, and CI installs the newest one anyway, so only a new feature band raises it.',
+      matchPackageNames: ['dotnet-sdk'],
+      allowedVersions: '/^\\d+\\.\\d+\\.\\d00$/',
+    },
+    {
+      description: 'xUnit and the Microsoft Testing Platform move together.',
+      matchPackageNames: ['xunit.v3', 'xunit.runner.visualstudio', 'Microsoft.NET.Test.Sdk', 'Microsoft.Testing.*'],
+      groupName: 'xUnit and the test platform',
+    },
+    {
+      matchPackageNames: ['react', 'react-dom', '@types/react'],
+      groupName: 'React',
+    },
+    {
+      description: 'The TextMate engine and its bundled grammars must match.',
+      matchPackageNames: ['TextMateSharp', 'TextMateSharp.Grammars'],
+      groupName: 'TextMateSharp',
+    },
+    {
+      description: 'HammerUI is built from its own repository next to this one, so Renovate leaves its development version alone.',
+      matchPackageNames: ['HammerUI'],
+      enabled: false,
+    },
+    {
+      description: 'Moving to the next .NET release is a decision, so its major waits for approval on the dashboard.',
+      matchPackageNames: ['dotnet-sdk'],
+      matchUpdateTypes: ['major'],
+      dependencyDashboardApproval: true,
+    },
+    {
+      description: 'A new Avalonia major changes the controls HammerUI styles and the editor draws on, so it waits for approval on the dashboard.',
+      matchPackageNames: ['Avalonia', 'Avalonia.*'],
+      matchUpdateTypes: ['major'],
+      dependencyDashboardApproval: true,
+    },
+  ],
+}

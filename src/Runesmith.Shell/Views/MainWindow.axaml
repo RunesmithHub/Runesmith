@@ -1,0 +1,265 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="https://github.com/runesmithhub/hammerui"
+        xmlns:dock="using:HammerUI.Docking"
+        xmlns:services="using:Runesmith.Shell.Services"
+        xmlns:views="using:Runesmith.Shell.Views"
+        x:Class="Runesmith.Shell.Views.MainWindow"
+        Title="Runesmith"
+        Width="1440" Height="900"
+        MinWidth="720" MinHeight="480"
+        WindowStartupLocation="CenterScreen">
+  <Window.Styles>
+    <!-- The search field in the middle of the toolbar -->
+    <Style Selector="Button.search-field">
+      <Setter Property="Background" Value="{DynamicResource Surface1Brush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+      <Setter Property="FontWeight" Value="Normal" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Padding" Value="8,0,4,0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="CornerRadius" Value="{DynamicResource CornerRadiusMedium}" />
+    </Style>
+    <Style Selector="Button.search-field /template/ Border#PART_Root">
+      <Setter Property="BoxShadow" Value="none" />
+    </Style>
+    <Style Selector="Button.search-field:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    </Style>
+
+    <!-- The project widget's tile with the folder's first letter -->
+    <Style Selector="Border.project-tile">
+      <Setter Property="Width" Value="20" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="CornerRadius" Value="5" />
+      <Setter Property="Background" Value="{DynamicResource SurfacePressedBrush}" />
+    </Style>
+
+    <!-- The classic menu bar, when the settings ask for it -->
+    <Style Selector="Border.menubar">
+      <Setter Property="Background" Value="{DynamicResource Surface0Brush}" />
+      <Setter Property="Padding" Value="4,0" />
+      <Setter Property="Height" Value="32" />
+    </Style>
+
+    <!-- Tool window areas and the gutters between them -->
+    <Style Selector=":is(DockPanel).tool-area">
+      <Setter Property="Background" Value="{DynamicResource Surface1Brush}" />
+    </Style>
+    <Style Selector="DockPanel.area-header">
+      <Setter Property="Height" Value="36" />
+      <Setter Property="Margin" Value="12,0,6,0" />
+    </Style>
+    <Style Selector="TextBlock.area-title">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+    <!-- A window's own header actions show while the pointer is over its area -->
+    <Style Selector=":is(DockPanel).tool-area ContentControl.content-actions">
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector=":is(DockPanel).tool-area:pointerover ContentControl.content-actions, :is(DockPanel).tool-area:focus-within ContentControl.content-actions">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="GridSplitter.workbench">
+      <Setter Property="Background" Value="{DynamicResource Surface0Brush}" />
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Focusable" Value="False" />
+    </Style>
+    <Style Selector="GridSplitter.workbench:pointerover">
+      <Setter Property="Background" Value="{DynamicResource BorderStrongBrush}" />
+    </Style>
+
+    <!-- The editor area, empty or with its tabs -->
+    <Style Selector="dock|DockGroupView">
+      <Setter Property="Background" Value="{DynamicResource Surface1Brush}" />
+    </Style>
+
+    <!-- Status bar parts -->
+    <Style Selector="ProgressBar.task">
+      <Setter Property="Width" Value="96" />
+      <Setter Property="Height" Value="3" />
+      <Setter Property="MinHeight" Value="3" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="CornerRadius" Value="2" />
+    </Style>
+    <Style Selector="Ellipse.unread">
+      <Setter Property="Width" Value="7" />
+      <Setter Property="Height" Value="7" />
+      <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Margin" Value="0,-1,-2,0" />
+    </Style>
+  </Window.Styles>
+
+  <ui:DialogHost x:Name="Dialogs">
+    <Panel>
+      <Grid RowDefinitions="Auto,Auto,*,Auto" Background="{DynamicResource Surface0Brush}">
+        <!-- Main toolbar, the title bar where the platform allows -->
+        <Border x:Name="TitleBar" Grid.Row="0" Classes="toolbar appbar" BorderThickness="0" Padding="4,0,0,0" Height="40">
+          <Panel>
+            <StackPanel x:Name="LeftTools" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Left" VerticalAlignment="Center">
+              <Button x:Name="MainMenuButton" Classes="toolbar icon">
+                <ui:SymbolIcon Data="{x:Static ui:Icons.Menu}" Size="16" />
+              </Button>
+              <Button x:Name="ProjectButton" Classes="toolbar" Padding="6,0,8,0">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Border Classes="project-tile">
+                    <TextBlock x:Name="ProjectInitial" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <TextBlock x:Name="ProjectName" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"
+                             MaxWidth="240" TextTrimming="CharacterEllipsis" />
+                  <ui:SymbolIcon Data="{x:Static ui:Icons.ChevronDown}" Size="12" Foreground="{DynamicResource TextMutedBrush}" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+
+            <Button x:Name="SearchButton" Classes="search-field" Width="360" HorizontalAlignment="Center" VerticalAlignment="Center">
+              <Grid ColumnDefinitions="Auto,*,Auto">
+                <ui:SymbolIcon Data="{x:Static ui:Icons.Search}" Size="16" Margin="0,0,8,0" />
+                <TextBlock x:Name="SearchLabel" Grid.Column="1" Text="Search everywhere" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <ui:ShortcutBadge x:Name="SearchKeys" Grid.Column="2" Text="Shift Shift" VerticalAlignment="Center" />
+              </Grid>
+            </Button>
+
+            <StackPanel x:Name="RightTools" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center">
+              <ContentControl x:Name="RunWidgetHost" VerticalAlignment="Center" />
+              <Button x:Name="SettingsButton" Classes="toolbar icon" Margin="0,0,4,0">
+                <ui:SymbolIcon Data="{x:Static ui:Icons.Settings}" Size="16" />
+              </Button>
+              <StackPanel x:Name="WindowButtons" Orientation="Horizontal" IsVisible="False">
+                <Button x:Name="MinimizeButton" Classes="window-control" ToolTip.Tip="Minimize">
+                  <ui:SymbolIcon Data="{x:Static ui:Icons.Minus}" Size="16" />
+                </Button>
+                <Button x:Name="MaximizeButton" Classes="window-control" ToolTip.Tip="Maximize">
+                  <ui:SymbolIcon x:Name="MaximizeIcon" Data="{x:Static ui:Icons.WindowMaximize}" Size="16" />
+                </Button>
+                <Button x:Name="CloseButton" Classes="window-control close" ToolTip.Tip="Close">
+                  <ui:SymbolIcon Data="{x:Static ui:Icons.X}" Size="16" />
+                </Button>
+              </StackPanel>
+            </StackPanel>
+          </Panel>
+        </Border>
+
+        <!-- The menus in a bar of their own, when the settings ask for it -->
+        <Border x:Name="MenuBarHost" Grid.Row="1" Classes="menubar" IsVisible="False">
+          <Menu x:Name="MainMenu" VerticalAlignment="Center" />
+        </Border>
+
+        <!-- The workbench, or the welcome screen while nothing is open -->
+        <Panel x:Name="Body" Grid.Row="2">
+          <Panel x:Name="EditorArea">
+            <dock:DockHost x:Name="Workspace" />
+            <Border x:Name="EmptyEditor" Background="{DynamicResource Surface1Brush}" IsVisible="False">
+              <StackPanel x:Name="EmptyEditorHints" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+          </Panel>
+          <ContentControl x:Name="WelcomeHost" IsVisible="False" />
+        </Panel>
+
+        <!-- Status bar -->
+        <Border Grid.Row="3" Classes="statusbar" BorderThickness="0">
+          <Grid ColumnDefinitions="*,Auto,*">
+            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" ClipToBounds="True">
+              <ContentControl x:Name="StatusPathHost" VerticalAlignment="Center" />
+              <ItemsControl x:Name="LeftItems" VerticalAlignment="Center">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="4" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="services:StatusBarItem">
+                    <Button Classes="status-item" Focusable="False" IsVisible="{Binding IsVisible}" IsHitTestVisible="{Binding IsClickable}"
+                            ToolTip.Tip="{Binding ToolTip}" Click="OnStatusItemClick">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ui:SymbolIcon Classes="status" Data="{Binding IconData}" IsVisible="{Binding IconData, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                       Classes.spin="{Binding IsBusy}" Classes.busy="{Binding IsBusy}"
+                                       Classes.success="{Binding State, Converter={x:Static views:StatusConverters.IsSuccess}}"
+                                       Classes.warning="{Binding State, Converter={x:Static views:StatusConverters.IsWarning}}"
+                                       Classes.error="{Binding State, Converter={x:Static views:StatusConverters.IsError}}" />
+                        <TextBlock Classes="status" Text="{Binding Text}" />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+
+            <Button x:Name="TaskIndicator" Grid.Column="1" Classes="status-item" Focusable="False" IsVisible="False" Margin="16,0">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock x:Name="TaskTitle" Classes="status" />
+                <TextBlock x:Name="TaskDetail" Classes="status" Foreground="{DynamicResource TextMutedBrush}" MaxWidth="200" TextTrimming="CharacterEllipsis" />
+                <ProgressBar x:Name="TaskProgress" Classes="task" />
+              </StackPanel>
+            </Button>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+              <ItemsControl x:Name="RightItems" VerticalAlignment="Center">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="2" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="services:StatusBarItem">
+                    <Button Classes="status-item" Focusable="False" IsVisible="{Binding IsVisible}" IsHitTestVisible="{Binding IsClickable}"
+                            ToolTip.Tip="{Binding ToolTip}" Click="OnStatusItemClick">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ui:SymbolIcon Classes="status" Data="{Binding IconData}" IsVisible="{Binding IconData, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                       Classes.spin="{Binding IsBusy}" Classes.busy="{Binding IsBusy}"
+                                       Classes.success="{Binding State, Converter={x:Static views:StatusConverters.IsSuccess}}"
+                                       Classes.warning="{Binding State, Converter={x:Static views:StatusConverters.IsWarning}}"
+                                       Classes.error="{Binding State, Converter={x:Static views:StatusConverters.IsError}}" />
+                        <TextBlock Classes="status" Text="{Binding Text}" />
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <StackPanel x:Name="EditorInfo" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                <Button x:Name="CaretButton" Classes="status-item" Focusable="False">
+                  <TextBlock x:Name="CaretText" Classes="status" />
+                </Button>
+                <Button x:Name="LineEndingButton" Classes="status-item" Focusable="False" ToolTip.Tip="Line endings; click to change them">
+                  <TextBlock x:Name="LineEndingText" Classes="status" />
+                </Button>
+                <Button x:Name="EncodingButton" Classes="status-item" Focusable="False" ToolTip.Tip="The file's encoding">
+                  <TextBlock x:Name="EncodingText" Classes="status" />
+                </Button>
+                <Button x:Name="IndentButton" Classes="status-item" Focusable="False" ToolTip.Tip="Indentation; click to change it in the settings">
+                  <TextBlock x:Name="IndentText" Classes="status" />
+                </Button>
+                <Button x:Name="LanguageButton" Classes="status-item" Focusable="False" ToolTip.Tip="The file's language; click to change it">
+                  <TextBlock x:Name="LanguageText" Classes="status" />
+                </Button>
+              </StackPanel>
+
+              <Button x:Name="BellButton" Classes="status-item" Focusable="False" ToolTip.Tip="Notifications" Margin="4,0,0,0">
+                <Panel>
+                  <ui:SymbolIcon Data="{x:Static ui:Icons.Bell}" Size="14" Foreground="{DynamicResource TextSecondaryBrush}" />
+                  <Ellipse x:Name="UnreadDot" Classes="unread" IsVisible="False" />
+                </Panel>
+              </Button>
+            </StackPanel>
+          </Grid>
+        </Border>
+      </Grid>
+      <ui:ToastHost x:Name="Toasts" />
+    </Panel>
+  </ui:DialogHost>
+</Window>

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "PLUGIN_ID",
+  "name": "MyPlugin",
+  "version": "0.1.0",
+  "summary": "Says hello.",
+  "authors": ["You"],
+  "license": "MIT",
+  "repository": "https://github.com/OWNER/MyPlugin",
+  "runesmithApi": "^0.1.0",
+  "projects": {
+    "contracts": "MyPlugin.Contracts/MyPlugin.Contracts.csproj",
+    "implementation": "MyPlugin/MyPlugin.csproj"
+  },
+  "dependencies": [],
+  "capabilities": [],
+  "icon": "icon.png",
+  "categories": ["Other"]
+}

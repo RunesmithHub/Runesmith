@@ -1,0 +1,28 @@
+---
+title: Developers
+description: How Runesmith is built, how to build and run it from source, and how changes are made and released.
+---
+
+These pages are for people who work on Runesmith itself. To extend Runesmith without changing it, see [Plugins](/plugins).
+
+Runesmith is a .NET 10 solution of small projects, each with one job: a text buffer, a language server client, the language services and the C# analyzer, the plugin API, the
+composition of parts, the workspace, languages, the editor control, the shell and the executable. Its user interface comes from
+[HammerUI](https://github.com/RunesmithHub/HammerUI), a UI library for Avalonia from the same author.
+
+<CardGrid columns={2}>
+  <Card title="Architecture" icon="layers" to="/developers/architecture">
+    The projects, how they depend on each other and how a key press becomes an edit.
+  </Card>
+  <Card title="Language services" icon="code" to="/developers/language-services">
+    How analyzers answer completion and the other requests, and how typing is measured.
+  </Card>
+  <Card title="Building and testing" icon="hammer" to="/developers/building">
+    Build without warnings, with or without a HammerUI checkout.
+  </Card>
+  <Card title="Running and debugging" icon="bug" to="/developers/running">
+    Run from source with a clean profile and startup diagnostics.
+  </Card>
+  <Card title="Contributing" icon="book" to="/developers/contributing">
+    Code rules, commits and pull requests.
+  </Card>
+</CardGrid>

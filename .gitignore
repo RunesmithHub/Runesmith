@@ -1,0 +1,22 @@
+bin/
+obj/
+/packages/
+*.user
+.idea/
+.vs/
+/_ReSharper.Caches/
+riderModule.iml
+BenchmarkDotNet.Artifacts/
+TestResults/
+/artifacts/
+
+# Workspace settings and state Runesmith writes into folders it opens
+.runesmith/state/
+
+# Documentation site
+website/node_modules/
+website/build/
+website/.docusaurus/
+
+# direnv
+.direnv/

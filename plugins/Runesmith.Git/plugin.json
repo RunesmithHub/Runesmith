@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "runesmith.git",
+  "name": "Git",
+  "version": "0.1.0",
+  "summary": "Changes, commits, branches, history, diffs, change markers, cloning and pull requests with Git.",
+  "authors": [
+    "Dylan de Beer"
+  ],
+  "license": "Apache-2.0",
+  "repository": "https://github.com/RunesmithHub/Runesmith",
+  "homepage": "https://runesmithhub.github.io/Runesmith/plugins/git",
+  "runesmithApi": "^0.1.0",
+  "projects": {
+    "contracts": "Runesmith.Git.Contracts/Runesmith.Git.Contracts.csproj",
+    "implementation": "Runesmith.Git/Runesmith.Git.csproj"
+  },
+  "capabilities": [
+    {
+      "id": "network",
+      "reason": "Shows the avatars of the people behind commits and pull requests."
+    },
+    {
+      "id": "process",
+      "reason": "Runs your git, and opens links in your browser."
+    },
+    {
+      "id": "filesystem",
+      "reason": "Watches your repositories, edits .gitignore and caches avatars."
+    },
+    {
+      "id": "environment",
+      "reason": "Suggests a folder in your home folder to clone into."
+    }
+  ],
+  "networkHosts": [
+    "*"
+  ],
+  "icon": "icon.png",
+  "categories": [
+    "Version control"
+  ],
+  "keywords": [
+    "git",
+    "commit",
+    "branch",
+    "diff"
+  ]
+}

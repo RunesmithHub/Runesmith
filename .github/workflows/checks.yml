@@ -1,0 +1,74 @@
+# Checks that the code follows .editorconfig on each pull request and each push to main, and that each commit of a pull request follows
+# Conventional Commits.
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  commit-messages:
+    name: Commit messages
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      # The types match CONTRIBUTING.md. Merge commits are left out.
+      - name: Check that each commit follows Conventional Commits
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          types='feat|fix|perf|refactor|test|docs|ci|chore|revert'
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PULL_REQUEST/commits" --paginate \
+            --jq '.[] | select((.parents | length) == 1) | "\(.sha[0:8]) \(.commit.message | split("\n")[0])"' > commits.txt
+          cat commits.txt
+          if grep -vE "^[0-9a-f]{8} ($types)(\([a-z0-9-]+\))?!?: [^ ]" commits.txt > wrong.txt; then
+            while IFS= read -r commit; do
+              echo "::error::Commit ${commit%% *} does not follow Conventional Commits: ${commit#* }"
+            done < wrong.txt
+            echo "Start each subject with a type and, for one part of the repository, a scope, such as 'fix(editor): keep the caret in view after a paste'."
+            echo "Reword the commits with 'git rebase -i', or the last one with 'git commit --amend', and push again with --force-with-lease."
+            exit 1
+          fi
+
+  formatting:
+    name: Formatting
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Set up .NET from global.json
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore Runesmith.slnx
+
+      # Each finding names its file and line; `dotnet format whitespace Runesmith.slnx` fixes them.
+      - name: Whitespace
+        run: dotnet format whitespace Runesmith.slnx --verify-no-changes --no-restore
+
+      # Code style rules that .editorconfig makes warnings, such as the order of using directives; `dotnet format style Runesmith.slnx` fixes them.
+      - name: Code style
+        run: dotnet format style Runesmith.slnx --verify-no-changes --no-restore

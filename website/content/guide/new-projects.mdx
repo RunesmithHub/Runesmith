@@ -1,0 +1,70 @@
+---
+title: New projects
+description: Create a project from a template with File › New Project, and where the templates come from.
+---
+
+**File › New Project** (<Keys>Ctrl+Shift+N</Keys>) opens a dialog that creates a project from a template and opens it. The templates come
+from plugins: the .NET SDK's templates and the ones you installed with `dotnet new install`, and Runesmith's own Java templates.
+
+## Create a project
+
+<Steps>
+
+1. Press <Keys>Ctrl+Shift+N</Keys>, or choose **File › New Project**.
+2. Pick a template in the list on the left. Type in **Search templates** to narrow the list; the Up and Down keys move through the
+   results while you type.
+3. Type the project's **Name** and choose its **Location**. The hint under **Location** shows the folder Runesmith creates.
+4. Change the template's options on the right, if you want to.
+5. Press **Create**, or <Keys>Enter</Keys>.
+
+</Steps>
+
+The dialog shows each step while it works, such as running `dotnet new`. When it is done, Runesmith opens the new folder and the project's
+main file, such as `Program.cs` or `Main.java`. If creating fails, the dialog stays open and says why, and the **New Project** channel of
+the **Output** panel has the details, so you can change an option and press **Create** again.
+
+## The template list
+
+The list groups templates by kind: Console, Library, Web, Desktop, Test and Other. Each row shows the template's name, its language and
+the first line of its description. The templates you used last come first, under **Recent**.
+
+- **Search** matches every word you type against the name, the description, the language, the kind and the template's tags, so
+  `web api` or `java gradle` finds what you mean.
+- **Language chips** (C#, Java, ...) next to the search field show one language's templates. Click the chip again to show all.
+- **Kind chips** under the search field show one kind of template, in the same way.
+
+The list fills as each plugin answers, so the first templates show before the slower plugins finish.
+
+## The form
+
+| Field | What it does |
+| --- | --- |
+| **Name** | The name of the new folder and, for most templates, of the project. It cannot contain `/ \ : * ? " < > \|`. |
+| **Location** | The folder the new folder goes in. A folder with that name that already has files in it is refused. |
+| **Create Git repository** | Runs `git init` in the new folder. It shows only when `git` is on the `PATH`. |
+
+The template's own options follow, with a hint under each one. The options most people change are always visible; the rest are under
+**Advanced**. **About this template** shows the template's description, author, tags and where it comes from. **Create** stays disabled
+while an option has a problem, and the problem shows under its field.
+
+Runesmith remembers the last **Location**, whether **Create Git repository** was on, and the options you changed for each template, so the
+next project from the same template starts with them.
+
+## Where templates come from
+
+Templates are plugins, so you can turn a language's templates off without losing the language: open **Settings › Plugins** and turn off
+**C# templates** or **Java templates**.
+
+- **C# templates** lists the templates of the .NET SDK and of the template packages you installed. See
+  [C# support](/plugins/csharp#templates) for how it finds them and how **Create** runs `dotnet new`.
+- **Java templates** has Runesmith's own Application, Library, Compact source file and Multi-module project templates, for Maven, Gradle
+  or no build system. See [Java support](/plugins/java#templates).
+
+A plugin adds templates by exporting an `IProjectTemplateProvider`, from `Runesmith.Sdk.Templates`; its options are an `OptionSet`, which
+the dialog draws.
+
+## Related
+
+- [SDKs](./sdks.mdx): the .NET SDKs and JDKs the templates' **.NET SDK** and **JDK** options list.
+- [Building](./building.mdx): build the new project.
+- [Plugins](/plugins): turn plugins on and off, and write your own.

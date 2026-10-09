@@ -1,0 +1,112 @@
+---
+title: Building and testing
+description: Install the tools, build Runesmith without warnings with or without a HammerUI checkout, and run the tests, benchmarks and documentation site.
+---
+
+Runesmith is one solution, `Runesmith.slnx`, with the projects in `src/`, the built-in plugin in `plugins/`, the template in `templates/`,
+the test projects in `tests/` and the benchmarks in `benchmarks/`. This page covers the tools you need and the commands CI runs, so a change
+that passes here passes there.
+
+## Tools
+
+- The .NET 10 SDK. `global.json` pins the feature band and rolls forward to newer ones.
+- Node.js 22, only for the documentation site in `website/`.
+
+### On NixOS
+
+Avalonia and SkiaSharp load the system's font and X11 libraries by name when the app starts. NixOS keeps those out of the default library
+path, so running the app fails with `Unable to load shared library 'libSkiaSharp'` and `libfontconfig.so.1: cannot open shared object
+file`. The repository's `flake.nix` has a development shell with the .NET SDK, Node.js, `xvfb-run` and those libraries on
+`LD_LIBRARY_PATH`:
+
+```bash
+nix develop
+dotnet run --project src/Runesmith.App
+```
+
+An IDE has to start in that environment too, or the app it runs fails the same way:
+
+- Start it from the shell, such as `nix develop -c <ide> Runesmith.slnx`.
+- Or use [direnv](https://direnv.net): `.envrc` loads the shell when you enter the folder (`direnv allow` once), and an IDE plugin for
+  direnv passes it on to the IDE.
+
+## HammerUI
+
+Runesmith's user interface comes from HammerUI. The projects that use it set `UsesHammerUI`, and `Directory.Build.targets` decides where it
+comes from:
+
+| When | HammerUI comes from |
+| --- | --- |
+| A HammerUI checkout next to the Runesmith checkout, at `../HammerUI` | That checkout, as a project reference, so both can change together. |
+| There is none | The `HammerUI` package from the Runesmith Hub feed, `https://nuget.runesmith.dev/index.json`, with no sign-in. |
+
+For the checkout, clone both repositories into the same folder:
+
+```bash
+git clone https://github.com/RunesmithHub/HammerUI.git
+git clone https://github.com/RunesmithHub/Runesmith.git
+```
+
+`nuget.config` maps `HammerUI` and `RunesmithHub.*` to the hub feed only. The hub library, `RunesmithHub.Protocol`, works the same way, from
+a checkout of [RunesmithHub/hub](https://github.com/RunesmithHub/hub) at `../hub`.
+
+## Build
+
+```bash
+dotnet build Runesmith.slnx -warnaserror
+```
+
+The build has no warnings, and CI treats any warning as an error. Analyzers run at the `latest-recommended` level, and `BannedSymbols.txt`
+rejects calls that are easy to get wrong; each entry says why and what to use instead.
+
+Building `src/Runesmith.App` also builds the bundled plugins and lays each out in `plugins/<id>` next to the executable, as an installed
+plugin is: the packaged `plugin.json`, the assemblies in `lib/` and the icons in `icon/`. The `RunesmithPluginLayout` target in
+`src/Runesmith.Sdk/build/Runesmith.Sdk.targets` does this, the same target the SDK package gives other plugins.
+
+## Test
+
+```bash
+dotnet test --solution Runesmith.slnx -- --ignore-exit-code 8
+```
+
+Tests run on Microsoft.Testing.Platform with xUnit v3, as `global.json` sets. A test project that has
+no tests yet ends with exit code 8, which `--ignore-exit-code 8` accepts.
+
+## Benchmarks
+
+`benchmarks/Runesmith.Benchmarks` is a BenchmarkDotNet project, with benchmarks such as completion ranking and the C# analyzer's answer
+times. Run it in Release:
+
+```bash
+dotnet run --project benchmarks/Runesmith.Benchmarks --configuration Release
+```
+
+`benchmarks/Runesmith.TypingBenchmark` types into the running editor and measures how fast it responds; see
+[Language services](./language-services.mdx#the-typing-benchmark).
+
+## Formatting
+
+```bash
+dotnet format whitespace Runesmith.slnx
+dotnet format style Runesmith.slnx
+```
+
+The Checks workflow runs both with `--verify-no-changes` on every pull request.
+
+## The documentation site
+
+The site is a [Docusaurus](https://docusaurus.io) project in `website/`:
+
+```bash
+cd website
+npm ci
+npm start
+```
+
+`npm run build` checks the prose against `website/STYLE.md` first, then fails on broken links and anchors. `npm run typecheck` checks the
+site's TypeScript. The site's `README.md` has the details.
+
+## Related
+
+- [Running and debugging](./running.mdx)
+- [Contributing](./contributing.mdx)

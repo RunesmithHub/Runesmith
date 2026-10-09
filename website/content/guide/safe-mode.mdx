@@ -1,0 +1,32 @@
+---
+title: Safe mode
+description: Start Runesmith with only the plugins that come with it, to find a plugin that keeps it from starting or makes it crash.
+---
+
+In safe mode Runesmith loads only the plugins that come with it. Use it when a plugin you installed keeps Runesmith from starting, or
+makes it crash.
+
+## Start in safe mode
+
+- Run **Help › Restart in Safe Mode**.
+- Or start Runesmith with `runesmith --safe-mode`.
+
+When Runesmith failed to start twice in a row, or closed unexpectedly within a minute of starting twice in a row, it starts in safe mode by
+itself and names the plugins that were loading. **Stay in safe mode** keeps it that way; **Start normally** restarts with every plugin.
+
+## Find the plugin
+
+<Steps>
+
+1. Open the plugin manager. A note at the top says Runesmith is in safe mode, and the plugins that are off show it.
+2. Turn off the plugin Runesmith named, or the one you installed or updated last.
+3. Click **Restart normally**.
+
+</Steps>
+
+If Runesmith starts, report the plugin as broken from its page; see [Plugins from the hub](./plugins.mdx#report-a-plugin).
+
+## Related
+
+- [Troubleshooting](./troubleshooting.mdx)
+- [Command line](./command-line.mdx)

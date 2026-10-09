@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MyPlugin.Contracts/MyPlugin.Contracts.csproj" />
+  <Project Path="MyPlugin/MyPlugin.csproj" />
+</Solution>

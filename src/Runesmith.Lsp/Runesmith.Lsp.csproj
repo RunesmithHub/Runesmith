@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>A Language Server Protocol client: JSON-RPC over streams, the protocol types and a language server's lifecycle.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Lsp.Tests" />
+  </ItemGroup>
+</Project>

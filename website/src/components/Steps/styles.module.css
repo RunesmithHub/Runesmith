@@ -1,0 +1,44 @@
+.steps > ol {
+  counter-reset: step;
+  list-style: none;
+  padding-left: 0;
+  margin: 1.5rem 0 2rem;
+}
+
+.steps > ol > li {
+  counter-increment: step;
+  position: relative;
+  padding: 0 0 1.4rem 3rem;
+  margin: 0;
+}
+
+.steps > ol > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0.05rem;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: var(--ts-accent-soft);
+  border: 1px solid var(--ts-accent-border);
+  color: var(--ifm-color-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.steps > ol > li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: calc(0.95rem - 0.5px);
+  top: 2.25rem;
+  bottom: 0.3rem;
+  width: 1px;
+  background: var(--ts-border);
+}
+
+.steps > ol > li > p:first-child {
+  margin-bottom: 0.4rem;
+}

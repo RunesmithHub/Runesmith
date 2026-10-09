@@ -1,0 +1,122 @@
+---
+title: GitHub
+description: "How Runesmith works with GitHub: signing in as a GitHub App, with the GitHub CLI or a token, cloning from your account and organizations, links to github.com, and pull requests with their reviews and checks."
+---
+
+Runesmith works with GitHub through a built-in plugin, `runesmith.github`. It signs in to github.com, and through the [Git](./git.mdx)
+plugin it adds a **GitHub** tab to the clone dialog, the open repository's pull requests with their reviews and checks, and links to
+github.com. Git itself, with the Commit and Git windows, comes from the Git plugin; this plugin only adds GitHub's side.
+
+## Sign in
+
+Runesmith signs in to GitHub as its own GitHub App, [Runesmith Editor](https://github.com/apps/runesmith-editor), with GitHub's device
+flow: you approve Runesmith on github.com, and you choose which repositories and organizations it may use. There is nothing to register
+first, and Runesmith never sees your password.
+
+<Steps>
+
+1. Select the GitHub button at the right of the toolbar or **Sign in to GitHub** in **Settings › GitHub**, or run **Sign In to GitHub...**
+   from the command palette.
+2. Select **Continue with GitHub**. Runesmith shows a code such as `WDJB-MJHT`.
+3. Select **Copy Code and Open GitHub**, paste the code on the page that opens, and approve Runesmith.
+4. Select **Manage Access** in the notification or the account menu, install the app on your account, and choose the repositories. Add
+   organizations the same way, or as described in [Organizations](#organizations).
+
+</Steps>
+
+Once you are signed in, the toolbar shows your avatar. Its menu has **Manage Access...**, **Open Profile on GitHub**, **Clone
+Repository...**, an **Organizations** section with the organizations the app is installed on and **Add an organization...**, and **Sign
+Out**.
+
+The dialog offers two other ways to sign in:
+
+| Choice | What it does |
+| --- | --- |
+| **Use the GitHub CLI's sign-in** | Uses the account you signed in to with `gh auth login`. Runesmith asks `gh auth token` for the token each time it needs one, so it never keeps a copy. It shows when `gh` is on the `PATH`. |
+| **Sign in with a token** | Takes a fine-grained or classic personal access token, and checks it with GitHub before keeping it. A fine-grained token needs Contents, Metadata and Pull requests access to your repositories; a classic token needs the `repo` and `workflow` scopes. |
+
+With these, the repository list shows every repository the token can reach instead of the ones you gave the app.
+
+## Organizations
+
+The app reaches an organization's repositories once it is installed on that organization. **Add an organization...** is in **Settings ›
+GitHub › Repository access**, in the account menu's **Organizations** section, as **+ Organization** among the owners in the clone dialog,
+and in the clone dialog while it has no repositories, and as **Add GitHub Organization...** in the command palette.
+
+<Steps>
+
+1. Select **Add an organization...**. A short dialog explains what happens next.
+2. Select **Continue on GitHub**. GitHub's install page asks which organization to install the app on, and which of its repositories
+   Runesmith may use. If you own the organization, it is installed right away; if you are a member, GitHub sends the owners a request to
+   approve.
+3. Come back to Runesmith. It loads the installations and repositories again, and when the organization is new, a notification says
+   **Runesmith can now use repositories of** *organization*.
+
+</Steps>
+
+**Settings › GitHub › Repository access** lists every account and organization the app is installed on, with **All repositories** or how
+many are selected, and **Configure**, which opens that installation's settings on GitHub to change its repositories. **Manage Access**
+works too.
+
+With the GitHub CLI's sign-in or a token, the card explains that organization repositories come from that token's own access; change the
+token on GitHub to reach more.
+
+## Tokens
+
+Runesmith keeps the tokens in the system's secret store: the Secret Service on Linux, the Keychain on macOS and the Credential Manager on
+Windows, under keys that start with `runesmith.github/`. Where no secret store is available, they go in a file only you can read, and the
+sign-in dialog says so.
+
+The app's access tokens last 8 hours. Runesmith refreshes them a few minutes before they expire, with a refresh token that lasts 6 months;
+when that one expires, or GitHub refuses a token, Runesmith signs out and a notification offers **Sign In**. **Sign Out** deletes the
+tokens.
+
+Git receives the token for `https://github.com` remotes through a credential helper that Runesmith adds to the one command that needs it,
+so the token never appears in command lines, logs or Git's configuration. Remotes on other hosts, and SSH remotes, use your own Git setup.
+
+## Clone from GitHub
+
+The clone dialog's **GitHub** tab lists the repositories you may use: those you gave the app on **Manage Access**, or every repository the
+token can reach when you signed in with the GitHub CLI or a token. While you are signed out, the tab offers **Sign in to GitHub**. See
+[Clone a repository](./git.mdx#clone-a-repository) for the dialog itself.
+
+## Open on GitHub
+
+| Command | What it does |
+| --- | --- |
+| **Open on GitHub** | Opens the current file on GitHub at the selected lines, such as `https://github.com/owner/repo/blob/main/src/App.cs#L12-L18`, or the repository when no file is open |
+| **Copy GitHub Link** | Copies the same link |
+| **Open Repository on GitHub** | Opens the repository's page |
+
+They show while the repository has a remote on github.com, in **Tools › GitHub** with **Sign In to GitHub...**, **Manage GitHub
+Access...** and **Sign Out of GitHub**, in the command palette, and in the context menus described in
+[Links to the hosting service](./git.mdx#links-to-the-hosting-service).
+
+## Pull requests
+
+For a repository on github.com, the **Pull Requests** window lists the open pull requests with GitHub's review decision and the state of the
+checks on their last commit, and **Create Pull Request...** can create drafts. **Checkout** fetches GitHub's `refs/pull/<number>/head`, so
+pull requests from forks check out too. See [Pull requests](./git.mdx#pull-requests) for the window and the dialog.
+
+## Settings
+
+**Settings › GitHub** starts with the account: your avatar, name and how you signed in, with **Manage Access** and **Sign Out**, or
+**Sign in to GitHub** with links to the GitHub CLI's sign-in and to a token while no one is signed in. Under it, a line names the GitHub
+App signing in uses, Runesmith Editor unless you set your own. **Advanced** under it has **Use your own GitHub App**, for forks and
+companies that register an app of their own, and **Back to Runesmith's app** once you did. Below the account, **Repository access** lists
+the app's installations, as described in [Organizations](#organizations). The settings follow:
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `github.clientId` | empty | The client ID of your own GitHub App. While it is empty, Runesmith signs in with its own app. |
+| `github.appSlug` | empty | Your own app's name in its address, `github.com/apps/<name>`, for **Add an organization...** and **Manage Access**. Used only with `github.clientId`; Runesmith learns it from your installations when it is empty. |
+
+The client ID and app ID of Runesmith's app are public by design, since the device flow needs no secret; they ship in a file next to the
+plugin that a build of Runesmith can replace with its own app. To register your own app, see
+[Runesmith's GitHub App](https://github.com/RunesmithHub/Runesmith/blob/main/docs/github-app.md).
+
+## Screenshots and tests
+
+Setting the environment variable `RUNESMITH_GITHUB_FAKE` to `signed-in` or `signed-out` replaces GitHub with recorded answers and a
+made-up account, so the GitHub screens can be shown and tested without a network or a real account. Never set it for real work: nothing
+reaches GitHub while it is set.

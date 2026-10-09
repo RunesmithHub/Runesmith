@@ -1,0 +1,47 @@
+---
+title: Releasing
+description: How pushing a version tag publishes Runesmith for Windows, Linux and macOS and creates a GitHub release.
+---
+
+A release is a version tag. Pushing a tag such as `v0.2.0` runs the Release workflow, which publishes Runesmith for each system and creates
+a GitHub release with the archives.
+
+## Make a release
+
+<Steps>
+
+1. Check that `main` builds, its tests pass and the documentation describes the changes.
+2. Tag the commit and push the tag:
+
+   ```bash
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+
+3. Watch the **Release** workflow. When it finishes, the release, with notes generated from the commits since the last tag, is under
+   **Releases**.
+
+</Steps>
+
+## Versions
+
+The version comes from the tag, without the `v`. `Directory.Build.props` reads it from the `RunesmithVersion` environment variable the
+workflow sets, and uses 0.1.0 for local builds. A tag with a pre-release part, such as `v0.3.0-rc.1`, makes a pre-release.
+
+Follow [semantic versioning](https://semver.org) for Runesmith. The plugin API has a semantic version of its own, `RunesmithApi.Version`.
+Before 1.0, raise its patch version when the SDK gains something and its minor version when a change breaks plugins; from 1.0 on, raise
+the minor and major versions. When a change breaks plugins, set `RunesmithApi.OldestSupported` to the start of the new line.
+
+## What the workflow does
+
+| Job | Runs | What it does |
+| --- | --- | --- |
+| Publish | Every run, once per system | Publishes `src/Runesmith.App` self-contained in Release for `linux-x64`, `win-x64` and `osx-arm64`, with the built-in plugins, and archives it as `runesmith-<version>-<system>.tar.gz`, or `.zip` for Windows. |
+| Release | Version tags only | Creates the GitHub release with the three archives. |
+
+Pull requests that change the workflow, and runs started by hand, build the archives with a `-ci.` version and release nothing, so the
+workflow can be tested safely.
+
+## Related
+
+- [Building and testing](./building.mdx)

@@ -1,0 +1,236 @@
+---
+title: Editor extensions
+description: Decorations, quick fixes and refactorings, rename, formatting and keyboard hooks for plugins, with examples.
+---
+
+A plugin can change what the editor shows and does beyond completion and hover: put icons in the gutter, hints inside lines, code lens
+above lines and highlights on text; offer quick fixes and refactorings; rename symbols; format documents; and see keys before the editor
+does. Each is an export of `Runesmith.Sdk`, found the same way as the other [language features](./api.mdx#languages), and each answer is
+kept apart per plugin, so one plugin's failure does not affect another's. Language servers and language analyzers get the same features
+without code of their own; see [From language servers and analyzers](#from-language-servers-and-analyzers).
+
+## Decorations
+
+Export an `IDecorationProvider` to decorate documents. The editor asks it when a document opens, a moment after typing stops, and when the
+provider raises `Changed`. Between answers, the decorations follow the edits: a span moves with the text around it, and a decoration whose
+text is deleted goes away. Each provider's answer replaces only its own decorations.
+
+This provider flags every `TODO` with a gutter icon, a dotted underline and a mark beside the scroll bar:
+
+```csharp title="TodoMarkers.cs"
+using System.Composition;
+using Runesmith.Sdk.Documents;
+using Runesmith.Sdk.Languages;
+using Runesmith.Text;
+
+namespace TodoPlugin;
+
+[Export(typeof(IDecorationProvider))]
+[Languages(LanguagesAttribute.Any)]
+[Shared]
+public sealed class TodoMarkers : IDecorationProvider
+{
+    public Task<IReadOnlyList<Decoration>> GetDecorationsAsync(DecorationRequest request, CancellationToken cancellationToken)
+    {
+        var snapshot = request.Snapshot;
+        var decorations = new List<Decoration>();
+        for (var number = 0; number < snapshot.LineCount; number++)
+        {
+            var column = snapshot.GetLineText(number).IndexOf("TODO", StringComparison.Ordinal);
+            if (column < 0)
+                continue;
+
+            var span = new TextSpan(snapshot.GetLine(number).Start + column, 4);
+            decorations.Add(new GutterMarker(span, "flag") { Tone = DecorationTone.Warning, ToolTip = "Something **to do**", ShowsInOverviewRuler = true });
+            decorations.Add(new TextHighlight(span) { Underline = UnderlineStyle.Dotted, Tone = DecorationTone.Warning });
+        }
+
+        return Task.FromResult<IReadOnlyList<Decoration>>(decorations);
+    }
+}
+```
+
+| Decoration | What it shows |
+| --- | --- |
+| `GutterMarker(span, icon)` | An icon from HammerUI's icon set beside the line where the span starts, in a `Tone`. `CommandId` and `CommandArgument` make it clickable; `ShowsInOverviewRuler` also marks the line beside the vertical scroll bar. |
+| `InlayHint(offset, text)` | Faint text inside the line, such as `count:` or `: int`. `Side` says whether it belongs to the text after it (`Before`, the default) or before it (`After`), which decides where the caret at the offset is drawn. |
+| `CodeLens(span, text)` | A line of small text above the line where the span starts. `CommandId` and `CommandArgument` make it clickable. Several on one line are shown side by side. |
+| `TextHighlight(span)` | An `Underline` (`Solid`, `Dotted`, `Dashed` or `Wavy`, the default), a faint `Background`, or both, in a `Tone`. Its `ToolTip` shows in the hover. |
+
+Every decoration has a `ToolTip`, as Markdown, shown when the pointer rests on it. The tones are the theme's colors: `Neutral`, `Accent`,
+`Information`, `Success`, `Warning` and `Error`. Spans are in the coordinates of `request.Snapshot`, even when the user types while the
+provider works: the editor moves the answer through the edits made since.
+
+Raise `Changed`, from any thread, with a file path or null for every file, when the provider's decorations change for a reason other than
+an edit, such as a test run finishing. Users turn inlay hints and code lens off with `editor.inlayHints` and `editor.codeLens`.
+
+## Quick fixes and refactorings
+
+Export an `ICodeActionProvider` to offer code actions. A `CodeActionRequest` has the document, its snapshot, the span (the selection, or the
+caret's line), the problems that touch the span, and a `Trigger`:
+
+| Trigger | When | Answer with |
+| --- | --- | --- |
+| `Automatic` | The caret stopped on a line, to decide whether the light bulb shows. | Only what is quick to find, such as fixes for the problems in the span. |
+| `Invoked` | The user pressed <Keys>Alt+Enter</Keys> or clicked the light bulb. | Everything, including refactorings. |
+
+A `CodeAction` has a title, a `Kind` (`QuickFix`, `Refactor` or `Source`), and an `Edit`, a command (`CommandId` and `CommandArgument`), or
+both; the edit is applied first. `IsPreferred` puts an action at the top. To save work, leave `Edit` null and compute it in `ResolveAsync`,
+which Runesmith calls when the user picks the action; keep what you need in `Data`.
+
+```csharp title="UpperCaseAction.cs"
+[Export(typeof(ICodeActionProvider))]
+[Languages(LanguagesAttribute.Any)]
+public sealed class UpperCaseAction : ICodeActionProvider
+{
+    public Task<IReadOnlyList<CodeAction>> GetCodeActionsAsync(CodeActionRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Trigger == CodeActionTrigger.Automatic || request.Document.FilePath is not { } path || request.Span.IsEmpty)
+            return Task.FromResult<IReadOnlyList<CodeAction>>([]);
+
+        var text = request.Snapshot.GetText(request.Span);
+        var change = new TextChange(request.Span, text.ToUpperInvariant());
+        var edit = new WorkspaceEdit([new DocumentEdit(path, [change]) { Snapshot = request.Snapshot }]);
+        return Task.FromResult<IReadOnlyList<CodeAction>>([new CodeAction("Convert to upper case", CodeActionKind.Refactor) { Edit = edit }]);
+    }
+}
+```
+
+### Workspace edits
+
+A `WorkspaceEdit` is a list of `DocumentEdit`s, each a file's path and its `TextChange`s. The changes are in the coordinates of the file's
+text as Runesmith reads it: the open document's text, or the file on disk with its line breaks as `\n`. Set `Snapshot` to the snapshot the
+changes were computed for, and Runesmith refuses the edit when the document changed since, instead of changing the wrong text.
+
+Runesmith checks every file before it changes any, opens the files that are not open in background tabs, and makes each file's changes
+one step of that file's undo history. Import `IWorkspaceEditService` to apply an edit yourself, such as from a command.
+
+## Rename
+
+Export an `IRenameProvider`. `PrepareRenameAsync` returns a `RenameTarget`, the span of the name and the text the rename box starts with, or
+null when the provider has nothing to rename there; `RenameAsync` returns the `WorkspaceEdit` that renames it. The first provider that
+answers is used, so return null for documents or positions that are not yours. Throw `LanguageFeatureException` with a message for the user,
+such as "Names defined in a library cannot be renamed", to stop with that message.
+
+## Formatting
+
+Export an `IDocumentFormattingProvider` for **Format Document** and format on save, and an `IRangeFormattingProvider` for **Format
+Selection**. Each returns the changes that format the snapshot, an empty list when it is formatted already, or null when the provider does
+not format that document. `FormattingOptions` has the editor's `TabSize` and `InsertSpaces`.
+
+```csharp title="TrailingWhitespaceFormatter.cs"
+[Export(typeof(IDocumentFormattingProvider))]
+[Languages("markdown")]
+public sealed class TrailingWhitespaceFormatter : IDocumentFormattingProvider
+{
+    public Task<IReadOnlyList<TextChange>?> FormatDocumentAsync(IDocument document, TextSnapshot snapshot, FormattingOptions options, CancellationToken cancellationToken)
+    {
+        var changes = new List<TextChange>();
+        for (var number = 0; number < snapshot.LineCount; number++)
+        {
+            var text = snapshot.GetLineText(number);
+            var kept = text.TrimEnd(' ', '\t').Length;
+            if (kept < text.Length)
+                changes.Add(new TextChange(new TextSpan(snapshot.GetLine(number).Start + kept, text.Length - kept), ""));
+        }
+
+        return Task.FromResult<IReadOnlyList<TextChange>?>(changes);
+    }
+}
+```
+
+The editor applies the changes as one undo step, and only when the text has not changed while the formatter ran. A formatter that runs a
+program, such as a command-line formatter, starts it with `ILauncher` and needs the `process` capability.
+
+## Keyboard hooks
+
+Export an `IEditorKeyHook` to see keys in every editor before the editor handles them, such as for modal editing or recording macros.
+`OnKeyDown` gets the editor and an `EditorKeyPress` (the key and its modifiers); `OnTextInput` gets the text a key typed. Return true to
+handle it, so nothing after the hook sees it, not even the key bindings of commands.
+
+```csharp title="ModalKeys.cs"
+[Export(typeof(IEditorKeyHook))]
+[Shared]
+public sealed class ModalKeys : IEditorKeyHook
+{
+    private readonly ConditionalWeakTable<IEditorView, StrongBox<bool>> inserting = [];
+
+    public int Priority => 100;
+
+    public bool OnKeyDown(IEditorView editor, EditorKeyPress key)
+    {
+        var insert = inserting.GetOrCreateValue(editor);
+        if (insert.Value)
+        {
+            if (key.Key != Key.Escape)
+                return false;
+
+            insert.Value = false;
+            editor.CaretStyle = EditorCaretStyle.Block;
+            return true;
+        }
+
+        switch (key.Key)
+        {
+            case Key.I:
+                insert.Value = true;
+                editor.CaretStyle = EditorCaretStyle.Line;
+                break;
+            case Key.H:
+                editor.CaretOffset = Math.Max(0, editor.CaretOffset - 1);
+                break;
+            case Key.L:
+                editor.CaretOffset = Math.Min(editor.Document.Buffer.Current.Length, editor.CaretOffset + 1);
+                break;
+        }
+
+        return key.Modifiers == KeyModifiers.None;
+    }
+
+    public bool OnTextInput(IEditorView editor, string text) => !inserting.GetOrCreateValue(editor).Value;
+}
+```
+
+The order keys go through is fixed:
+
+1. An open completion list or signature help sees the keys it uses while it shows: the arrows, <Keys>Enter</Keys>, <Keys>Tab</Keys> and
+   <Keys>Escape</Keys>.
+2. The hooks, from the highest `Priority` to the lowest. Hooks with the same priority run in the order their plugins load.
+3. The editor, then the key bindings of commands.
+
+Hooks run on the UI thread for every key, so they must return at once. A hook that throws is skipped for that key and logged to the
+**Plugins** channel of the **Output** panel, with its plugin. Users can turn a plugin's hooks off by adding its id to
+`editor.disabledKeyHooks`.
+
+## From language servers and analyzers
+
+A [language server](./api.mdx#languages) gets these features from the requests it supports, with nothing more to write:
+
+| Feature | Requests |
+| --- | --- |
+| Quick fixes and refactorings | `textDocument/codeAction`, `codeAction/resolve`, and `workspace/executeCommand` for actions and lenses that run a command |
+| Rename | `textDocument/prepareRename`, `textDocument/rename` |
+| Formatting | `textDocument/formatting`, `textDocument/rangeFormatting` |
+| Inlay hints | `textDocument/inlayHint`, and `workspace/inlayHint/refresh` from the server |
+| Code lens | `textDocument/codeLens`, `codeLens/resolve`, and `workspace/codeLens/refresh` from the server |
+| Edits the server makes | `workspace/applyEdit`, applied like any workspace edit |
+
+A [language analyzer](./api.mdx#language-analyzers) implements any of these interfaces of `Runesmith.LanguageServices` next to
+`ILanguageAnalyzer`:
+
+| Interface | Members |
+| --- | --- |
+| `ICodeActionAnalyzer` | `CodeActionsAsync(document, span, includeRefactorings, cancellationToken)` returns `CodeActionEntry`s; `ResolveCodeActionAsync(entry, cancellationToken)` returns their `FileEdit`s. |
+| `IRenameAnalyzer` | `PrepareRenameAsync(position, cancellationToken)` returns a `RenameSite`; `RenameAsync(position, newName, cancellationToken)` returns `FileEdit`s. |
+| `IFormattingAnalyzer` | `FormatAsync(document, span, tabSize, insertSpaces, cancellationToken)` returns the changes of a document version, or of a span of it. |
+| `IInlayHintAnalyzer` | `InlayHintsAsync(document, cancellationToken)` returns `InlayHintEntry`s: an offset, a text and whether it is a type that follows the text before it. They are asked for in the background lane, and again each time the analyzer finishes checking the document. |
+
+A `FileEdit` is a path, the open document version its positions refer to (or null for the file on disk), and `PositionEdit`s by line and
+column. Throw `AnalyzerRefusalException` with a message for the user, such as for a symbol that cannot be renamed. The C# analyzer implements
+all four: the compiler's code fixes and refactorings, renamer and formatter, and hints for parameter names and `var` types.
+
+## Related
+
+- [API overview](./api.mdx)
+- [Language features](/guide/language-features), as users see them.
+- [Create a plugin](./create-a-plugin.mdx)

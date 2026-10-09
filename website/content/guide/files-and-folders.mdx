@@ -1,0 +1,38 @@
+---
+title: Files and folders
+description: Where Runesmith keeps your settings, key bindings, plugins, session, logs and caches, and how to keep them elsewhere.
+---
+
+Runesmith keeps two folders on your computer: a settings folder for what you set up yourself, and a cache folder for what it can rebuild.
+Setting `RUNESMITH_HOME` moves both, such as for a portable copy or a clean profile.
+
+## The folders
+
+| Folder | Windows | Linux | macOS |
+| --- | --- | --- | --- |
+| Settings | `%APPDATA%\Runesmith` | `$XDG_CONFIG_HOME/runesmith`, by default `~/.config/runesmith` | `~/Library/Application Support/Runesmith` |
+| Cache | `%LOCALAPPDATA%\Runesmith\Cache` | `$XDG_CACHE_HOME/runesmith`, by default `~/.cache/runesmith` | `~/Library/Caches/Runesmith` |
+
+When the `RUNESMITH_HOME` environment variable is set, the settings folder is that folder and the cache folder is `cache` inside it.
+
+## What is in them
+
+| Path | What it holds |
+| --- | --- |
+| `settings.json` | Your [settings](./settings.mdx). |
+| `keybindings.json` | Your [key bindings](./keyboard-shortcuts.mdx#keybindingsjson). |
+| `plugins/` | The [plugins](/plugins) you install, one folder each. |
+| `state/layout.json` | The arrangement of the panels. |
+| `state/window.json` | The window's size and place, and the last folder. |
+| `state/recent.json` | The recent folders on the welcome page. |
+| `state/sessions/` | The open files of each folder, one file per folder. |
+| Cache: `logs/` | A file for each error Runesmith did not expect, such as `error-20261008-101829-221.log`. |
+| Cache: `composition/` | The [composition cache](/developers/composition), which makes starting faster. |
+
+Inside an open folder, `.runesmith/settings.json` holds the folder's own settings.
+
+Deleting the cache folder is safe; Runesmith rebuilds what it needs. Deleting `state/` forgets the layout, the window and the sessions.
+
+## Related
+
+- [Troubleshooting](./troubleshooting.mdx)

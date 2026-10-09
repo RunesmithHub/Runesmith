@@ -1,0 +1,128 @@
+---
+title: Forgejo
+description: "How Runesmith works with Codeberg and other Forgejo servers: signing in through the browser or with an access token, registering an OAuth2 application, token scopes, several servers, cloning, links and pull requests."
+---
+
+Runesmith works with [Forgejo](https://forgejo.org) servers through a built-in plugin, `runesmith.forgejo`. It starts with
+[Codeberg](https://codeberg.org) and takes any self-hosted Forgejo server by its address. Once you are signed in, the clone dialog has a
+tab for each of your accounts, **Pull Requests** lists the open repository's pull requests, and **Open on** and **Copy Link** point at the
+server's pages. Git itself, with the Commit and Git windows, comes from the Git plugin; this plugin only adds the server's side.
+
+Gitea servers have their own plugin, described in [Gitea](./gitea.mdx). The two work the same way.
+
+## Sign in
+
+Open **Settings › Forgejo**. Before the first account, it offers **Sign in to Codeberg**; **Add Account** signs in to another server.
+
+Runesmith signs in one of two ways:
+
+| Way | When | What happens |
+| --- | --- | --- |
+| Through the browser | An OAuth2 application for Runesmith is registered on the server, and its client ID is in the settings | Runesmith opens the server's approval page in your browser and waits. When you approve, the browser comes back to Runesmith and you are signed in. |
+| With an access token | Always | You create a token on the server and paste it. Runesmith checks it with the server before keeping it. |
+
+### Through the browser
+
+<Steps>
+
+1. Select **Sign in to Codeberg**, or **Sign In** next to an account.
+2. The dialog says **Waiting for the browser...** and your browser opens the server's page. Sign in there if you are not, and approve
+   Runesmith.
+3. The browser shows **Signed in**; close the tab. The dialog closes and a notification says which account signed in.
+
+</Steps>
+
+While it waits, the dialog offers **Open the page again**, **Use a token instead** and **Cancel**. Nothing you type in the browser
+reaches Runesmith: the server sends back a one-time code, which Runesmith exchanges for a token. The exchange uses PKCE and a redirect to
+`http://127.0.0.1` on a port chosen for each sign-in, so no client secret is involved.
+
+Browser tokens expire after an hour. Runesmith renews them a couple of minutes before they expire; if the server refuses, Runesmith signs
+out and a notification offers **Sign In**.
+
+### With an access token
+
+When the server has no OAuth2 application for Runesmith, the dialog asks for a token at once; otherwise select **Use a token instead**.
+
+<Steps>
+
+1. Select **Create a token on** the server. It opens **Settings › Applications** on the server, at `/user/settings/applications`.
+2. Under **Manage access tokens**, give the token a name such as `Runesmith`, choose **All** under repository and organization access, and
+   set the permissions in the table below.
+3. Select **Generate token**, copy it, paste it into Runesmith and select **Sign In**.
+
+</Steps>
+
+| Permission | Access | What Runesmith does with it |
+| --- | --- | --- |
+| `repository` | Read and write | Clone, fetch, pull and push, list pull requests and create them |
+| `user` | Read | Your login and avatar, and your own repositories |
+| `organization` | Read | The organizations whose repositories the clone dialog lists |
+
+When a token lacks a permission, Runesmith says which one the server asked for. Access tokens do not expire unless you delete them on
+the server.
+
+## Several servers and accounts
+
+**Add Account** asks for a server's address, such as `codeberg.org`, `git.example.com`, `git.example.com:3000` or `example.com/git`
+when the server lives under a path. Runesmith checks the address before signing in: a Forgejo server answers
+`/api/forgejo/v1/version`. When the address is a Gitea server, Runesmith says so and points at **Settings › Gitea**.
+
+Each account has its own row in **Settings › Forgejo**, with its server, how it signed in, **Manage Tokens**, which opens the server's
+applications page, and **Sign Out**. A signed-out account keeps its row with **Sign In** and a button that removes it. You can sign in to
+several accounts on the same server; Git uses the account named in a remote's URL, such as `https://alice@codeberg.org/...`, and
+otherwise the first one.
+
+In the clone dialog, Codeberg's tab is called **Codeberg**, and other servers' tabs are called **Forgejo (git.example.com)**.
+
+## Tokens and Git
+
+Runesmith keeps the tokens in the system's secret store, one entry per server and account, under keys such as
+`runesmith.forgejo/codeberg.org/alice`. Where no secret store is available, they go in a file only you can read, and the sign-in dialog
+says so. The list of accounts, without tokens, is in Runesmith's state folder. **Sign Out** deletes the account's token.
+
+Git receives the token for the account's `https://` remotes on its server, for the one command that needs it. The token never appears in
+command lines, logs or Git's configuration. SSH remotes, and remotes on servers you are not signed in to, use your own Git setup.
+
+## Links and pull requests
+
+**Open on** and **Copy Link** work for HTTPS and SSH remotes on the server, with any port or path, such as
+`git@codeberg.org:alice/notes.git` or `ssh://git@git.example.com:2222/alice/notes.git`. Files link to the branch, or to the commit when
+the revision is one, with the selected lines, such as `https://codeberg.org/alice/notes/src/branch/main/README.md#L4-L9`.
+
+**Pull Requests** shows each open pull request with its author, branches, review state and checks state; **Checkout** fetches its
+`refs/pull/<number>/head` ref. A pull request created as a draft gets the `WIP:` prefix in its title, which is how Forgejo marks work in
+progress.
+
+## Settings
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `forgejo.oauthClientIds` | empty | The client ID of the OAuth2 application registered for Runesmith on each server, as `server=ID` pairs separated by commas, such as `codeberg.org=1a2b3c4d, git.example.com=5e6f7a8b`. An ID without a server is for Codeberg. Servers without an ID sign in with an access token. |
+
+The sign-in dialog fills the setting in for you: without a client ID it offers **Set up browser sign-in**, which shows the steps and takes
+the client ID.
+
+## Register an OAuth2 application
+
+Browser sign-in needs an OAuth2 application for Runesmith on the server, registered once. Any account can register one for itself, and a
+server administrator can register one for every account in the site administration's **Applications** page.
+
+<Steps>
+
+1. On the server, open **Settings › Applications** (`/user/settings/applications`) and find **Manage OAuth2 applications**.
+2. Set **Application name** to `Runesmith` and **Redirect URIs** to `http://127.0.0.1/`.
+3. Clear **Confidential client**: Runesmith is a desktop app and keeps no secret.
+4. Select **Create application** and copy the **Client ID**. Runesmith does not need the client secret.
+5. In Runesmith, paste the client ID in the sign-in dialog's **Set up browser sign-in**, or add `server=ID` to `forgejo.oauthClientIds`.
+
+</Steps>
+
+Forgejo accepts any port for a loopback redirect URI of a public client, so the one URI covers every sign-in. Use `127.0.0.1`, not
+`localhost`. The detailed steps, including what each error means, are in
+[Registering an OAuth2 application on Forgejo and Gitea](https://github.com/RunesmithHub/Runesmith/blob/main/docs/forgejo-gitea-oauth.md).
+
+## Screenshots and tests
+
+Setting the environment variable `RUNESMITH_FORGEJO_FAKE` to `signed-in` or `signed-out` replaces every server with made-up answers and
+accounts, so the Forgejo screens can be shown and tested without a network or a real account. Browser sign-in then waits forever, and
+nothing is kept in the secret store. Never set it for real work: nothing reaches a server while it is set.

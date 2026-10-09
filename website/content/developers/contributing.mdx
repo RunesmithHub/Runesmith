@@ -1,0 +1,55 @@
+---
+title: Contributing
+description: The conventions for code, documentation, commits and pull requests in Runesmith.
+---
+
+Runesmith follows the same rules as its sibling projects. This page lists them; `CONTRIBUTING.md` in the repository is the short version.
+
+## Before you start
+
+- For a bug, open an issue with the steps to reproduce it. For a security problem, follow `SECURITY.md` instead.
+- For a larger change, such as a new panel or a new project, open an issue first, so the approach is agreed on before you write the code.
+- A new project in `src/` must pass every item of the checklist in [Projects and when to add one](./projects.mdx).
+
+## Code
+
+- The solution builds without warnings; CI builds with `-warnaserror`.
+- Modern C#: file-scoped namespaces, primary constructors where they fit, collection expressions, `var` where the type is obvious.
+- Public types and members have XML documentation that says what they do for the caller.
+- Comments explain only what the code cannot say, such as a constraint or a workaround, in one line. They never narrate how the code came
+  to be.
+- Keep classes small and focused, and add an abstraction only when something uses it today.
+- `dotnet format whitespace` and `dotnet format style` keep the formatting; the Checks workflow fails when they would change something.
+- `BannedSymbols.txt` lists calls that are easy to get wrong. Add an entry, with the reason and what to use instead, when you find another.
+
+## Documentation
+
+When behavior, a setting, a command, a key binding or the plugin API changes, update the site in `website/` in the same commit.
+`website/STYLE.md` says how pages are written: plain and direct, sentence-case headings, no em dashes and no emoji.
+
+## Commits
+
+Write each commit message as a [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/), such as
+`fix(editor): keep the caret in view after a paste`. The types are `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `ci`, `chore` and
+`revert`. The scope names the part of Runesmith, such as `text`, `lsp`, `sdk`, `composition`, `workspace`, `languages`, `editor`, `shell`,
+`app`, `csharp` or `templates`. The Checks workflow checks every commit of a pull request.
+
+## Pull requests
+
+Open a pull request against `main` and fill in the template. It asks for:
+
+- what changes for people who use Runesmith or write plugins, and why;
+- the tests that cover the change;
+- updated documentation;
+- for user interface changes, a check in light and dark, and docked, floating and in its own window where it can be;
+- for changes to `Runesmith.Sdk`, whether `RunesmithApi.Version` must change.
+
+## License
+
+Runesmith is licensed under the Apache License 2.0. Contributions you submit are licensed under the same terms, as section 5 of the
+license describes.
+
+## Related
+
+- [Building and testing](./building.mdx)
+- [Releasing](./releasing.mdx)

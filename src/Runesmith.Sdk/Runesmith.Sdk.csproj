@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>The Runesmith plugin API: the plugin lifecycle, the services plugins use and the extension points they export.</Description>
+    <UsesHammerUI>true</UsesHammerUI>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <PackageTags>runesmith;plugin;ide;sdk</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="System.Composition.AttributedModel" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Text\Runesmith.Text.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <!-- Gives plugins the RunesmithPluginLayout and InstallPlugin targets. -->
+    <None Include="build\Runesmith.Sdk.targets" Pack="true" PackagePath="build/" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Sdk.Tests" />
+  </ItemGroup>
+</Project>

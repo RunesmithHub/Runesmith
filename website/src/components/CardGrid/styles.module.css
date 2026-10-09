@@ -1,0 +1,86 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 0.9rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.two {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 1.1rem 1.15rem 1.15rem;
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius);
+  background: var(--ts-surface);
+  color: var(--ts-text);
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.link:hover {
+  color: var(--ts-text);
+  text-decoration: none;
+  border-color: var(--ts-accent-border);
+  box-shadow: var(--ts-shadow);
+  transform: translateY(-2px);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.25rem;
+  border-radius: 10px;
+  background: var(--ts-accent-soft);
+  color: var(--ifm-color-primary);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 650;
+  font-size: 1rem;
+}
+
+.arrow {
+  color: var(--ts-text-muted);
+  transition:
+    transform 160ms ease,
+    color 160ms ease;
+}
+
+.link:hover .arrow {
+  color: var(--ifm-color-primary);
+  transform: translateX(3px);
+}
+
+.description {
+  color: var(--ts-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .arrow {
+    transition: none;
+  }
+
+  .link:hover {
+    transform: none;
+  }
+}

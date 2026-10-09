@@ -1,0 +1,111 @@
+using System.Text.RegularExpressions;
+using Runesmith.Languages.Features;
+using Runesmith.Lsp;
+using Runesmith.Sdk.Build;
+using Runesmith.Sdk.Languages;
+using Runesmith.Text;
+using Protocol = Runesmith.Lsp.Protocol;
+
+namespace Runesmith.Languages.Servers;
+
+/// <summary>Converts between the protocol's types and Runesmith's. Text in Runesmith uses only <c>\n</c>, and both count columns in UTF-16
+/// code units, so positions carry over unchanged.</summary>
+internal static partial class LspConvert
+{
+    public static Protocol.Position ToPosition(TextSnapshot snapshot, int offset)
+    {
+        var position = snapshot.GetPosition(Math.Clamp(offset, 0, snapshot.Length));
+        return new Protocol.Position(position.Line, position.Column);
+    }
+
+    public static TextPosition ToTextPosition(Protocol.Position position) => new(Math.Max(0, position.Line), Math.Max(0, position.Character));
+
+    public static int ToOffset(TextSnapshot snapshot, Protocol.Position position) => snapshot.GetOffset(ToTextPosition(position));
+
+    public static TextSpan ToSpan(TextSnapshot snapshot, Protocol.Range range)
+    {
+        var start = ToOffset(snapshot, range.Start);
+        return TextSpan.FromBounds(start, Math.Max(start, ToOffset(snapshot, range.End)));
+    }
+
+    public static Protocol.Range ToRange(TextSnapshot snapshot, TextSpan span) => new(ToPosition(snapshot, span.Start), ToPosition(snapshot, span.End));
+
+    /// <summary>Turns a server's text edits of a snapshot into changes, sorted by where they start.</summary>
+    public static IReadOnlyList<TextChange> ToChanges(TextSnapshot snapshot, IEnumerable<Protocol.TextEdit> edits) =>
+        WorkspaceEdits.ToChanges(snapshot, edits.Select(edit => (ToTextPosition(edit.Range.Start), ToTextPosition(edit.Range.End), edit.NewText)));
+
+    /// <summary>Turns a server's workspace edit into Runesmith's, reading the files that are not open.</summary>
+    /// <exception cref="LanguageFeatureException">A file is not a local file or cannot be read.</exception>
+    public static Sdk.Languages.WorkspaceEdit ToWorkspaceEdit(Protocol.WorkspaceEdit edit, Sdk.Documents.IDocumentService documents)
+    {
+        var result = new List<Sdk.Languages.DocumentEdit>();
+        foreach (var (uri, _, edits) in edit.Documents)
+        {
+            if (LspUri.ToPath(uri) is not { } path)
+                throw new LanguageFeatureException($"The language server changes {uri}, which is not a local file.");
+            if (WorkspaceEdits.ReadBasis(documents, path) is not { } basis)
+                throw new LanguageFeatureException($"{Path.GetFileName(path)} could not be read.");
+
+            result.Add(new Sdk.Languages.DocumentEdit(path, ToChanges(basis, edits)) { Snapshot = documents.Find(path) is null ? null : basis });
+        }
+
+        return new Sdk.Languages.WorkspaceEdit(result);
+    }
+
+    /// <summary>Turns a change set into the protocol's incremental changes, last change first, so positions in the old text stay right while
+    /// the server applies them one after another.</summary>
+    public static IReadOnlyList<Protocol.TextDocumentContentChangeEvent> ToContentChanges(TextChangeSet changeSet)
+    {
+        var before = changeSet.Before;
+        var changes = new List<Protocol.TextDocumentContentChangeEvent>(changeSet.Changes.Count);
+        for (var i = changeSet.Changes.Count - 1; i >= 0; i--)
+        {
+            var change = changeSet.Changes[i];
+            var range = new Protocol.Range(ToPosition(before, change.Span.Start), ToPosition(before, change.Span.End));
+            changes.Add(new Protocol.TextDocumentContentChangeEvent(range, change.NewText));
+        }
+
+        return changes;
+    }
+
+    public static Diagnostic ToDiagnostic(string filePath, Protocol.Diagnostic diagnostic, string source) =>
+        new(filePath, ToTextPosition(diagnostic.Range.Start), ToTextPosition(diagnostic.Range.End), ToSeverity(diagnostic.Severity), diagnostic.Message,
+            diagnostic.Source ?? source)
+        {
+            Code = diagnostic.Code,
+        };
+
+    public static DocumentLocation? ToLocation(Protocol.Location location) =>
+        LspUri.ToPath(location.Uri) is { } path ? new DocumentLocation(path, ToTextPosition(location.Range.Start), ToTextPosition(location.Range.End)) : null;
+
+    public static CompletionItemKind ToKind(Protocol.CompletionItemKind? kind) =>
+        kind is { } value && (int)value is >= 1 and <= 25 ? (CompletionItemKind)((int)value - 1) : CompletionItemKind.Text;
+
+    public static string? ToMarkdown(Protocol.MarkupContent? content) =>
+        content is null || string.IsNullOrWhiteSpace(content.Value) ? null
+        : content.Kind == Protocol.MarkupKind.Markdown ? content.Value
+        : EscapeMarkdown(content.Value);
+
+    /// <summary>Removes snippet syntax, such as <c>${1:name}</c> and <c>$0</c>, keeping the placeholders' text.</summary>
+    public static string StripSnippet(string snippet) =>
+        SnippetPlaceholder().Replace(SnippetTabStop().Replace(snippet, ""), match => match.Groups[1].Value).Replace("\\$", "$", StringComparison.Ordinal);
+
+    private static DiagnosticSeverity ToSeverity(Protocol.DiagnosticSeverity? severity) => severity switch
+    {
+        Protocol.DiagnosticSeverity.Warning => DiagnosticSeverity.Warning,
+        Protocol.DiagnosticSeverity.Information => DiagnosticSeverity.Information,
+        Protocol.DiagnosticSeverity.Hint => DiagnosticSeverity.Hint,
+        _ => DiagnosticSeverity.Error,
+    };
+
+    private static string EscapeMarkdown(string text) => MarkdownSpecial().Replace(text, @"\$0");
+
+    [GeneratedRegex(@"\$\{\d+:([^}]*)\}")]
+    private static partial Regex SnippetPlaceholder();
+
+    [GeneratedRegex(@"\$(\d+|\{\d+\})")]
+    private static partial Regex SnippetTabStop();
+
+    [GeneratedRegex(@"[\\`*_{}\[\]<>#|]")]
+    private static partial Regex MarkdownSpecial();
+}

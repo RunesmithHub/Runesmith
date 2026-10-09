@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <Description>Runesmith, the code editor.</Description>
+    <AssemblyName>runesmith</AssemblyName>
+    <RootNamespace>Runesmith.App</RootNamespace>
+    <ApplicationIcon>Assets\runesmith.ico</ApplicationIcon>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <UsesHammerUI>true</UsesHammerUI>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <TieredPGO>false</TieredPGO>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Condition="'$(Configuration)' == 'Debug'" />
+    <!-- Plugins load this copy, never their own, so Runesmith ships it; the C# compiler services need it. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Shell\Runesmith.Shell.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The logo's source; the icon sizes are made from it (see docs/branding.md). -->
+    <None Include="Assets\runesmith.webp" />
+    <!-- The plugin hub's trust root, the first root signed at the key ceremony; without it, the hub is not set up in this build. -->
+    <None Include="Hub\root.json" Condition="Exists('Hub\root.json')" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- Linux installs copy share/ into ~/.local/share or /usr/share for the menu entry and its icons. -->
+    <None Include="..\..\packaging\linux\share\**" LinkBase="share" CopyToPublishDirectory="PreserveNewest" Condition="$(RuntimeIdentifier.StartsWith('linux'))" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.App.Tests" />
+  </ItemGroup>
+
+  <!-- The built-in plugins load like any other plugin, from plugins/<id> next to the executable, laid out as the SDK's RunesmithPluginLayout
+       target does. -->
+  <ItemGroup>
+    <BundledPlugin Include="..\..\plugins\Runesmith.CSharp\Runesmith.CSharp\Runesmith.CSharp.csproj" />
+    <BundledPlugin Include="..\..\plugins\Runesmith.Java\Runesmith.Java\Runesmith.Java.csproj" />
+    <BundledPlugin Include="..\..\plugins\Runesmith.Git\Runesmith.Git\Runesmith.Git.csproj" />
+    <BundledPlugin Include="..\..\plugins\Runesmith.GitHub\Runesmith.GitHub\Runesmith.GitHub.csproj" />
+    <BundledPlugin Include="..\..\plugins\Runesmith.Forgejo\Runesmith.Forgejo\Runesmith.Forgejo.csproj" />
+    <BundledPlugin Include="..\..\plugins\Runesmith.Gitea\Runesmith.Gitea\Runesmith.Gitea.csproj" />
+    <BundledPlugin Include="..\..\plugins\Runesmith.CSharp.Templates\Runesmith.CSharp.Templates\Runesmith.CSharp.Templates.csproj" />
+    <BundledPlugin Include="..\..\plugins\Runesmith.Java.Templates\Runesmith.Java.Templates\Runesmith.Java.Templates.csproj" />
+  </ItemGroup>
+  <Target Name="BuildBundledPlugins" AfterTargets="Build">
+    <!-- Restoring the app does not restore the plugins, which are not its references; a fresh checkout restores them here. -->
+    <ItemGroup>
+      <_UnrestoredBundledPlugin Include="@(BundledPlugin)" Condition="!Exists('%(RootDir)%(Directory)obj/project.assets.json')" />
+    </ItemGroup>
+    <MSBuild Projects="@(_UnrestoredBundledPlugin)" Targets="Restore" Condition="'@(_UnrestoredBundledPlugin)' != ''"
+             Properties="Configuration=$(Configuration);MSBuildRestoreSessionId=$([System.Guid]::NewGuid())" RemoveProperties="RuntimeIdentifier;SelfContained;PublishDir;_IsPublishing" />
+    <!-- Plugins do not depend on the platform, so a publish for one runtime must not pass the runtime on to them. -->
+    <MSBuild Projects="@(BundledPlugin)" Targets="RunesmithPluginLayout" Properties="Configuration=$(Configuration)" RemoveProperties="RuntimeIdentifier;SelfContained;PublishDir;_IsPublishing">
+      <Output TaskParameter="TargetOutputs" ItemName="_BundledPluginFile" />
+    </MSBuild>
+    <ItemGroup>
+      <_StaleBundledPluginFile Include="$(OutDir)plugins/**/*" Exclude="@(_BundledPluginFile->'$(OutDir)plugins/%(PluginId)/%(RelativePath)')" />
+    </ItemGroup>
+    <Delete Files="@(_StaleBundledPluginFile)" />
+    <Copy SourceFiles="@(_BundledPluginFile)" DestinationFiles="@(_BundledPluginFile->'$(OutDir)plugins/%(PluginId)/%(RelativePath)')" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="PublishBundledPlugins" AfterTargets="Publish" DependsOnTargets="BuildBundledPlugins">
+    <Copy SourceFiles="@(_BundledPluginFile)" DestinationFiles="@(_BundledPluginFile->'$(PublishDir)plugins/%(PluginId)/%(RelativePath)')" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

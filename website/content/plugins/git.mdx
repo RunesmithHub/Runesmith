@@ -1,0 +1,294 @@
+---
+title: Git
+description: "How Runesmith works with Git: the Commit window, branches, fetch, pull and push, the log and its graph, diffs, cloning, links to hosting services and pull requests."
+---
+
+Runesmith brings Git into the editor through a built-in plugin, `runesmith.git`. It runs the `git` command line, so your configuration,
+hooks, signing keys, SSH setup and credential helpers keep working. Hosting services are plugins on top of it: [GitHub](./github.mdx),
+[Forgejo](./forgejo.mdx) and [Gitea](./gitea.mdx) add their accounts to the clone dialog, the **Pull Requests** window and the links to
+their pages. [Version control](/guide/version-control) walks through the everyday tasks; this page describes each part and its settings.
+
+## How Runesmith runs Git
+
+Git must be installed and on the `PATH`. Every command Runesmith runs is one you can run yourself, and each command that changes the
+repository is written to the **Git** channel of the **Output** panel.
+
+- Commands that change the repository run one at a time, in the order you started them. Reading the status, the log or a file runs beside
+  them.
+- Runesmith watches the Git folder and the files of the open folder, and reads the status again 300 ms after they stop changing. The status
+  is never read on the UI thread and never on a key press.
+- Remotes over `https` on a server you signed in to through a hosting plugin, such as github.com or codeberg.org, use that account's token.
+  Other remotes use your own setup, such as SSH or a credential helper.
+
+When the open folder is not in a Git repository, the Git features stay out of the way: the **Commit** and **Git** windows leave the
+stripes, and the branch widget hides. **Git › Initialize Repository** makes the folder a repository, and **File › Clone Repository...**
+clones one.
+
+## The Commit window
+
+The **Commit** window sits on the left stripe, under **Explorer**. Its button shows the number of changed files.
+
+The changes are a tree of folders and files in up to four groups:
+
+| Group | What is in it |
+| --- | --- |
+| **Conflicts** | Files with merge conflicts. |
+| **Staged** | Changes the next commit takes. |
+| **Changes** | Changes to tracked files that are not staged. |
+| **Untracked Files** | Files Git does not track yet. |
+
+Each file shows a status letter in its color: **M** modified, **A** added, **D** deleted, **R** renamed, **C** copied, **T** type changed,
+**U** untracked and **!** for a conflict. Folders that hold only one folder show as one row, such as `src/App`.
+
+The check box of a file, folder or group stages it, or unstages it in the **Staged** group. Select several rows with
+<Keys>Ctrl</Keys> or <Keys>Shift</Keys> to act on them together.
+
+| Key or gesture | What it does |
+| --- | --- |
+| <Keys>Space</Keys> | Stages the selected files, or unstages them when they are all staged. |
+| <Keys>Enter</Keys> or double-click | Opens the file's diff. |
+| <Keys>Delete</Keys> | Rolls the selected files back, after asking. |
+
+The context menu has **Show Diff**, **Stage**, **Unstage**, **Roll Back...**, **Open**, **Reveal in File Manager**, **Show History**,
+**Add to .gitignore** (for untracked files), **Copy Path** and **Copy Relative Path**.
+
+### The commit message
+
+Type the message in the box under the changes. The first line is the subject: once it is longer than `git.subjectLengthHint`
+(72 characters), its length shows above the box.
+
+- The **Recent messages** button lists the messages of the latest commits; choose one to use it again.
+- **Amend** replaces the last commit. Turning it on loads the last commit's message; turning it off brings back what you had typed.
+- The **Commit options** menu has **Sign Off**, which adds a `Signed-off-by` line, and **Skip Hooks**, which skips the `pre-commit` and
+  `commit-msg` hooks.
+
+**Commit** (<Keys>Ctrl+Enter</Keys>) commits the staged changes. **Commit and Push** (<Keys>Ctrl+Shift+Enter</Keys>) commits and then
+pushes the branch.
+
+### Banners
+
+Problems and states show in a banner at the top of the window, with Git's own message and an action where one helps:
+
+| Banner | Action |
+| --- | --- |
+| **Nothing is staged** | **Stage All and Commit** stages every change and commits it. |
+| **A hook stopped the commit** | **Commit Without Hooks** commits again with **Skip Hooks** on. |
+| **Merging** | **Abort Merge**. Commit once the conflicts are resolved and staged to finish the merge. |
+| **Rebasing**, **Cherry-picking**, **Reverting** | **Continue** once the conflicts are resolved and staged, or **Abort**. |
+
+## Diffs
+
+**Show Diff** opens a diff in an editor tab, with the two versions side by side:
+
+- a staged file compares the last commit (HEAD) with the staged version;
+- a changed file compares the staged version, or HEAD when nothing of it is staged, with the working copy, which you can edit in the diff;
+- a file in a commit compares it with the commit's first parent.
+
+The editor's change markers compare each file with its version in HEAD, so added, changed and deleted lines show in the gutter as you type.
+They follow along after a commit, checkout, reset or pull.
+
+## The branch widget
+
+The branch widget sits in the toolbar after the project widget. It shows the current branch, or the commit when HEAD is detached, and a
+badge with the commits to pull (↓) and to push (↑). Its tooltip names the upstream branch.
+
+Click it to open the branch popup:
+
+- a search field over the branches and actions;
+- the actions **Update Project...**, **Commit...**, **Push...**, **New Branch...** and **Fetch**;
+- the groups **Recent**, **Local**, **Remote** and **Tags**. **Tags** shows the 10 newest tags, or every tag that matches the search.
+
+Click a branch, or press <Keys>Enter</Keys> or <Keys>Right</Keys> on it, to open its menu:
+
+| Item | What it does |
+| --- | --- |
+| **Checkout** | Switches to the branch. A remote branch becomes a local branch that tracks it. |
+| **New Branch from** *branch*... | Creates a branch there, and checks it out unless you clear the check box. |
+| **Compare with** *current* | Shows the commits the two branches do not share in the **Git** window. |
+| **Merge into** *current* | Merges the branch into the current one. |
+| **Show History** | Shows the branch's log in the **Git** window. |
+| **Push** or **Push...** | Pushes a local branch; for the current branch, opens the **Push** dialog. |
+| **Rename...** | Renames a local branch. |
+| **Delete** | Deletes a local branch, after asking. |
+| **Track** | Makes a local branch track this remote branch, creating it when there is none. |
+| **Delete on** *remote* | Deletes the branch on the remote, after asking. |
+
+When a checkout would overwrite local changes, Runesmith asks:
+
+- **Smart Checkout** stashes your changes, checks out the branch and brings them back. When they conflict with the branch, the conflicts
+  are left to resolve and the changes stay in the stash.
+- **Force Checkout** throws away the changes in the way.
+
+Deleting a branch whose commits are on no other branch asks a second time. The toast after a delete has **Restore**, which creates the
+branch again where it pointed.
+
+## Fetch, pull and push
+
+| Command | What it does |
+| --- | --- |
+| **Fetch** | Fetches every remote and drops remote branches deleted there (`git fetch --all --prune`). |
+| **Pull...** | Updates the current branch from its upstream with `git pull --autostash`, so local changes are kept. The `git.pullStrategy` setting chooses between a rebase and a merge. |
+| **Push...** | Opens the **Push** dialog. |
+
+The **Push** dialog lists the commits that go, and the remote and branch they go to; you can change both. A branch without an upstream
+gets one on its first push. **Force push** pushes with `--force-with-lease`, after asking again: the push stops if the remote branch moved
+since your last fetch.
+
+When the remote has commits your branch does not, the push is rejected and the toast offers **Update and Push**, which pulls and pushes
+again.
+
+Fetch, pull, push and checkout show in the status bar's task indicator with Git's progress and a **Cancel** button, and end with a toast,
+such as "Pushed 3 commits to origin/main". A failure shows Git's own message.
+
+## The Git window
+
+The **Git** window, in the bottom area, shows the log:
+
+- one row per commit with the branch graph drawn in colored lanes, the subject, branch, tag and HEAD labels, the author and the date;
+- pages of 200 commits load as you scroll, so a history of any length opens at once;
+- a filter bar with text in the message, branch, author and path.
+
+Select a commit to see its details: the full message, the author and committer with their dates, the hashes, the parents (click one to go
+to it) and the changed files. Double-click a file to open its diff for that commit.
+
+The context menu of a commit has **Checkout Revision** (and **Checkout** for each local branch on it), **New Branch...**, **Cherry-pick**,
+**Revert Commit**, **Reset** *branch* **to Here**, **Copy Hash** and, for repositories on a hosting service, **Open on** *service*.
+**Reset** *branch* **to Here** has a submenu for how far to go:
+
+| Mode | The changes after the commit |
+| --- | --- |
+| **Soft** | Stay staged. |
+| **Mixed** | Stay in the working tree, not staged. |
+| **Hard** | Are thrown away, with every local change, after asking again. |
+
+### File history
+
+**Show File History** shows the commits that changed the current file, following it through renames. Run it from the **Git** menu, the
+command palette, the editor's context menu, the context menu of a file in the **Explorer**, or the context menu of a changed file in the
+**Commit** window (**Show History**). On a folder in the **Explorer**, it shows the commits that changed anything in the folder.
+
+## The status bar
+
+Two items sit in the status bar while a repository is open:
+
+- the branch, which opens the branch popup;
+- the sync state, with the commits to push (↑) and pull (↓), which fetches when clicked and turns while a fetch, pull or push runs.
+
+## Commands and keys
+
+The Git commands are in the **Git** menu, which sits after **Build** in the main menu, and in the command palette.
+
+| Command | Keys | What it does |
+| --- | --- | --- |
+| **Commit...** | <Keys>Ctrl+Alt+K</Keys> | Shows the **Commit** window with the message box focused. |
+| **Push...** | <Keys>Ctrl+Alt+Shift+K</Keys> | Opens the **Push** dialog. |
+| **Pull...** | <Keys>Ctrl+T</Keys> | Updates the current branch from its upstream. |
+| **Fetch** | | Fetches every remote. |
+| **New Branch...** | | Creates a branch at HEAD. |
+| **Branches...** | | Opens the branch popup. |
+| **Show History** | | Shows the **Git** window. |
+| **Show File History** | | Shows the history of the current file. |
+| **Show Diff** | | Opens the current file's diff. |
+| **Roll Back...** | | Undoes every change to the current file since the last commit, or to the files of a folder from the **Explorer**. |
+| **Add to .gitignore** | | Adds an untracked file or folder to the repository's top `.gitignore`. |
+| **Stash Changes...** | | Puts every local change aside, untracked files included. |
+| **Unstash Changes...** | | Brings back stashed changes, asking which when there are several. |
+| **Initialize Repository** | | Makes the open folder a Git repository. |
+| **Create Pull Request...** | | Proposes the current branch on the repository's hosting service. |
+
+### Context menus
+
+The editor's context menu and the **Explorer**'s have a Git group. Each item shows only where it applies: inside the repository, and the
+links only when the repository has a remote on a hosting service.
+
+| Item | Editor | Explorer | Shows for |
+| --- | --- | --- | --- |
+| **Show Diff** | Yes | Yes | A file with changes. |
+| **Rollback Lines** | Yes | | Changed lines at the caret or in the selection. |
+| **Show File History** | Yes | Yes | A file Git tracks, or a folder. |
+| **Roll Back...** | | Yes | A file with changes, or a folder that has some. |
+| **Add to .gitignore** | | Yes | An untracked file, or a folder of untracked files. |
+| **Open on** *service* | Yes | Yes | A file, at the selected lines in the editor, or a folder, on the service that hosts the repository. |
+| **Copy** *service* **Link** | Yes | | A file, at the selected lines. |
+
+## Git settings
+
+The **Git** category of the settings page has:
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `git.pullStrategy` | `gitConfig` | How **Pull...** brings in commits: `gitConfig` follows your `pull.rebase` setting and merges when it is not set, `rebase` rebases your commits, `merge` merges. |
+| `git.autoFetchMinutes` | `0` | Fetches every remote in the background every so many minutes; `0` turns it off. |
+| `git.subjectLengthHint` | `72` | The subject length past which the message box shows the length. |
+
+## Clone a repository
+
+**File › Clone Repository...**, or **Clone** on the welcome screen, opens the clone dialog. It has a tab for each account of the hosting
+plugins, such as **GitHub** or **Codeberg**, and a **URL** tab for any other Git URL.
+
+<Steps>
+
+1. On an account's tab, find the repository: the list shows the account's own repositories first, then each organization's, with the
+   description, whether it is private, the language, the stars and when it last changed. Type in the search field to filter by name,
+   owner or description, or select an owner's chip to see only theirs. **Refresh** loads the list again, and **Manage Access**, where the
+   service has it, changes which repositories Runesmith may use. Where the service has organizations to add, such as GitHub, a
+   **+ Organization** chip after the owners adds one, and the list loads again when you come back. To clone from anywhere else, use the
+   **URL** tab and paste any Git URL.
+2. Check **Location** and **Folder**. The location starts at the folder of your last clone, or `~/Projects`; the hint under them shows
+   where the clone goes, and warns when that folder exists and is not empty.
+3. Select **Clone**, or double-click the repository.
+
+</Steps>
+
+An account you are not signed in to shows **Sign in to** *service* on its tab instead of the list. **Add Account** at the top right of the
+dialog lists each hosting plugin, such as **Forgejo Account...**, to sign in to another account or server; its tab opens once you are signed
+in.
+
+The dialog shows Git's own progress while it receives objects and resolves deltas, and the status bar shows the clone as a background task
+with **Cancel**. When it is done, Runesmith opens the folder. If you close the dialog first, the clone goes on in the background. When Git
+fails, its message stays in the dialog.
+
+Clones, fetches, pulls and pushes over `https` use the token of the account you signed in with for that server. Other remotes, and SSH
+remotes, use your own Git setup.
+
+## Links to the hosting service
+
+When the repository has a remote on a service a hosting plugin knows, each such plugin adds three commands, named after the service:
+
+| Command | What it does |
+| --- | --- |
+| **Open on** *service* | Opens the current file at the selected lines, or the repository when no file is open |
+| **Copy** *service* **Link** | Copies the same link |
+| **Open Repository on** *service* | Opens the repository's page |
+
+The link points at the current branch when it has an upstream, and at the current commit when the branch was never pushed. The commands
+use the repository's `origin` remote when a service owns it, and otherwise the first remote that one does, with `upstream` last. They are
+in **Tools ›** *service*, the command palette and the Git group of the editor's context menu; **Open on** *service* is in the
+**Explorer**'s too, where a folder opens its page. The commit menu of the **Git** window has **Open on** *service* for the commit.
+
+## Pull requests
+
+**Create Pull Request...** proposes the current branch's changes on the service that hosts the repository:
+
+<Steps>
+
+1. Run **Create Pull Request...** from the **Git** menu, the command palette, or the **+** button of the **Pull Requests** window.
+2. Pick the base branch; it starts at the repository's default branch. The title and description come from the commits on your branch that
+   the base does not have: one commit gives its subject and body, several give a title from the branch name and a list of their subjects.
+3. Turn on **Create as a draft** if the work is not ready for review, where the service has drafts, and select **Create Pull Request**.
+
+</Steps>
+
+When the service does not have your branch, or not all of its commits, Runesmith asks to push it first. A notification confirms the new
+pull request, with **Open in Browser**.
+
+The **Pull Requests** window, on the right, lists the open pull requests of the repository with their number, title, author, branch, draft
+state, review decision (approved, changes requested, review required) and checks (passed, failed, running), as far as the service reports
+them. Its stripe button shows how many are open. The window and its button show only while the repository has a remote on a service you
+are signed in to; to sign in, use the service's own button or settings.
+
+| Action | What it does |
+| --- | --- |
+| Double-click, or **Open in Browser** | Opens the pull request on the service |
+| **Checkout** | Fetches the pull request into a local branch named after its branch, or `pr-<number>` when you have a branch of that name, and switches to it |
+| **Copy Link** | Copies the pull request's address |

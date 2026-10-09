@@ -1,0 +1,18 @@
+name: Feature request
+description: Suggest a feature, a language, a setting or a plugin API.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you want to do
+      description: What you are working on, and what stands in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help
+      description: How you would like it to work.
+    validations:
+      required: true

@@ -1,0 +1,9 @@
+{
+  "id": "runesmith.typing-benchmark",
+  "name": "Typing benchmark",
+  "version": "0.1.0",
+  "apiVersion": "0.1",
+  "assembly": "Runesmith.TypingBenchmark.dll",
+  "description": "Types into the editor on a fixed schedule and reports how fast Runesmith responded. Does nothing unless RUNESMITH_TYPING_BENCHMARK is set.",
+  "author": "Runesmith"
+}

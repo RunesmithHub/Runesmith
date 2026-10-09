@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>The language registry, TextMate highlighting and the bridge that turns language servers into editor features.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="TextMateSharp" />
+    <PackageReference Include="TextMateSharp.Grammars" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Sdk\Runesmith.Sdk.csproj" />
+    <ProjectReference Include="..\Runesmith.Composition\Runesmith.Composition.csproj" />
+    <ProjectReference Include="..\Runesmith.Lsp\Runesmith.Lsp.csproj" />
+    <ProjectReference Include="..\Runesmith.LanguageServices\Runesmith.LanguageServices.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Highlighting\Runesmith*.json" Link="ColorSchemes\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Languages.Tests" />
+    <InternalsVisibleTo Include="Runesmith.Benchmarks" />
+  </ItemGroup>
+</Project>

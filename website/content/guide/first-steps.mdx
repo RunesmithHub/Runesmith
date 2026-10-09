@@ -1,0 +1,62 @@
+---
+title: First steps
+description: Open a folder, open files and find your way around the welcome screen, the Explorer and the session Runesmith restores.
+---
+
+Runesmith works on a folder: open one, and the Explorer shows its files, Quick Open finds them by name and Find in Files searches them.
+You can also open single files without a folder.
+
+## Open a folder
+
+<Steps>
+
+1. Choose **File › Open Folder...** (<Keys>Ctrl+Shift+O</Keys>), or **Open** on the welcome screen.
+2. Pick the folder, such as the one that holds your solution.
+3. Double-click a file in the **Explorer**, or press <Keys>Ctrl+P</Keys> and type part of its name.
+
+</Steps>
+
+The folder's name shows at the top of the Explorer and in the project widget at the left of the toolbar, whose menu also opens recent
+folders. **File › Close Folder** closes the folder and its files.
+
+## The welcome screen
+
+While no folder and no file is open, the welcome screen fills the window under the toolbar. Its left column switches between:
+
+| Section | What is there |
+| --- | --- |
+| **Projects** | The last 10 folders you opened, with when you opened each and a search box. Click one to open it again. **New Project** and **Open** start something new. |
+| **Customize** | The color theme, the accent color, the syntax colors, the file icons, the font sizes of the interface and the editor, and the keymap. |
+| **Plugins** | Opens the **Plugins** page of the settings. |
+
+**Help › Welcome** brings the welcome screen back; the **X** at its top right returns to the folder.
+
+## The Explorer
+
+The **Explorer** panel lists the folder's files and folders, folders first. It leaves out what the `files.exclude` setting excludes, such as
+`bin`, `obj` and `.git`, and follows changes on disk as they happen.
+
+| To | Do |
+| --- | --- |
+| Open a file | Double-click it, or select it and press <Keys>Enter</Keys>. |
+| Rename | Select it and press <Keys>F2</Keys>, or right-click and choose **Rename**. |
+| Delete | Select it and press <Keys>Delete</Keys>, or right-click and choose **Delete**. Runesmith asks first. |
+| Create a file or folder | The buttons beside the folder's name, which show while the pointer is over the Explorer, or **New File** and **New Folder** on the right-click menu. |
+| Copy a path | **Copy Path** or **Copy Relative Path** on the right-click menu. |
+| Show it in the system's file manager | **Reveal in File Manager** (**Reveal in Finder** on macOS) on the right-click menu. |
+
+The buttons beside the folder's name also refresh the tree and collapse every folder. When you switch editors, the Explorer selects the file of the
+active editor.
+
+## The session
+
+When Runesmith closes, it remembers for each folder which files were open, where the caret was in each and which one was active. Opening the
+folder again opens them again. When Runesmith starts without a folder or file on the command line, it opens the last folder.
+
+The window's size and place, and where the tool windows are and which ones show, are remembered too. Turn the setting **Restore the session**
+(`window.restoreSession`) off to start with nothing open.
+
+## Related
+
+- [The window](./window.mdx): menus, panels and docking.
+- [Navigation](./navigation.mdx): Quick Open and the command palette.

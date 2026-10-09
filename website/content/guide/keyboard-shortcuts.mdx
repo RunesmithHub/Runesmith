@@ -1,0 +1,161 @@
+---
+title: Keyboard shortcuts
+description: Every default key binding, and how to change them on the Keyboard Shortcuts page or in keybindings.json.
+---
+
+Every command can have keys, and you can change them all. This page lists the default bindings and shows how to change them. The keys the
+editor handles itself, such as moving by words, are on [The editor](./editor.mdx#move-and-select).
+
+On macOS, the defaults use <Keys>Cmd</Keys> where this page says <Keys>Ctrl</Keys>.
+
+## File
+
+| Command | Keys |
+| --- | --- |
+| New File | <Keys>Ctrl+N</Keys> |
+| New Project... | <Keys>Ctrl+Shift+N</Keys> |
+| Open File... | <Keys>Ctrl+O</Keys> |
+| Open Folder... | <Keys>Ctrl+Shift+O</Keys> |
+| Save | <Keys>Ctrl+S</Keys> |
+| Save As... | <Keys>Ctrl+Shift+S</Keys> |
+| Save All | <Keys>Ctrl+Alt+S</Keys> |
+| Close Editor | <Keys>Ctrl+W</Keys> or <Keys>Ctrl+F4</Keys> |
+| Close Folder | |
+| Settings | <Keys>Ctrl+,</Keys> |
+| Exit | <Keys>Ctrl+Q</Keys> |
+
+## Edit
+
+| Command | Keys |
+| --- | --- |
+| Undo | <Keys>Ctrl+Z</Keys> |
+| Redo | <Keys>Ctrl+Y</Keys> or <Keys>Ctrl+Shift+Z</Keys> |
+| Cut | <Keys>Ctrl+X</Keys> |
+| Copy | <Keys>Ctrl+C</Keys> |
+| Paste | <Keys>Ctrl+V</Keys> |
+| Find | <Keys>Ctrl+F</Keys> |
+| Replace | <Keys>Ctrl+H</Keys> |
+| Find Next | <Keys>F3</Keys> |
+| Find Previous | <Keys>Shift+F3</Keys> |
+| Find in Files | <Keys>Ctrl+Shift+F</Keys> |
+| Toggle Line Comment | <Keys>Ctrl+/</Keys> |
+| Show Code Actions | <Keys>Alt+Enter</Keys> |
+| Rename Symbol | <Keys>F2</Keys> |
+| Format Document | <Keys>Shift+Alt+F</Keys> |
+| Format Selection | |
+| Rollback Lines | <Keys>Ctrl+Alt+Z</Keys> |
+
+## Selection
+
+| Command | Keys |
+| --- | --- |
+| Select All | <Keys>Ctrl+A</Keys> |
+| Move Line Up | <Keys>Alt+Up</Keys> |
+| Move Line Down | <Keys>Alt+Down</Keys> |
+| Duplicate Line | <Keys>Shift+Alt+Down</Keys> |
+| Delete Line | <Keys>Ctrl+Shift+K</Keys> |
+| Indent | <Keys>Tab</Keys> in the editor |
+| Outdent | <Keys>Shift+Tab</Keys> in the editor |
+
+## View
+
+| Command | Keys |
+| --- | --- |
+| Command Palette | <Keys>Ctrl+K</Keys>, <Keys>Ctrl+Shift+P</Keys> or <Keys>F1</Keys> |
+| Show Explorer | <Keys>Ctrl+Shift+E</Keys> |
+| Show Search | |
+| Show Problems | <Keys>Ctrl+Shift+M</Keys> |
+| Show Output | <Keys>Ctrl+Shift+U</Keys> |
+| Toggle Light and Dark Theme | <Keys>Ctrl+Shift+T</Keys> |
+| Zoom In | <Keys>Ctrl+=</Keys> or <Keys>Ctrl+Shift+=</Keys> |
+| Zoom Out | <Keys>Ctrl+-</Keys> |
+| Reset Zoom | <Keys>Ctrl+0</Keys> |
+| Reset Layout | |
+
+## Go
+
+| Command | Keys |
+| --- | --- |
+| Search Everywhere | <Keys>Shift</Keys> twice, or <Keys>Ctrl+Shift+A</Keys> |
+| Go to File... | <Keys>Ctrl+P</Keys> |
+| Go to Line... | <Keys>Ctrl+G</Keys> |
+| Go to Definition | <Keys>F12</Keys> |
+| Back | <Keys>Alt+Left</Keys> |
+| Forward | <Keys>Alt+Right</Keys> |
+| Next Change | <Keys>F7</Keys> |
+| Previous Change | <Keys>Shift+F7</Keys> |
+| Show Changes | |
+
+## Run
+
+| Command | Keys |
+| --- | --- |
+| Run | <Keys>Shift+F10</Keys> |
+| Debug | <Keys>Shift+F9</Keys> |
+| Stop | <Keys>Ctrl+F2</Keys> |
+| Edit Configurations... | |
+
+## Git
+
+| Command | Keys |
+| --- | --- |
+| Commit... | <Keys>Ctrl+Alt+K</Keys> |
+| Push... | <Keys>Ctrl+Alt+Shift+K</Keys> |
+| Pull... | <Keys>Ctrl+T</Keys> |
+| Fetch, New Branch..., Branches..., Show History, Show File History, Show Diff | |
+| Roll Back..., Add to .gitignore, Stash Changes..., Unstash Changes..., Initialize Repository | |
+
+In the **Commit** window's message box, <Keys>Ctrl+Enter</Keys> commits and <Keys>Ctrl+Shift+Enter</Keys> commits and pushes.
+
+## Editor, build and help
+
+| Command | Keys |
+| --- | --- |
+| Trigger Suggestions | <Keys>Ctrl+Space</Keys> |
+| Show Parameter Hints | <Keys>Ctrl+Shift+Space</Keys> |
+| Build | <Keys>Ctrl+Shift+B</Keys> |
+| Cancel Build | <Keys>Ctrl+Break</Keys> |
+| Welcome, Keyboard Shortcuts, Documentation, About Runesmith | |
+| Restart Language Servers, Show Language Server Output | |
+
+Commands without keys run from the menus or the command palette.
+
+## Change a binding
+
+<Steps>
+
+1. Choose **Help › Keyboard Shortcuts**. The page lists every command by category, with its id and its keys; the search box finds commands
+   by name, id or key.
+2. Click the keys of a command, or **Add a binding** when it has none.
+3. Type the keys, such as `Ctrl+Alt+Down`, and press <Keys>Enter</Keys>. Separate several with `|`. Leave the box empty to remove the
+   binding.
+
+</Steps>
+
+Write modifiers first, then one key: `Ctrl`, `Shift`, `Alt` (or `Option`) and `Cmd` (or `Meta`), and keys such as `A`, `F5`, `Enter`,
+`Space`, `Up`, `PageDown`, `/`, `=` or `,`.
+
+## keybindings.json
+
+Your bindings are saved in `keybindings.json`, next to your `settings.json`. It is a JSON object of command ids and keys; an empty value
+removes a command's default binding:
+
+```json title="keybindings.json"
+{
+  "edit.toggleComment": "Ctrl+Shift+7",
+  "view.commandPalette": "Ctrl+Shift+P | F1",
+  "file.exit": ""
+}
+```
+
+Runesmith reads the file when it starts. The ids are on the **Keyboard Shortcuts** page beside each command.
+
+## Keys in text boxes
+
+While a text box has the focus, such as the find bar's, keys without <Keys>Ctrl</Keys>, <Keys>Alt</Keys> or <Keys>Cmd</Keys> type into the
+box; function keys still run their commands. Undo, redo, cut, copy, paste and select all work on the text box or editor that has the focus.
+
+## Related
+
+- [The editor](./editor.mdx)
+- [Navigation](./navigation.mdx)

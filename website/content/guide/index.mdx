@@ -1,0 +1,36 @@
+---
+title: Introduction
+description: What Runesmith is, what this first version does and where to start.
+---
+
+Runesmith is a code editor for Windows, Linux and macOS, built on .NET 10 and Avalonia. It opens a folder, shows its files, and edits them
+with highlighting for more than 60 languages. For C#, Runesmith's own analyzer adds completion, signature help, hover, go to definition and
+problems as you type, and **Build** runs `dotnet build` and lists what the compiler found.
+
+## What this version does
+
+This is the first version, the MVP. It focuses on editing C#:
+
+- A docking workspace in light and dark. Panels and editors drag to any edge, into another group or out into a window of their own.
+- An editor with syntax highlighting, typing aids such as closing brackets and keeping indentation, and find and replace.
+- Completion, signature help, hover, go to definition and problems. For C# they come from Runesmith's own analyzer, built on the C#
+  compiler, with nothing to install; plugins can add language servers for other languages.
+- Quick open, the command palette, find in files, the **Problems** and **Output** panels and building.
+- Settings for you and for each folder, key bindings you can change, and plugins that add languages, commands, panels and more.
+
+## Where to start
+
+<CardGrid columns={2}>
+  <Card title="Install and run" icon="download" to="/guide/install">
+    Build Runesmith from source or download a release, and set up C#.
+  </Card>
+  <Card title="First steps" icon="rocket" to="/guide/first-steps">
+    Open a folder and find your way around.
+  </Card>
+  <Card title="The editor" icon="code" to="/guide/editor">
+    Typing aids, selection, find and replace and every key the editor knows.
+  </Card>
+  <Card title="Plugins" icon="plug" to="/plugins">
+    Extend Runesmith with your own languages, commands and panels.
+  </Card>
+</CardGrid>

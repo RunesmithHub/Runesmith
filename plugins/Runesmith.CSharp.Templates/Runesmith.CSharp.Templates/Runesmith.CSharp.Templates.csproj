@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>C# project templates for Runesmith: the templates of the .NET SDK and the ones the user installed with dotnet new install.</Description>
+    <!-- Runesmith supplies the SDK and everything it depends on, so none of it is copied next to the plugin. -->
+    <DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.CSharp.Templates.Contracts\Runesmith.CSharp.Templates.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\src\Runesmith.Sdk\Runesmith.Sdk.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.CSharp.Templates.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,50 @@
+---
+title: Navigation
+description: The command palette, Quick Open, going to a line or a definition, and moving back and forward.
+---
+
+One search box at the top of the window finds files, commands and lines. What it searches depends on how the query starts. Go to
+Definition and the back and forward buttons move between places in your code.
+
+## The command palette
+
+<Keys>Ctrl+K</Keys> opens the command palette; <Keys>Ctrl+Shift+P</Keys> and <Keys>F1</Keys> do the same, and so does **Commands** in the
+app bar. Type part of a command's name, use <Keys>Up</Keys> and <Keys>Down</Keys> to pick one and press <Keys>Enter</Keys> to run it. Each
+row shows the command's category and its key, so the palette also teaches you the keys. Commands that cannot run right now, such as
+**Save** without an open file, show faded.
+
+What the box searches depends on the first character:
+
+| Query | Searches |
+| --- | --- |
+| No prefix | The files of the open folder, by name. |
+| `>` | Commands. |
+| `:` | Lines of the active editor, such as `:42` or `:42:7`. |
+
+The palette opens with `>` already typed; delete it to search files instead. <Keys>Escape</Keys> closes it.
+
+## Quick Open
+
+<Keys>Ctrl+P</Keys> opens the box without a prefix, to open a file by name. The letters you type match in order, and the best matches come
+first: matches in the file name before matches in its folder, and runs of letters and the starts of words before scattered letters. A query
+with a `/` matches the whole path, such as `src/program`. With an empty query, the files you opened recently come first.
+
+## Go to a line
+
+<Keys>Ctrl+G</Keys> opens the box with `:`. Type a line, or a line and a column separated by `:`, and press <Keys>Enter</Keys>.
+
+## Go to Definition
+
+<Keys>F12</Keys>, or <Keys>Ctrl</Keys>+click, goes to where the symbol at the caret is defined. When there are several definitions, a list
+lets you pick one. Definitions come from the language's server; without one, a notification says that no definition was found.
+
+## Back and forward
+
+Runesmith remembers where the caret was before each jump: Go to Definition, Quick Open, a search result or a problem. **Go › Back**
+(<Keys>Alt+Left</Keys>) returns there, and **Go › Forward** (<Keys>Alt+Right</Keys>) goes ahead again. The arrows in the app bar do the
+same.
+
+## Related
+
+- [Keyboard shortcuts](./keyboard-shortcuts.mdx)
+- [Language features](./language-features.mdx)

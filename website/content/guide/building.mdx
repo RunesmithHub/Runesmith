@@ -1,0 +1,40 @@
+---
+title: Building
+description: Build the selected run configuration or the open folder, read the output and the problems, and cancel a build.
+---
+
+**Build › Build** (<Keys>Ctrl+Shift+B</Keys>) builds the [run configuration](./running.mdx) selected in the toolbar: only its project, when its
+kind knows how, such as a .NET project with `dotnet build` of that project. Otherwise, and when no configuration is selected, it builds the
+open folder with a build provider that knows how. Runesmith ships with providers for .NET, which runs `dotnet build`, and for Maven and
+Gradle; plugins can add others.
+
+## Build
+
+<Steps>
+
+1. Open a folder that has a solution or project file at its top, such as `App.slnx`, and pick a run configuration in the toolbar.
+2. Press <Keys>Ctrl+Shift+B</Keys>, or click the hammer of the run widget in the toolbar.
+3. Follow the build in the **Output** panel's **Build** channel. Errors and warnings appear in the **Problems** panel as the compiler
+   reports them.
+
+</Steps>
+
+Runesmith saves every changed file first. While the build runs, the task indicator in the middle of the status bar shows **Building**; click
+it and then its cancel button, or press <Keys>Ctrl+Break</Keys>, to cancel it. When the build ends, a notification says whether it
+succeeded, with the number of errors and warnings; the bell at the right of the status bar keeps it.
+
+**Build** is turned off while a build runs, or when no configuration is selected and no provider can build the folder.
+
+Running a configuration builds it first with its **Build** step, and writes the build log in its tab of the **Run** panel instead of the
+**Output** panel; see [Running](./running.mdx#before-launch).
+
+## What the .NET provider builds
+
+The .NET provider builds the first `.slnx` file at the top of the folder, or else the first `.sln`, `.csproj` or `.fsproj` file, with
+`dotnet build`. It needs the .NET SDK: the default one from [SDKs](./sdks.mdx) when Runesmith installed it, and otherwise `dotnet` on the
+`PATH`.
+
+## Related
+
+- [Problems](./problems.mdx)
+- [C# support](/plugins/csharp)

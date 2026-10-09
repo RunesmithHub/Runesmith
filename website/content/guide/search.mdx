@@ -1,0 +1,46 @@
+---
+title: Find in files
+description: Search every file of the open folder, with match case, whole word, regular expressions and globs.
+---
+
+The **Search** panel searches every file of the open folder and lists the matches by file. It searches as you type, and searches the text
+of open editors, unsaved changes included.
+
+## Search
+
+<Steps>
+
+1. Press <Keys>Ctrl+Shift+F</Keys>. When text is selected in the editor, it becomes the query.
+2. Type what to find. The results update shortly after you stop typing, or at once when you press <Keys>Enter</Keys>.
+3. Click a match to open the file at that line. **Go › Back** returns to where you were.
+
+</Steps>
+
+The buttons beside the box match case (**Aa**), match whole words (**ab**) and treat the query as a regular expression (**.\***). Above the
+results, a line says how many matches were found in how many files.
+
+## Choose the files
+
+The two boxes under the query take globs, separated by semicolons:
+
+| Box | Example | Meaning |
+| --- | --- | --- |
+| Files to include | `*.cs;src/**` | Search only files that match one of the globs. |
+| Files to exclude | `**/Generated/**` | Leave out files that match one of the globs. |
+
+| Glob | Matches |
+| --- | --- |
+| `*` | Any part of a name, such as `*.cs`. |
+| `?` | One character. |
+| `**` | Any number of folders, such as `src/**/*.cs`. |
+| A glob without `/` | A name at any depth: `bin` means `**/bin`. |
+
+Excluding a folder excludes everything in it. On Windows and macOS, globs ignore case.
+
+Search always leaves out what the `files.exclude` setting excludes, files over 10 MB and binary files. It stops after 10,000 matches and says
+so.
+
+## Related
+
+- [Find and replace](./editor.mdx#find-and-replace) in one file.
+- [Settings](./settings.mdx), for `files.exclude`.

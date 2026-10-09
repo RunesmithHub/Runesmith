@@ -1,0 +1,157 @@
+---
+title: Themes, syntax colors and icons
+description: Add color themes, syntax color schemes and file icon themes to Runesmith from a plugin, and what Runesmith checks before it lists them.
+---
+
+A plugin can add three kinds of appearance: **color themes** for the window, panels, menus and editor; **syntax color schemes** for the
+colors of code; and **file icon themes** for the icons of files and folders. Each is plain data that a contributor returns. Users pick them
+in Appearance, they apply at once, and Runesmith goes back to its own when the plugin is gone. A plugin that only adds these needs no
+[capabilities](./index.mdx#capabilities); give it the `Themes` category.
+
+## Color themes
+
+Export an `IColorThemeContributor`. Each `ColorTheme` has an id, a name, whether it is dark, its colors and, optionally, the id of the
+syntax color scheme that goes with it.
+
+```csharp title="EmberThemes.cs"
+[Export(typeof(IColorThemeContributor))]
+public sealed class EmberThemes : IColorThemeContributor
+{
+    public IEnumerable<ColorTheme> Themes =>
+    [
+        new ColorTheme("ember.dusk", "Ember Dusk", IsDark: true)
+        {
+            ColorScheme = "ember.dusk",
+            Colors = new ThemeColors
+            {
+                Accent = "#E4A23C",
+                Background = "#17120E",
+                Surface = "#1F1813",
+                SurfaceRaised = "#2A2019",
+                SurfaceSunken = "#1A1410",
+                BorderSubtle = "#33281F",
+                BorderStrong = "#46372A",
+                TextPrimary = "#F3E6D8",
+                TextSecondary = "#C9B6A2",
+                TextMuted = "#8E7A67",
+            },
+        },
+    ];
+}
+```
+
+Colors are hex colors, `#RRGGBB`, or `#AARRGGBB` with transparency. A color you leave out comes from Runesmith's own dark or light theme, so
+a theme can set only the colors it changes.
+
+| `ThemeColors` member | Where it shows |
+| --- | --- |
+| `Accent`, `AccentForeground` | The focused element, the primary button, the selected item and progress, and the text on them. Without `AccentForeground`, text on a theme's own accent is white or black, whichever reads better. |
+| `Background` | The window's own surface: the toolbar, the stripes and the status bar. |
+| `Surface` | Panels and the editor. |
+| `SurfaceRaised` | Popups, menus and dialogs. |
+| `SurfaceSunken` | Fields and wells set into a panel. |
+| `SurfaceHover`, `SurfacePressed` | The tint over a hovered or pressed item, usually translucent. |
+| `BorderSubtle`, `BorderStrong` | Dividers and the borders of fields and cards. |
+| `TextPrimary`, `TextSecondary`, `TextMuted`, `TextDisabled` | Most text including the editor's; secondary text; hints, captions and line numbers; and disabled text. |
+| `Success`, `Warning`, `Danger`, `Info` | States, problems and their markers. |
+| `Scrim` | The translucent shade behind dialogs. |
+
+The user's accent color, when set, replaces the theme's on every theme.
+
+## Syntax color schemes
+
+Export an `IColorSchemeContributor`. A `ColorScheme` names a TextMate theme file in JSON format, the format Runesmith's own schemes use.
+Ship the file with the plugin, next to its assembly, and give its full path. `IsDark` says which backgrounds the scheme is made for.
+
+```csharp title="EmberSchemes.cs"
+[Export(typeof(IColorSchemeContributor))]
+public sealed class EmberSchemes : IColorSchemeContributor
+{
+    private static readonly string Folder = Path.GetDirectoryName(typeof(EmberSchemes).Assembly.Location)!;
+
+    public IEnumerable<ColorScheme> Schemes => [new ColorScheme("ember.dusk", "Ember Dusk", Path.Combine(Folder, "dusk.json"))];
+}
+```
+
+```json title="dusk.json"
+{
+  "name": "Ember Dusk",
+  "type": "dark",
+  "tokenColors": [
+    { "settings": { "foreground": "#F3E6D8" } },
+    { "scope": ["comment"], "settings": { "foreground": "#7D6B5A", "fontStyle": "italic" } },
+    { "scope": ["keyword", "storage.type", "storage.modifier"], "settings": { "foreground": "#F08A4B" } },
+    { "scope": ["string"], "settings": { "foreground": "#A8C46A" } },
+    { "scope": ["entity.name.type", "support.type"], "settings": { "foreground": "#E4A23C" } }
+  ]
+}
+```
+
+To copy the file into the build output, add it to the implementation project:
+
+```xml
+<None Include="dusk.json" CopyToOutputDirectory="PreserveNewest" />
+```
+
+Runesmith uses the scheme's token rules, with their colors and the font styles `bold`, `italic` and `underline`. The editor's background
+and plain text keep the color theme's colors; a token in the scheme's default foreground counts as plain text. A user can pick any scheme
+with any theme. Without a choice, the theme's `ColorScheme` applies, or Runesmith's own scheme for dark or light.
+
+## File icon themes
+
+Export an `IFileIconThemeContributor`. A `FileIconTheme` maps names to `FileIcon`s: SVG path data on the 24 × 24 grid HammerUI's icons use,
+with a color. Stroked figures are drawn with a 2 unit pen with round caps and joins, like Runesmith's own icons; set `IsFilled` to fill them.
+Icons are vector data only; Runesmith does not load image files for them.
+
+```csharp title="EmberIcons.cs"
+[Export(typeof(IFileIconThemeContributor))]
+public sealed class EmberIcons : IFileIconThemeContributor
+{
+    private static readonly FileIcon Folder = new("M3 6a1 1 0 0 1 1-1h6l2 2h8a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z", "#E4A23C") { IsFilled = true };
+
+    public IEnumerable<FileIconTheme> IconThemes =>
+    [
+        new FileIconTheme("ember.icons", "Ember Icons")
+        {
+            File = new FileIcon("M6 2h8l5 5v15H6z M14 2v5h5", "#B9A895") { LightColor = "#6B5B4B" },
+            Folder = Folder,
+            FolderNames = new Dictionary<string, FileIcon> { ["src"] = Folder with { Color = "#4FB37A" } },
+            Extensions = new Dictionary<string, FileIcon> { [".json"] = new("M8 4c-2 0-2 2-2 4s-2 4-2 4 2 2 2 4 0 4 2 4", "#E8C547") },
+            Languages = new Dictionary<string, FileIcon> { ["csharp"] = new("M12 2l9 5v10l-9 5-9-5V7z", "#9B6BDF") { IsFilled = true } },
+            FileNames = new Dictionary<string, FileIcon> { ["Dockerfile"] = new("M3 12h18v4a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z", "#2496ED") },
+        },
+    ];
+}
+```
+
+A file takes the first icon that matches: its name in `FileNames`, its extension in `Extensions` (the longest first, so `.test.ts` wins over
+`.ts`), its language in `Languages`, then `File`. A folder takes its name in `FolderNames`, then `Folder`. What the theme does not cover
+keeps Runesmith's own icon. Names and extensions ignore case. `LightColor` replaces `Color` while a light color theme shows; an icon without
+a color takes the color Runesmith gives its own icons in that place.
+
+The icons show in the **Explorer**, the editor tabs, **Quick Open** and the search results.
+
+## What Runesmith checks
+
+Runesmith reads the contributors once, at start, so return data only and do no work in them. It checks what they return and leaves out
+what fails. The **Plugins** channel of the **Output** panel names what was left out and why.
+
+| Check | What happens |
+| --- | --- |
+| An id or name is empty, or another theme, scheme or icon theme already has the id | It is left out; the first with an id wins, and Runesmith's own come first. |
+| A theme color is not a hex color | The theme is left out. |
+| `IsDark` disagrees with how dark `Background` is | The theme is left out. |
+| `TextPrimary` has a contrast below 3:1 with `Background`, `Surface`, `SurfaceRaised` or `SurfaceSunken` | The theme is left out: its text would be too faint to read. |
+| `TextPrimary` below 4.5:1, `TextSecondary` below 3:1 with `Surface`, or `AccentForeground` below 3:1 with `Accent` | The theme is listed, with a warning that it may be hard to read. |
+| A scheme's file does not exist, or cannot be read as a TextMate theme with token colors | The scheme is left out, or, when chosen, Runesmith's own scheme shows instead. |
+| An icon has no path data, or a color that is not a hex color | The icon theme is left out. |
+| An icon's path data cannot be drawn | That icon falls back to Runesmith's own. |
+
+When the user chose a theme, scheme or icon theme that is no longer there, such as one of a plugin that was turned off, Runesmith shows its
+own and keeps the user's choice, so it comes back with the plugin.
+
+## Related
+
+- [API overview](./api.mdx)
+- [Appearance](../guide/appearance.mdx), for users
+- [Create a plugin](./create-a-plugin.mdx)

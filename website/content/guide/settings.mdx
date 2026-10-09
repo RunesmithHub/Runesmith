@@ -1,0 +1,123 @@
+---
+title: Settings
+description: Change Runesmith's settings for yourself or for one folder, on the settings page or in settings.json, and every setting there is.
+---
+
+Settings change how Runesmith looks and works. Each one has a default; your own value overrides it, and a folder's value overrides yours
+while that folder is open. Change them on the settings page or in the settings files.
+
+## The settings page
+
+**File › Settings** (<Keys>Ctrl+,</Keys>) opens the settings page in the editor area. The list at the left picks a category, and the search
+box finds settings in every category by name, key or description.
+
+**User** and **Folder** at the top choose what you change:
+
+| Scope | Applies to | Saved in |
+| --- | --- | --- |
+| **User** | Every folder you open. | Your `settings.json`. |
+| **Folder** | The open folder only, for everyone who opens it. | `.runesmith/settings.json` in the folder. |
+
+A setting with a value of its own in the chosen scope shows a reset button; click it to go back to the value below. On the **User** page, a
+note says when the open folder sets its own value, which wins. **Open settings file** opens the chosen scope's file in an editor.
+
+## The settings files
+
+Settings files are JSON objects of setting keys and values. Comments and trailing commas are allowed:
+
+```json title="settings.json"
+{
+  // Bigger text for presentations.
+  "editor.fontSize": 18,
+  "editor.tabSize": 2,
+  "files.autoSave": "afterDelay",
+  "window.restoreSession": false,
+}
+```
+
+| Location | File |
+| --- | --- |
+| Your settings on Windows | `%APPDATA%\Runesmith\settings.json` |
+| Your settings on Linux | `~/.config/runesmith/settings.json` (or `$XDG_CONFIG_HOME/runesmith/settings.json`) |
+| Your settings on macOS | `~/Library/Application Support/Runesmith/settings.json` |
+| A folder's settings | `.runesmith/settings.json` in the folder |
+
+Runesmith reads a file again when it changes on disk, so you can edit it in any editor. A number outside a setting's range is brought within
+it, and a value of the wrong type is ignored. Keys Runesmith does not know, such as those of a plugin that is turned off, are kept when it
+saves the file. When a file is not valid JSON, Runesmith uses the other scopes and does not overwrite the file until you fix it.
+
+## Appearance
+
+| Setting | Key | Default | What it does |
+| --- | --- | --- | --- |
+| Color theme | `appearance.theme` | `dark` | The colors of the window and the editor: `dark`, `light`, `system` to follow the system between the two, or the id of a plugin's theme. <Keys>Ctrl+Shift+T</Keys> switches between dark and light. See [Appearance](./appearance.mdx). |
+| Accent color | `appearance.accent` | empty | The color of selections, focus and highlights, as a hex color such as `#7073F6`. Empty uses the theme's own accent. |
+| Syntax colors | `editor.colorScheme` | empty | The colors of code in the editor, by the id of a syntax color scheme. Empty uses the color theme's own. |
+| File icons | `appearance.fileIconTheme` | `runesmith` | The icons of files and folders, by the id of a file icon theme. |
+| Interface font size | `appearance.uiFontSize` | `13` | The size of the text of menus, panels and the status bar, in pixels, from 11 to 18. |
+
+## Editor
+
+| Setting | Key | Default | What it does |
+| --- | --- | --- | --- |
+| Font | `editor.fontFamily` | `JetBrains Mono` | The editor's font. A list separated by commas tries each in turn. JetBrains Mono ships with Runesmith. |
+| Font size | `editor.fontSize` | `14` | The font size in pixels, from 6 to 72. Zooming changes it. |
+| Font ligatures | `editor.ligatures` | `true` | Draws pairs such as `=>` and `!=` as one symbol when the font has ligatures. |
+| Tab size | `editor.tabSize` | `4` | How many spaces a tab is wide and one indentation level is, from 1 to 16. |
+| Insert spaces | `editor.insertSpaces` | `true` | Indents with spaces rather than tabs. |
+| Line numbers | `editor.lineNumbers` | `true` | Shows line numbers beside the text. |
+| Indent guides | `editor.indentGuides` | `true` | Draws thin lines at each level of indentation. |
+| Highlight the current line | `editor.highlightCurrentLine` | `true` | Shades the caret's line. |
+| Close brackets and quotes | `editor.autoCloseBrackets` | `true` | Types the closing bracket or quote when you type an opening one. |
+| Show whitespace | `editor.showWhitespace` | `false` | Draws spaces and tabs as faint dots and arrows. |
+| Suggest while typing | `editor.completionOnType` | `true` | Shows completion as you type, not only on <Keys>Ctrl+Space</Keys>. |
+| Format on save | `editor.formatOnSave` | `false` | Formats a file with its language's formatter each time you save it. See [Format](./language-features.mdx#format). |
+| Inlay hints | `editor.inlayHints` | `true` | Shows hints inside lines, such as parameter names and inferred types, where the language offers them. |
+| Code lens | `editor.codeLens` | `true` | Shows lines of information and commands above code, such as reference counts, where the language offers them. |
+| Plugins without keyboard hooks | `editor.disabledKeyHooks` | empty | The ids of plugins, separated by commas, whose keyboard hooks are turned off, so they no longer see the keys you press in the editor. |
+| Breadcrumbs | `editor.breadcrumbs` | `true` | Shows the file's path under the tabs. When it is off, the status bar shows it. |
+
+## Files
+
+| Setting | Key | Default | What it does |
+| --- | --- | --- | --- |
+| Auto save | `files.autoSave` | `off` | Saves changed files by themselves: `off`, `afterDelay` (a second after you stop typing) or `onFocusChange` (when the editor or window loses focus). |
+| Trim trailing whitespace | `files.trimTrailingWhitespace` | `false` | Removes spaces and tabs at the ends of lines when saving. |
+| Insert a final newline | `files.insertFinalNewline` | `true` | Ends the file with a line break when saving. |
+| Line ending of new files | `files.defaultLineEnding` | `auto` | The line ending of new files and of files without line breaks: `auto` (the system's own), `lf` or `crlf`. |
+| Excluded files | `files.exclude` | `**/.git;**/bin;**/obj;**/node_modules;**/.vs;**/.idea` | Globs, separated by semicolons, that the Explorer, Quick Open and search leave out. See [globs](./search.mdx#choose-the-files). |
+
+## Window
+
+| Setting | Key | Default | What it does |
+| --- | --- | --- | --- |
+| Restore the session | `window.restoreSession` | `true` | Opens the last folder and its files again when Runesmith starts. |
+| Menus | `window.menuBar` | `toolbar` | Where the menus are: `toolbar`, behind the menu button at the left of the toolbar, or `separate`, in a menu bar of their own under it. |
+| Title bar | `window.titleBar` | `custom` | `custom` makes the toolbar the window's title bar on Windows and Linux; `system` keeps the system's title bar above it. Applies when Runesmith starts. |
+
+## Languages
+
+Each language server a plugin adds has two settings, named after the server's id and name. The C# analyzer runs inside Runesmith and
+has no settings here.
+
+| Setting | Key | Default | What it does |
+| --- | --- | --- | --- |
+| Run *server* | `languageServers.<id>.enabled` | `true` | Starts the server for its languages. |
+| *Server* command | `languageServers.<id>.command` | empty | The executable to run instead of the server's own command from the `PATH` or the .NET tools folder, such as a full path. |
+| Trace language servers | `languageServers.trace` | `false` | Writes every message to and from language servers to their output channels, to find out why a server misbehaves. |
+
+Changing a language server setting restarts the servers.
+
+## Plugins
+
+The **Plugins** category holds the plugin hub's settings, which [Plugins from the hub](./plugins.mdx#settings) lists. **Manage plugins**
+opens the plugin manager, which lists every plugin Runesmith found, whether it loaded and why not, with a switch to turn each off or on;
+the change applies from the next start. **Open the plugins folder** shows the folder you install plugins in. Plugins that depend on a
+turned-off plugin do not load either.
+
+The switches write the setting `plugins.disabled`: the ids of the turned-off plugins, separated by semicolons, such as `"acme.todo"`.
+
+## Related
+
+- [Keyboard shortcuts](./keyboard-shortcuts.mdx), which have a file of their own.
+- [Files and folders](./files-and-folders.mdx)

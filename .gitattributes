@@ -1,0 +1,6 @@
+# Text files are checked out with LF everywhere, as .editorconfig asks, so tests that read repository files see the same bytes on Windows.
+# Git tells text from binary files by their content.
+* text=auto eol=lf
+
+# The hub fixture is signed and pinned by hash, so its bytes must never change.
+tests/Shared/Hub/Index/** -text

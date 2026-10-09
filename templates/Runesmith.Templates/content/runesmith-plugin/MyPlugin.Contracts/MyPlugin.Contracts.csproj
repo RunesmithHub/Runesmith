@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The plugin's public API: the interfaces and data types other plugins use when they depend on it. It may stay empty. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Runesmith.Sdk" Version="RUNESMITH_SDK_VERSION" ExcludeAssets="runtime" />
+  </ItemGroup>
+</Project>

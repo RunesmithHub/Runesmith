@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "runesmith.forgejo",
+  "name": "Forgejo",
+  "version": "0.1.0",
+  "summary": "Sign in to Codeberg and other Forgejo servers, clone from your account and organizations, and open links.",
+  "authors": [
+    "Dylan de Beer"
+  ],
+  "license": "Apache-2.0",
+  "repository": "https://github.com/RunesmithHub/Runesmith",
+  "homepage": "https://runesmithhub.github.io/Runesmith/plugins/forgejo",
+  "runesmithApi": "^0.1.0",
+  "projects": {
+    "contracts": "Runesmith.Forgejo.Contracts/Runesmith.Forgejo.Contracts.csproj",
+    "implementation": "Runesmith.Forgejo/Runesmith.Forgejo.csproj"
+  },
+  "capabilities": [
+    {
+      "id": "network",
+      "reason": "Talks to the Forgejo servers you add to sign you in and list repositories."
+    },
+    {
+      "id": "credentials",
+      "reason": "Keeps your Forgejo sign-ins in your system's secret store."
+    },
+    {
+      "id": "process",
+      "reason": "Opens your Forgejo server in your browser to sign in."
+    },
+    {
+      "id": "filesystem",
+      "reason": "Remembers the accounts you added and caches avatars."
+    },
+    {
+      "id": "environment",
+      "reason": "Reads a variable that points it at a test server during development."
+    }
+  ],
+  "networkHosts": [
+    "codeberg.org",
+    "*"
+  ],
+  "icon": "icon.png",
+  "categories": [
+    "Version control",
+    "Cloud and remote"
+  ],
+  "keywords": [
+    "forgejo",
+    "codeberg",
+    "clone"
+  ]
+}

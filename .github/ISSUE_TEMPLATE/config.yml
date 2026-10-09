@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/RunesmithHub/Runesmith/tree/main/website/content
+    about: How to use Runesmith, its settings and languages, and how to write plugins.
+  - name: Report a vulnerability
+    url: https://github.com/RunesmithHub/Runesmith/security/advisories/new
+    about: Report security problems privately instead of in an issue.

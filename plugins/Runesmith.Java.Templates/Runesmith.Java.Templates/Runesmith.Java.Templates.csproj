@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Runesmith's Java project templates: application, library, compact source file and multi-module project, for Maven, Gradle or no build system.</Description>
+    <!-- Runesmith supplies the SDK and everything it depends on, so none of it is copied next to the plugin. -->
+    <DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Java.Templates.Contracts\Runesmith.Java.Templates.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\src\Runesmith.Sdk\Runesmith.Sdk.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Java.Templates.Tests" />
+  </ItemGroup>
+</Project>

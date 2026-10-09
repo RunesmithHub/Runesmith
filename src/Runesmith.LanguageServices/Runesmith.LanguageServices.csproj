@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>The core of Runesmith's language services: documents and versions, workspaces, the request scheduler, completion ranking and metrics.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Text\Runesmith.Text.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.LanguageServices.Tests" />
+    <InternalsVisibleTo Include="Runesmith.Benchmarks" />
+  </ItemGroup>
+</Project>

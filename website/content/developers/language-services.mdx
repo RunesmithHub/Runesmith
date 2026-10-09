@@ -1,0 +1,179 @@
+---
+title: Language services
+description: How Runesmith's language analyzers run, how requests are scheduled and completion is computed, and how typing is measured.
+---
+
+Runesmith answers completion, hover, go to definition, signature help and problems through its own language services: one shared core
+that keeps documents, schedules requests and measures them, and one analyzer per language, such as the C# analyzer. This page describes
+the core, the bridge that runs analyzers in the editor's process, the language server executable that serves the same analyzers over the
+Language Server Protocol, and how to measure all of it. To write an analyzer in a plugin, see
+[ILanguageAnalyzer](/plugins/api#language-analyzers).
+
+## The projects
+
+| Project | What it holds |
+| --- | --- |
+| `src/Runesmith.LanguageServices` | The core: `ILanguageAnalyzer` and `AnalyzerContext`, `LanguageServiceHost`, the request scheduler, document versions, `CompletionSink` and `CompletionMatcher`, and the metrics. Depends only on `Runesmith.Text`. |
+| `src/Runesmith.Languages.CSharp` | `CSharpAnalyzer`, on the C# compiler (Roslyn 5.9). The only project that carries the compiler. |
+| `src/Runesmith.Languages` | `AnalyzerBridge`, which runs the analyzers plugins export inside Runesmith, and the providers that give their answers to the editor. |
+| `src/Runesmith.LanguageServer` | `runesmith-language-server`, which serves analyzers over the Language Server Protocol on standard input and output. |
+| `plugins/Runesmith.CSharp` | Exports the C# analyzer, and ships it and the compiler in the plugin's folder. |
+
+## The host
+
+`LanguageServiceHost` runs a set of analyzers. `Add` initializes an analyzer with its `AnalyzerContext`, and `OpenWorkspaceAsync` opens a
+folder in every analyzer, or no folder when the path is null.
+
+- **Documents.** `Open`, `Change`, `Close` and `ChangeLanguage` come from one thread, the editor's, in order. The host passes each to the
+  analyzer of the document's language.
+- **Requests.** `CompleteAsync`, `ResolveAsync`, `HoverAsync`, `DefinitionAsync` and `SignatureHelpAsync` may come from any thread. Each
+  names the snapshot it was made for, and runs in its lane.
+- **Failures.** An exception from an analyzer is written to its log and raises `AnalyzerFailed`; the request returns an empty answer, and
+  the editor keeps working.
+- **Caches.** Each analyzer gets a folder of its own for caches, named after its type, under the folder the host was given.
+
+## Documents and versions
+
+A `SourceDocument` is a path, a language id, a version number and a `TextSnapshot` from `Runesmith.Text`. Snapshots are immutable and
+share structure, so an analyzer reads them from any thread without copying.
+
+A document opens as version 1, and every change adds one. The host keeps the last 32 versions of each open document with the changes
+between them. A request finds the version whose snapshot is the one it names, or uses the newest when that version is no longer kept.
+
+`MapToLatest` moves a span computed for an older version to the newest, through the changes made since. An offset before a change keeps
+its place or shifts by the change's length; an offset inside replaced text, or where text was inserted, moves to the end of the new text.
+
+## Request lanes
+
+All work runs in one of three lanes:
+
+| Lane | Requests | Rule |
+| --- | --- | --- |
+| Interactive | Completion, resolving a suggestion, signature help | Runs at once on the thread pool. |
+| Navigation | Hover, go to definition, code actions, rename, formatting | Waits until no interactive request runs. |
+| Background | Problems, inlay hints, loading projects, warming up, work ahead of the user | Starts only when no interactive or navigation request runs. |
+
+Background work pauses itself: it calls `AnalyzerContext.YieldAsync` between units of work, which returns at once when nothing more urgent
+runs, and otherwise waits until it is done. Work that cannot pause, such as one long compiler call, is preempted instead: the scheduler
+cancels a token when an interactive request starts, and the work runs again later.
+
+Problems use this. The host looks for a document's problems when it opens and 150 ms after its last change; a newer change cancels the
+pending run. An interactive request cancels a run in progress, which starts again 150 ms later. Problems are published only when the
+document's version is still the newest, so the **Problems** panel never shows problems for text that has changed.
+
+## Completion
+
+Completion does the expensive work once per word and the cheap work per key press.
+
+<Steps>
+
+1. **Query.** The host creates a `CompletionSink` for the snapshot and the offset, and passes a `CompletionQuery` with the document, the
+   offset, the trigger (`Invoked`, `Character` or `Incomplete`) and the typed character.
+2. **Candidates.** The analyzer sets the span of the word being completed with `SetWordSpan` when it differs from the identifier before
+   the offset, and adds `CompletionCandidate` values to the sink: a label, a kind, a sort group and data to resolve it later, nothing more.
+3. **Filter.** The sink matches each candidate against the typed part of the word with `CompletionMatcher`, the same matcher the editor
+   uses. A 64-bit mask of the characters a label contains rejects most candidates with one AND, before any scoring.
+4. **Rank and cap.** The matches are ranked by score, then sort group, then label, and the list is cut at 300 items. Only a cut list is
+   marked incomplete, so the editor filters a complete list itself as the word grows.
+5. **Details later.** `ResolveAsync` computes the documentation and the edits accepting a suggestion makes, such as adding a `using`
+   directive, only for the suggestion the user selects.
+
+</Steps>
+
+The C# analyzer keeps the compiler's list for the word being typed, with each candidate's character mask, and filters it again for every
+key press instead of asking the compiler. A candidate that lacks a typed character cannot match a longer word either, so it filters only
+the candidates that matched the shorter word. The kept list is dropped when an edit changes the text before its word.
+
+It also works ahead of the user, in the background lane, after a 15 ms pause so a burst of edits such as a paste cancels it:
+
+- After a separator such as a space, `(` or `=`, it computes the list for the next word before its first letter is typed.
+- While a name is typed, it computes the members that a `.` after the name would show, on a copy of the document that has the `.`. When
+  the next edit types exactly that `.`, the list is ready.
+
+## The bridge into the editor
+
+`AnalyzerBridge` in `Runesmith.Languages` is a shared part. It imports every `ILanguageAnalyzer` that plugins export, adds them to a
+`LanguageServiceHost`, and follows the editor:
+
+- It opens each document in the host as the editor opens it, and passes every change of the document's `TextBuffer` as the new snapshot
+  and the changes that made it. Nothing is copied or serialized. A document without a file is known as `untitled:` and its name.
+- It reopens a document whose path changes on **Save As**, and moves it to another analyzer when its language changes.
+- It opens the workspace's folder in the host when the folder changes.
+- It gives problems to the diagnostic service with the language id as their source, such as `csharp`, and writes the analyzers' logs to
+  the **Language analyzers** channel of the **Output** panel.
+
+`AnalyzerCompletionProvider`, `AnalyzerHoverProvider`, `AnalyzerDefinitionProvider` and `AnalyzerSignatureHelpProvider` are the editor's
+providers for every language, and ask the host for documents whose language has an analyzer. `AnalyzerCodeActionProvider`,
+`AnalyzerRenameProvider`, `AnalyzerFormattingProvider` and `AnalyzerDecorationProvider` do the same for analyzers that implement
+`ICodeActionAnalyzer`, `IRenameAnalyzer`, `IFormattingAnalyzer` or `IInlayHintAnalyzer`, and `AnalyzerEdits` turns their edits by line and
+column into workspace edits, moving edits of an older version through the changes made since. `ShellStartup.OnShownAsync` creates the
+bridge once the window shows.
+
+## The language server executable
+
+`runesmith-language-server` serves the same analyzers over the Language Server Protocol on standard input and output, so other tools can
+use them. It runs every analyzer in `AnalyzerCatalog`, which is the C# analyzer today.
+
+```bash
+dotnet run --project src/Runesmith.LanguageServer
+```
+
+It opens the workspace at the client's `rootUri` on `initialize`, keeps documents in sync with incremental changes, answers
+`textDocument/completion`, `completionItem/resolve`, `textDocument/hover`, `textDocument/definition` and `textDocument/signatureHelp`,
+publishes problems with `textDocument/publishDiagnostics`, and sends the analyzers' logs as `window/logMessage`. It keeps its caches in a
+`runesmith/language-server` folder in the user's local application data.
+
+## Metrics
+
+Every request records its time under the meter `Runesmith.LanguageServices`:
+
+| Instrument | What it measures | Tags |
+| --- | --- | --- |
+| `runesmith.language.request` | From receiving a request to its answer, in milliseconds | `language`, `request` |
+| `runesmith.language.queue` | How long a request waited for its lane, in milliseconds | `language`, `request` |
+| `runesmith.language.rank` | Ranking and capping a completion list, in milliseconds | `language` |
+| `runesmith.language.candidates` | How many candidates an analyzer added for a completion request | `language` |
+| `runesmith.language.items` | How many suggestions a completion list returned | `language` |
+
+**Help › Performance Report** shows these next to the editor's own measurements, such as `runesmith.editor.input_to_render` and
+`runesmith.completion.shown`, as the 50th, 95th and 99th percentiles and the maximum over the last 4,000 samples of each. It writes the
+report to the **Performance** channel of the **Output** panel and to a file in the logs folder. The report also has `runesmith.ui.stall`:
+how late the UI thread ran a timer that should run every 50 ms, which is how long the UI thread was too busy to respond.
+
+To watch the measurements live, use `dotnet-counters`:
+
+```bash
+dotnet-counters monitor --process-id <pid> --counters Runesmith.Editor,Runesmith.LanguageServices
+```
+
+## Benchmarks
+
+`benchmarks/Runesmith.Benchmarks` has BenchmarkDotNet benchmarks for the language services. `CompletionRankingBenchmarks` filters and ranks
+2,000 suggestions, and `CSharpBenchmarks` measures the C# analyzer through the host on a generated project and on the Runesmith solution:
+completion after a dot, at a statement start and for the same word again, hover, signature help and applying an edit.
+
+```bash
+dotnet run --project benchmarks/Runesmith.Benchmarks --configuration Release -- --filter '*CSharpBenchmarks*'
+```
+
+## The typing benchmark
+
+`benchmarks/Runesmith.TypingBenchmark` is a plugin that types into the running editor and records what every meter measured meanwhile. It
+waits until the C# analyzer has warmed up, types sixteen lines of C# into a method of `src/Runesmith.Editor/TextArea.cs` at 70 ms per key,
+about 140 words a minute, without accepting suggestions, then writes its results and exits. Nothing is saved.
+
+Run it in the development shell, which has `xvfb-run`, with the number of runs:
+
+```bash
+nix develop -c benchmarks/Runesmith.TypingBenchmark/run.sh 5
+```
+
+The script publishes Runesmith in Release as a release does, builds the benchmark plugin into a temporary `RUNESMITH_HOME`, and runs
+Runesmith on the repository in a virtual display once per run. It prints `summary.md`: per measurement, the median over the runs of each
+percentile, and the range of the p95 values, which shows how much the runs disagree. A second argument names the folder for the results.
+
+## Related
+
+- [C# support](/plugins/csharp)
+- [Plugin API](/plugins/api#language-analyzers)
+- [Architecture](./architecture.mdx)

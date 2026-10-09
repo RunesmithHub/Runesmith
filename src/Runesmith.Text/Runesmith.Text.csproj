@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>The text buffer: a piece table with immutable snapshots, line lookup, edits, undo history and text search.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Text.Tests" />
+    <InternalsVisibleTo Include="Runesmith.Benchmarks" />
+  </ItemGroup>
+</Project>

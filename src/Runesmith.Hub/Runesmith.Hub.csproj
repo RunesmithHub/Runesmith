@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>The plugin hub client: the verified index, install plans, installs and updates, and what the hub's states mean for installed plugins.</Description>
+    <UsesHubProtocol>true</UsesHubProtocol>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Hub.Tests" />
+  </ItemGroup>
+</Project>

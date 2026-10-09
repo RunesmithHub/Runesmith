@@ -1,0 +1,570 @@
+---
+title: API overview
+description: The parts of the Runesmith.Sdk plugin API by area, what to export or import for each, with short examples.
+---
+
+A plugin talks to Runesmith through `Runesmith.Sdk`. It does two things with it: it **exports** extensions, such as commands, panels and
+languages, which Runesmith finds and uses; and it **imports** services, such as the settings or the status bar, through its constructor.
+This page lists both by area. Every type has XML documentation in the SDK with the details.
+
+## Exports and imports
+
+Parts use the `System.Composition` attributes. Export a class with `[Export(typeof(IContract))]`, take services in a constructor marked
+`[ImportingConstructor]`, and add `[Shared]` when the part must be one instance:
+
+```csharp
+[Export(typeof(ICommandContributor))]
+[method: ImportingConstructor]
+public sealed class MyPluginCommands(INotificationService notifications) : ICommandContributor
+{
+    public void Contribute(ICommandRegistry registry) { /* ... */ }
+}
+```
+
+Runesmith creates a part the first time something needs it. Services can be imported by any part:
+
+| Service | What it does |
+| --- | --- |
+| `ICommandService` | Finds and runs commands, and tells their key bindings. |
+| `IToolWindowManager` | Shows and hides panels, and sets the badge on a panel's stripe button. |
+| `IDocumentService` | Opens, saves and closes documents; one document per file. |
+| `IEditorService` | Opens documents in editors, and gives the active editor. |
+| `IWorkspace` | The open folder, its solutions and its files. |
+| `ILanguageRegistry` | Every language, and the language of a file. |
+| `ILanguageFeatures` | Completion, hover, definitions and signature help, merged from every provider. |
+| `IEditorFeatures` | Code actions, rename, formatting and decoration providers, merged from every provider. |
+| `IWorkspaceEditService` | Applies a workspace edit to one or more files, each as one undo step. |
+| `IDiagnosticService` | The problems every source reports. |
+| `ISettingsService` | Reads and changes settings. |
+| `IStatusBar` | Adds items to the status bar. |
+| `INotificationService` | Shows notifications and asks the user to confirm or choose. |
+| `IOutputService` | Gives out channels of the **Output** panel. |
+| `IThemeService` | Whether the color theme that shows is dark, and switches between dark and light. |
+| `IBuildService` | Builds the open folder. |
+| `IMessageBus` | Passes messages between parts that do not know each other. |
+| `IDiffService` | Opens two versions of a text side by side in an editor tab. |
+| `ISecretStore` | Keeps secrets such as access tokens in the system's secret store. |
+| `ILauncher` | Opens links in the browser and shows files in the file manager. |
+| `IPluginStorage` | Gives the plugin a folder of its own for its files. |
+| `IDialogService`, `IToastService` | HammerUI's dialogs and toasts, shown in the main window. |
+
+## Startup work
+
+Most plugins need no entry point. When yours has work to do once, such as subscribing to messages, export an `IPlugin`. Runesmith calls
+`InitializeAsync` on the UI thread once the window shows, and disposes the plugin when it closes.
+
+```csharp
+[Export(typeof(IPlugin))]
+[method: ImportingConstructor]
+public sealed class TodoPlugin(IMessageBus messages, IOutputService output) : IPlugin
+{
+    private IDisposable? subscription;
+
+    public Task InitializeAsync(CancellationToken cancellationToken)
+    {
+        var channel = output.GetChannel("To-do");
+        subscription = messages.Subscribe<WorkspaceOpenedMessage>(m => channel.AppendLine($"Opened {m.RootPath}"));
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => subscription?.Dispose();
+}
+```
+
+`RunesmithApi.Version` is the API version and `RunesmithApi.OldestSupported` the oldest one plugins can be built for; see
+[API versions](./index.mdx#api-versions).
+
+## Commands and menus
+
+Export an `ICommandContributor`. In `Contribute`, add each command with a `CommandDefinition` and what it does, and place it in a menu with
+a `MenuItemDefinition`:
+
+```csharp
+var sayHello = new CommandDefinition("myplugin.sayHello", "Say Hello", "MyPlugin")
+{
+    Icon = "sparkles",
+    KeyBinding = "Ctrl+Alt+H",
+    Description = "Shows a greeting from MyPlugin.",
+};
+registry.Add(sayHello, _ =>
+{
+    notifications.Notify(NotificationKind.Success, "Hello from MyPlugin");
+    return Task.CompletedTask;
+});
+registry.AddMenuItem(new MenuItemDefinition(Menus.Help, sayHello.Id, Group: "plugins"));
+```
+
+| Type | Use |
+| --- | --- |
+| `CommandDefinition` | The id, title and category, and optionally an icon, a default key binding, a description and whether the palette lists it. |
+| `MenuItemDefinition` | The menu (one of `Menus`, a menu of your own such as `Git`, or a path such as `View/Appearance` for a submenu), the command, a group and an order. |
+| `MenuDefinition` | A top-level menu of your own: its id, which `MenuItemDefinition.Menu` names, its title and its order among plugin menus. Add it with `registry.AddMenu`. |
+| `CommandIds` | The ids of Runesmith's own commands, to run them or place them in your menus. |
+
+Icons are HammerUI icon names in kebab case, such as `folder-open`.
+
+The main menu shows `Menus.All` in order: **File**, **Edit**, **Selection**, **View**, **Go**, **Run**, **Build**, **Tools** and **Help**.
+Menus of plugins come after **Build** and before **Tools**. Give yours a title and a place with a `MenuDefinition`; plugin menus are ordered
+by `Order`, then by title, and a menu without a definition takes its id as its title and order 0. A menu shows only while it has an item
+whose command exists. The menu bar and **Search Everywhere** list the same commands.
+
+```csharp
+registry.AddMenu(new MenuDefinition("docker", "Docker") { Order = 10 });
+registry.AddMenuItem(new MenuItemDefinition("docker", "docker.composeUp"));
+```
+
+### Context menus
+
+To add an item to the editor's context menu or the Explorer's, place the command in `ContextMenus.Editor` or `ContextMenus.Explorer`.
+Runesmith runs it with a `ContextMenuTarget`, and shows the item only while the command's `canExecute` returns true for that target, so
+return false where the command does not apply. Items of one group sit together after a separator.
+
+```csharp
+registry.Add(new CommandDefinition("todo.addHere", "Add To-do Here", "To-do"), argument =>
+{
+    var target = (ContextMenuTarget)argument!;
+    todos.Add(target.Path, target.Lines?.First ?? 1);
+    return Task.CompletedTask;
+}, argument => argument is ContextMenuTarget { IsDirectory: false });
+registry.AddMenuItem(new MenuItemDefinition(ContextMenus.Editor, "todo.addHere", "todo"));
+registry.AddMenuItem(new MenuItemDefinition(ContextMenus.Explorer, "todo.addHere", "todo"));
+```
+
+| `ContextMenuTarget` member | Value |
+| --- | --- |
+| `Path` | The full path of the editor's file, or of the file or folder the Explorer's menu was opened on. |
+| `IsDirectory` | True for a folder in the Explorer. |
+| `Lines` | In the editor, the first and last line the selection covers, counted from 1; a selection that ends at the start of a line leaves that line out. Null in the Explorer. |
+
+The editor's menu has items from plugins only for files saved on disk. A command of Runesmith's own that you place in a context menu, such as
+`CommandIds.RollbackLines`, moves into your group instead of showing twice. When the same command runs from the palette or a key, its
+argument is null.
+
+## Panels
+
+Export an `IToolWindowProvider`. Its `ToolWindowDefinition` gives the id, title, icon and the area it opens in until the user moves it:
+`DockSide.Left`, `Right` or `Bottom`, which also decides the stripe its button is on. `CreateContent` creates the panel's Avalonia control the
+first time it shows. Runesmith adds a stripe button, a **Show** item to the **View** menu and a command for it.
+
+```csharp
+[Export(typeof(IToolWindowProvider))]
+public sealed class TodoPanel : IToolWindowProvider
+{
+    public ToolWindowDefinition Definition { get; } = new("todo", "To-do", "check", DockSide.Bottom) { KeyBinding = "Ctrl+Shift+D" };
+
+    public Control CreateContent() => new TextBlock { Text = "Nothing to do." };
+}
+```
+
+`IToolWindowManager.SetBadge(id, text)` puts a short text, such as a count, on the panel's stripe button; null removes it. Any thread may
+call it, so update it a few times a second at most rather than after every change.
+
+`IToolWindowManager.SetAvailable(id, false)` takes a panel and its stripe button away while it does not apply, such as a version control
+panel outside a repository; its **Show** command is disabled meanwhile. `SetAvailable(id, true)` brings it back, open again if it was open
+when it went. Panels are available until you say otherwise, and any thread may call it.
+
+## Toolbar widgets
+
+Export an `IToolbarWidgetProvider` to put a control in the main toolbar. `Slot` says where: `ToolbarSlot.Leading` sits after the project
+widget, `ToolbarSlot.Trailing` before the run widget. Widgets of one slot are ordered by `Order`, lowest first. `CreateWidget` runs once, on
+the UI thread, when the window opens; the control should be 28 px high and hide itself while it has nothing to show.
+
+```csharp
+[Export(typeof(IToolbarWidgetProvider))]
+public sealed class BranchWidget : IToolbarWidgetProvider
+{
+    public ToolbarSlot Slot => ToolbarSlot.Leading;
+
+    public int Order => 0;
+
+    public Control CreateWidget() => new Button { Classes = { "toolbar" }, Content = "main" };
+}
+```
+
+A widget that throws is left out and the error goes to the **Plugins** output.
+
+## Languages
+
+| Export | What it adds |
+| --- | --- |
+| `LanguageDefinition` | A language: its extensions or file names, its TextMate scope, comments, brackets, quotes and icon. A plugin's definition replaces a built-in one with the same id. |
+| `GrammarDefinition` | A TextMate grammar file for a scope Runesmith does not have. |
+| `LanguageServerDefinition` | A language server: its command, arguments, languages, root markers and an install hint shown when it is missing. Runesmith then gives its features to the editor. |
+| `ILanguageAnalyzer` | A language analyzer that runs inside Runesmith and answers completion, hover, go to definition, signature help and problems. See [Language analyzers](#language-analyzers). |
+| `ICompletionProvider`, `IHoverProvider`, `IDefinitionProvider`, `ISignatureHelpProvider` | Single language features of your own, without a language server or an analyzer. |
+| `ICodeActionProvider`, `IRenameProvider`, `IDocumentFormattingProvider`, `IRangeFormattingProvider` | Quick fixes and refactorings, rename and formatting. See [Editor extensions](./language-features.mdx). |
+| `IDecorationProvider` | Gutter icons, inlay hints, code lens and highlights. See [Decorations](./language-features.mdx#decorations). |
+
+Definitions are exported from a property, as the C# plugin does:
+
+```csharp
+public sealed class CSharpLanguage
+{
+    [Export(typeof(LanguageDefinition))]
+    public LanguageDefinition Definition { get; } = new("csharp", "C#")
+    {
+        Extensions = [".cs", ".csx"],
+        ScopeName = "source.cs",
+        LineComment = "//",
+        BlockComment = ("/*", "*/"),
+        Icon = "file-code",
+    };
+}
+```
+
+Mark a provider with `[Languages("toml")]`, or `[Languages(LanguagesAttribute.Any)]` for every language. Runesmith reads the attribute
+without creating the provider, so the provider loads only when a document of one of its languages needs it.
+
+## Language analyzers
+
+A language analyzer understands one or more languages and runs in Runesmith's own process. It reads the editor's text snapshots directly,
+receives every edit as the changes that made it, and answers requests that Runesmith schedules so typing never waits for them. Runesmith's
+C# support is an analyzer.
+
+The contract, `ILanguageAnalyzer`, is in `Runesmith.LanguageServices`, which is not published as a package yet. A plugin built in the
+Runesmith repository references the project as `plugins/Runesmith.CSharp/Runesmith.CSharp/Runesmith.CSharp.csproj` does, with `Private="false"` and
+`ExcludeAssets="runtime"`, because Runesmith supplies the assembly at run time.
+
+### Export an analyzer
+
+Create the analyzer once and export it from a property of a shared part, as the C# plugin does:
+
+```csharp title="CSharpAnalysis.cs"
+using System.Composition;
+using Runesmith.Languages.CSharp;
+using Runesmith.LanguageServices;
+
+namespace Runesmith.CSharp;
+
+[Shared]
+public sealed class CSharpAnalysis
+{
+    [Export(typeof(ILanguageAnalyzer))]
+    public ILanguageAnalyzer Analyzer { get; } = new CSharpAnalyzer();
+}
+```
+
+### What an analyzer implements
+
+| Member | What it does |
+| --- | --- |
+| `LanguageIds` | The language ids the analyzer handles, such as `csharp`. |
+| `CompletionTriggerCharacters` | Characters that start completion, such as `.`. |
+| `SignatureHelpTriggerCharacters`, `SignatureHelpRetriggerCharacters` | Characters that open signature help, such as `(`, and that update it, such as `,`. |
+| `Initialize(context)` | Called once, before anything else, with the host's services as an `AnalyzerContext`. |
+| `OpenWorkspaceAsync(rootPath, cancellationToken)` | Opens a folder, or no folder when the path is null; called again when the folder changes. |
+| `Open(document)`, `Change(document, changes)`, `Close(path)` | A document opened, changed or closed. `changes` turn the previous version into this one. |
+| `CompleteAsync(query, sink, cancellationToken)` | Adds the suggestions at a position to the sink. |
+| `ResolveAsync(entry, cancellationToken)` | The documentation of a suggestion the user selected, and the other edits accepting it makes, such as adding an import. |
+| `HoverAsync`, `DefinitionAsync`, `SignatureHelpAsync` | Answers for a `DocumentPosition`: a document version and an offset. |
+| `DiagnosticsAsync(document, cancellationToken)` | The problems of a document version, as `Problem`s. |
+| `DisposeAsync()` | Called when Runesmith closes. |
+
+To offer quick fixes and refactorings, rename, formatting and inlay hints too, implement `ICodeActionAnalyzer`, `IRenameAnalyzer`,
+`IFormattingAnalyzer` and `IInlayHintAnalyzer`; see [From language servers and analyzers](./language-features.mdx#from-language-servers-and-analyzers).
+
+Each `SourceDocument` is a path, a language id, a version number and an immutable `TextSnapshot`. An analyzer answers what it can and
+returns null or an empty list for the rest. An exception from an analyzer is written to the **Language analyzers** channel of the **Output**
+panel, and the request returns nothing.
+
+### AnalyzerContext
+
+| Member | What it does |
+| --- | --- |
+| `CacheDirectory` | A folder the analyzer may keep caches in between runs. |
+| `Log(message)` | Writes a line to the **Language analyzers** channel of the **Output** panel. |
+| `GetOpenDocument(path)` | The newest version of an open document, or null. |
+| `OpenDocuments` | The open documents of the analyzer's languages. |
+| `RunInBackground(name, work)` | Runs work in the background lane, after interactive and navigation requests. |
+| `YieldAsync(cancellationToken)` | Waits while more urgent requests run; background work calls it between units of work. |
+| `InvalidateDiagnostics()` | Asks for the problems of the open documents again, such as after a project finished loading. |
+
+### Threads
+
+- `Open`, `Change` and `Close` are called on the UI thread, in order, and must return at once. Keep the new snapshot, apply the changes,
+  and start anything heavier with `RunInBackground`.
+- Work in `RunInBackground` calls `YieldAsync` between units, so it pauses while the user waits for completion or hover.
+- Requests come from any thread, possibly at the same time, each for one document version. Never block a request on background work.
+- `DiagnosticsAsync` runs in the background lane. Runesmith asks for it 150 ms after the last change and cancels it when the user types;
+  it runs again once typing pauses. Call `YieldAsync` between parts of the document, as the C# analyzer does between members.
+
+```csharp
+public Task OpenWorkspaceAsync(string? rootPath, CancellationToken cancellationToken)
+{
+    if (rootPath is null)
+        return Task.CompletedTask;
+
+    _ = context.RunInBackground("Index TOML files", async token =>
+    {
+        foreach (var path in Directory.EnumerateFiles(rootPath, "*.toml", SearchOption.AllDirectories))
+        {
+            await context.YieldAsync(token);
+            index[path] = await File.ReadAllTextAsync(path, token);
+        }
+    });
+    return Task.CompletedTask;
+}
+```
+
+### The completion sink
+
+`CompleteAsync` adds `CompletionCandidate`s to a `CompletionSink` instead of returning a list. The sink keeps only the candidates that
+match the typed part of the word, rejecting most with a character mask before any scoring. It then ranks the matches by score, then
+`SortGroup`, then label, and cuts the list at 300 items (`CompletionSink.DefaultCapacity`). A cut list is marked incomplete, so Runesmith
+asks again as the word grows; a complete list is filtered by the editor without asking again.
+
+- The sink starts with the identifier before the offset as the word. Call `SetWordSpan` first when the word is different, such as a
+  keyword with a symbol in it.
+- A candidate is small: a `Label`, a `Kind`, a `SortGroup` (lower sorts first among equal matches, such as locals before members before
+  types before keywords), and optionally `Detail`, `InsertText`, `FilterText` and `Data`. Leave documentation for `ResolveAsync`, and put
+  what it needs in `Data`.
+- Add the cheapest candidates first. `sink.Typed` is the typed part of the word.
+
+```csharp
+public ValueTask CompleteAsync(CompletionQuery query, CompletionSink sink, CancellationToken cancellationToken)
+{
+    foreach (var keyword in Keywords)
+        sink.Add(new CompletionCandidate(keyword, CompletionKind.Keyword, SortGroup: 3));
+    return ValueTask.CompletedTask;
+}
+```
+
+[Language services](/developers/language-services) describes how Runesmith schedules and measures analyzer requests.
+
+## Settings
+
+Export an `ISettingContributor` whose `Settings` are `SettingDefinition`s: a key, a title, a category for the settings page and a default
+value whose type is the setting's type (`bool`, `int`, `double`, `string` or an enum). Add a description, limits or choices as needed.
+Read and change values with `ISettingsService.Get<T>` and `Set`, and follow changes with its `Changed` event. A plugin changes only its own
+settings: the ones it contributes, and the ones whose keys start with its id and a dot. Changing any other setting throws an
+`UnauthorizedAccessException`.
+
+```csharp
+new SettingDefinition("todo.keywords", "To-do keywords", "To-do", "TODO;FIXME") { Description = "The words that mark a to-do, separated by semicolons." };
+```
+
+`SettingKeys` has the keys of Runesmith's own settings.
+
+To show more than settings in a category, such as an account, export an `ISettingsSectionProvider`. Its `Category` names the category,
+which the settings page lists even when it has no settings, and `CreateSection` returns a control that goes above the category's settings.
+Runesmith creates it again each time the category shows, so the control can read the current state and follow changes while it is
+attached.
+
+```csharp
+[Export(typeof(ISettingsSectionProvider))]
+public sealed class TodoSection : ISettingsSectionProvider
+{
+    public string Category => "To-do";
+
+    public Control CreateSection() => new Border { Classes = { "card" }, Child = new TextBlock { Text = "3 to-dos in this folder." } };
+}
+```
+
+## Themes, syntax colors and icons
+
+A plugin adds color themes, syntax color schemes and file icon themes by exporting contributors that return data. Users pick them in
+Appearance, and Runesmith applies them at once. They need no [capability](./index.mdx#capabilities). Runesmith's own themes, schemes and
+icons come through the same contributors.
+
+| Export | Returns | What it is |
+| --- | --- | --- |
+| `IColorThemeContributor` | `ColorTheme` | A named theme, dark or light, with `ThemeColors` for the window, panels, menus and editor, and optionally the id of its `ColorScheme`. |
+| `IColorSchemeContributor` | `ColorScheme` | A TextMate theme file that colors the editor's tokens. |
+| `IFileIconThemeContributor` | `FileIconTheme` | `FileIcon`s by file name, extension, language and folder name, drawn from vector path data with a color. |
+
+[Themes, syntax colors and icons](./themes.mdx) shows each with an example, and what Runesmith checks.
+
+## Builds and problems
+
+Export an `IBuildProvider` to build a kind of project. `CanBuild` says whether it can build the open folder, and `BuildAsync` builds it,
+writing to `BuildContext.Output` and reporting each problem with `BuildContext.ReportDiagnostic` as soon as it is found. The .NET provider in
+the C# plugin is a complete example.
+
+To report problems outside a build, call `IDiagnosticService.Set` with your source's name, a file and its `Diagnostic`s; each call replaces
+what that source reported for the file.
+
+## Documents and editors
+
+`IDocumentService` opens files as `IDocument`s, whose `Buffer` holds the text. Edit the text on the UI thread; snapshots of it can be read
+from any thread. `IEditorService` opens a file in an editor at a position, gives the active editor, and tells when it changes. An
+`IEditorView` moves the caret, selects, scrolls and sets its `CaretStyle` (`Line`, `Block` or `Underline`).
+
+Export an `IEditorKeyHook` to see keys in editors before the editor handles them, such as for modal editing. See
+[Keyboard hooks](./language-features.mdx#keyboard-hooks).
+
+### Change markers
+
+The editor marks lines that differ from a base version of the file in the gutter: added lines green, changed lines blue, and deleted lines
+as a red triangle between lines. Clicking a marker shows the old lines with **Rollback**. Export an `IChangeBaseProvider` to supply the base,
+such as the file as it is in the last commit. This one compares each file with a backup next to it:
+
+```csharp
+[Export(typeof(IChangeBaseProvider))]
+[Shared]
+public sealed class BackupBase : IChangeBaseProvider
+{
+    public event EventHandler<BaseTextChangedEventArgs>? BaseTextChanged;
+
+    public async Task<string?> GetBaseTextAsync(string filePath, CancellationToken cancellationToken) =>
+        File.Exists(filePath + ".orig") ? await File.ReadAllTextAsync(filePath + ".orig", cancellationToken) : null;
+
+    public void OnBackupsChanged(IReadOnlyList<string> files) => BaseTextChanged?.Invoke(this, new BaseTextChangedEventArgs(files));
+}
+```
+
+Runesmith asks the providers in turn for each open file and uses the first text that is not null; return null for a file the provider knows
+nothing about, and an empty text for a new file. Raise `BaseTextChanged`, from any thread, when bases change, and Runesmith asks again.
+
+### Diffs
+
+Import `IDiffService` to show two versions of a text side by side in an editor tab. The changed lines are tinted, the changed words
+highlighted, and blank rows keep the sides aligned. A `DiffSide` with a `FilePath` is highlighted in that file's language; with
+`IsEditable` as well, it is the file's own document, so edits there are saved like any edit of the file. Opening a diff with the title of
+one that is open switches to it.
+
+```csharp
+diffs.Open(
+    "Program.cs (HEAD and working tree)",
+    new DiffSide("HEAD", headText) { FilePath = path },
+    new DiffSide("Working tree", File.ReadAllText(path)) { FilePath = path, IsEditable = true });
+```
+
+## Status bar, notifications and output
+
+| Service | Use |
+| --- | --- |
+| `IStatusBar.AddItem` | An item at the left or right of the status bar, with text, an icon, a state such as busy or error, and a command run on click. Dispose it to remove it. |
+| `IBackgroundTasks.Start` | A long task in the task indicator in the middle of the status bar, such as an install, with an optional cancel action. `Report` gives its step and progress; dispose it when the task ends. |
+| `INotificationService.Notify` | A notification, with an optional button. `ConfirmAsync` and `ChooseAsync` ask the user. |
+| `IOutputService.GetChannel` | A named channel of the **Output** panel to append lines to. |
+
+These can be used from any thread.
+
+HammerUI's `IDialogService` and `IToastService` are exported too: import them to show your own dialog content in the window with
+`IDialogService.ShowAsync`, or a toast that stays out of the notification history with `IToastService.Show`. Call `IDialogService` on the
+UI thread; `IToastService` can be called from any thread.
+
+```csharp
+[Export(typeof(ICommandContributor))]
+[method: ImportingConstructor]
+public sealed class SignInCommands(IDialogService dialogs, IToastService toasts) : ICommandContributor
+{
+    public void Contribute(ICommandRegistry registry) =>
+        registry.Add(new CommandDefinition("myplugin.signIn", "Sign In", "My plugin"), async _ =>
+        {
+            if (await dialogs.ConfirmAsync("Sign in", "Open the browser to sign in?", "Sign in"))
+                toasts.Show("Waiting for the browser", kind: ToastKind.Info);
+        });
+}
+```
+
+## Secrets
+
+Import `ISecretStore` to keep secrets such as access tokens. Runesmith keeps them in the system's secret store: the Secret Service on Linux
+(through `secret-tool`), the Keychain on macOS, and the Credential Manager on Windows. Where there is none, such as on a computer without a
+desktop session, they go to `secrets.json` in the `Config` folder, readable only by the user, and `IsSystemStore` is false. The **Secrets**
+output says which store is used. Each plugin has its own keys, which start with its id and a slash; any other key throws an
+`UnauthorizedAccessException`. A plugin needs the `credentials` [capability](./index.mdx#capabilities) to use the store:
+
+```csharp
+await secrets.SetAsync("acme.todo/token", token, cancellationToken);
+var saved = await secrets.GetAsync("acme.todo/token", cancellationToken);
+await secrets.DeleteAsync("acme.todo/token", cancellationToken);
+```
+
+A store that cannot be read or written throws an `IOException`.
+
+## Links and files
+
+Import `ILauncher` to hand things to the system: `OpenUrl` opens an `http` or `https` address in the default browser, and `Reveal` shows a
+file or folder in the file manager. A plugin needs the `process` [capability](./index.mdx#capabilities) to use it.
+
+## Messages
+
+`IMessageBus` passes messages, which are any class such as a record. Runesmith publishes `WorkspaceOpenedMessage` when a folder opens or
+closes, `ThemeChangedMessage` when the color theme, the accent or the syntax colors change and `FilesChangedMessage` when files of the open folder change on disk.
+
+## Folders
+
+`RunesmithPaths` gives the folders Runesmith uses: `Config`, `Cache`, `UserSettings`, `UserPlugins`, `State` and `Logs`, and
+`WorkspaceSettings` for a folder's settings file. For a plugin's own files, import `IPluginStorage`: `GetFolder` returns a folder named
+after the plugin's id in Runesmith's data folder, and creates it.
+
+## Version control
+
+The contracts between the [Git](./git.mdx) plugin and the hosting plugins, such as [GitHub](./github.mdx), are in
+`Runesmith.Sdk.VersionControl`, so any plugin can use them or add a hosting service of its own.
+
+| Contract | Provided by | What it does |
+| --- | --- | --- |
+| `IRepositoryService` | The Git plugin | The open folder's repository: its top folder, branch, HEAD, upstream, ahead and behind, and remotes, with `Changed` on the UI thread. |
+| `IGitService` | The Git plugin | Runs the user's `git` the way the Git plugin does: never waiting for a prompt, with credentials for one command. |
+| `IGitCredentialSource` | Each hosting plugin | A signed-in account's token for its server's `https` remotes. The first source that answers wins. |
+| `IRepositoryHostProvider` | Each hosting plugin | The service's accounts, and adding one, such as on another server. |
+| `IRepositoryHost` | Each hosting plugin | One account: signing in and out, its repositories, web links, the default branch and pull requests. |
+
+Runesmith may run without the Git plugin, so import its services with `[Import(AllowDefault = true)]` and expect null.
+`IGitService` returns a `GitResult` with Git's exit code and output rather than throwing; `GitRunOptions.CredentialsFor` names the remote
+whose credentials the command gets:
+
+```csharp
+var result = await git.RunAsync(repository.Root, ["fetch", "origin"],
+    new GitRunOptions { CredentialsFor = repository.Remotes[0].FetchUrl }, cancellationToken);
+if (!result.Succeeded)
+    notifications.Notify(NotificationKind.Error, "Fetch failed", result.Error);
+```
+
+### Write a hosting plugin
+
+A hosting plugin exports a provider of its accounts, one host per account, and a credential source for its servers. The Git plugin then
+shows a tab per account in the clone dialog, an **Add Account** entry for the provider, the **Pull Requests** window for repositories the
+host owns, and **Open on** and **Copy Link** commands named after the provider. It does not reference the Git plugin.
+
+```csharp
+[Export(typeof(IRepositoryHostProvider))]
+[Shared]
+[method: ImportingConstructor]
+public sealed class AcmeHostProvider(AcmeHost host) : IRepositoryHostProvider
+{
+    public string Name => "Acme";
+
+    public string Icon => "globe";
+
+    public IReadOnlyList<IRepositoryHost> Hosts { get; } = [host];
+
+    public event EventHandler? Changed { add { } remove { } }
+
+    public async Task<IRepositoryHost?> AddAccountAsync(CancellationToken cancellationToken) =>
+        await host.SignInAsync(cancellationToken) ? host : null;
+}
+
+[Export(typeof(IGitCredentialSource))]
+[method: ImportingConstructor]
+public sealed class AcmeCredentials(AcmeHost host) : IGitCredentialSource
+{
+    public async Task<GitCredentials?> GetAsync(string remoteUrl, CancellationToken cancellationToken) =>
+        host.Owns(remoteUrl) && await host.GetTokenAsync(cancellationToken) is { } token
+            ? new GitCredentials(host.Server, host.Account!, token)
+            : null;
+}
+```
+
+`AcmeHost` implements `IRepositoryHost`:
+
+- `Owns` says whether a remote URL is on its server, in any of Git's forms, such as `https://git.acme.dev/team/app.git` or
+  `git@git.acme.dev:team/app.git`. When several hosts own a remote, a signed-in one wins.
+- `GetWebUrl` turns a `WebTarget` into a page: the repository, a file at a revision with its lines, a folder, a commit or a branch.
+- `GetRepositoriesAsync` lists what the account may clone, as `HostedRepository` records; the clone dialog groups them by owner.
+- `GetPullRequestsAsync` and `CreatePullRequestAsync` list and open pull requests. Set `PullRequest.HeadRef` to the ref that holds a pull
+  request's commits on the base repository, such as `refs/pull/12/head`, so **Checkout** works for pull requests from forks.
+- `Account` is null while signed out, and `Changed` tells the Git plugin when it signs in or out, or its access changes; the clone dialog
+  then loads the repositories again.
+- To offer **+ Organization** in the clone dialog, register a command named `<host id>.addOrganization`, such as
+  `github.addOrganization`; the dialog shows the chip while the command can run, and loads the list again when the window is activated.
+
+## Related
+
+- [Create a plugin](./create-a-plugin.mdx)
+- [Editor extensions](./language-features.mdx): decorations, code actions, rename, formatting and keyboard hooks.
+- [C# support](./csharp.mdx), a complete plugin.
+- [Git](./git.mdx) and [GitHub](./github.mdx), the version control plugins.

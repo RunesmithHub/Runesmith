@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Runesmith",
+  "classifications": ["Runesmith", "Plugin"],
+  "identity": "Runesmith.Plugin.CSharp",
+  "name": "Runesmith plugin",
+  "description": "A Runesmith plugin: a contracts project, an implementation project with a sample command, a plugin.json manifest and an icon.",
+  "shortName": "runesmith-plugin",
+  "sourceName": "MyPlugin",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "symbols": {
+    "id": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "The plugin's id, publisher.name, in lowercase letters, digits and hyphens. Defaults to publisher.<name in lowercase>.",
+      "defaultValue": ""
+    },
+    "sdkVersion": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "The version of the Runesmith.Sdk package to build against.",
+      "defaultValue": "0.1.0",
+      "replaces": "RUNESMITH_SDK_VERSION"
+    },
+    "nameLower": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "lowerCase"
+    },
+    "defaultId": {
+      "type": "generated",
+      "generator": "join",
+      "parameters": {
+        "symbols": [
+          { "type": "const", "value": "publisher." },
+          { "type": "ref", "value": "nameLower" }
+        ]
+      }
+    },
+    "pluginId": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "id",
+        "fallbackVariableName": "defaultId"
+      },
+      "replaces": "PLUGIN_ID"
+    }
+  },
+  "forms": {
+    "lowerCase": {
+      "identifier": "lowerCase"
+    }
+  },
+  "primaryOutputs": [
+    { "path": "MyPlugin.Contracts/MyPlugin.Contracts.csproj" },
+    { "path": "MyPlugin/MyPlugin.csproj" }
+  ],
+  "postActions": []
+}

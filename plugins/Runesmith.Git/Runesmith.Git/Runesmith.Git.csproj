@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Git in Runesmith: changes, commits, branches, history, diffs, change markers, cloning, and pull requests on the hosting services' plugins.</Description>
+    <!-- Runesmith supplies the SDK, Avalonia, HammerUI and everything they depend on, so none of it is copied next to the plugin. -->
+    <DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences>
+    <UsesHostHammerUI>true</UsesHostHammerUI>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Git.Contracts\Runesmith.Git.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\src\Runesmith.Sdk\Runesmith.Sdk.csproj" Private="false" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\..\..\src\Runesmith.Text\Runesmith.Text.csproj" Private="false" ExcludeAssets="runtime" />
+    <PackageReference Include="Avalonia" ExcludeAssets="runtime" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Avatars and the small view builders, shared with the hosting plugins. -->
+    <Compile Include="..\..\Shared\Views\*.cs" LinkBase="Views\Shared" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Git.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,152 @@
+---
+title: Java support
+description: "How Runesmith edits and builds Java: highlighting, completion, hover, go to definition and problems from its own Java analyzer, and building with Maven or Gradle."
+---
+
+Runesmith supports Java through a built-in plugin, `runesmith.java`. It highlights `.java` files, understands them with Runesmith's own
+Java analyzer, and builds projects with Maven or Gradle. The analyzer is written in C# and runs inside Runesmith: it needs no JVM, no
+language server and no build to answer, so completion appears within milliseconds of a key press.
+
+## Set up
+
+<Steps>
+
+1. Install a JDK. Runesmith reads the JDK's API for each Java release from it, so a recent JDK serves projects of every older release
+   too. It finds JDKs through `JAVA_HOME`, `java` on the `PATH`, and the usual install folders, such as `~/.sdkman/candidates/java`,
+   `~/.jdks`, `/usr/lib/jvm` and `/Library/Java/JavaVirtualMachines`, and the JDKs Runesmith installed. [SDKs](/guide/sdks) downloads one
+   for you.
+2. Open a folder with a Maven or Gradle project, or any folder with Java files, and open a `.java` file.
+
+</Steps>
+
+Highlighting and syntax errors work without a JDK. Without one, completion offers only what your own sources declare, and the analyzer
+reports no semantic problems.
+
+## Java versions
+
+Every release from Java 8 to Java 25 is supported, chosen per project:
+
+| Project | Where the release comes from |
+| --- | --- |
+| Maven | `maven.compiler.release`, or `maven.compiler.source`, in the `pom.xml` or its parents |
+| Gradle | The Java toolchain, or `sourceCompatibility`, in `build.gradle` or `build.gradle.kts` |
+| Any other folder | Java 25, or the newest release the installed JDK has |
+
+The analyzer offers exactly the API of that release: a project for Java 8 is not offered `String.strip()`, which came in Java 11, even
+with a newer JDK installed. Language features newer than the release are reported, as `javac --release` reports them, such as "Records
+need Java 16 or later". Preview features are reported unless the project enables them with `--enable-preview`.
+
+Keywords follow the release too: `var` is offered from Java 10, `yield` in switch expressions from Java 14, `record` from Java 16, and
+`sealed`, `non-sealed` and `permits` from Java 17. Java 25's compact source files, with methods outside a class, see every package of
+`java.base` without imports.
+
+## Projects
+
+- **Maven**: the `pom.xml` and its modules, with their parent chain, source folders, release, preview flag and dependencies. Dependencies
+  are read from the local repository, `~/.m2/repository`, with their own dependencies.
+- **Gradle**: `build.gradle` and `build.gradle.kts` of the build and its subprojects, with version catalogs. Dependencies are read from
+  the Gradle cache. The build scripts are read, not run.
+- **Any other folder**: every `.java` file in it.
+
+Libraries that are not downloaded yet are left out; build the project once with Maven or Gradle to download them.
+
+## Features
+
+| Feature | How to use it |
+| --- | --- |
+| Completion | Shows while you type, after a dot, or with <Keys>Ctrl+Space</Keys>. It offers locals and parameters first, then fields and methods, then types, then keywords. |
+| Imports | Types that are not imported yet are offered once you type the first letter of their name; accepting one adds its `import`. |
+| Signature help | Shows when you type `(` or `,` in a call, with every overload and the current parameter. |
+| Hover | Rest the pointer on a name to see its signature and documentation comment, as Markdown. |
+| Go to definition | <Keys>F12</Keys>, or <Keys>Ctrl</Keys>+click a name, for declarations in the project's sources. |
+| Problems | Syntax errors, features newer than the release, and the semantic problems the analyzer is sure of, underlined as you type. |
+
+The analyzer understands imports of every kind (single types, packages, static members and `import module`), nested and local classes,
+members inherited from superclasses and interfaces, generics with their type arguments, `var`, overloads, lambdas whose parameter types
+come from the method they are passed to, and enhanced `for` loops.
+
+## Build
+
+**Build › Build** compiles the open folder: a folder with a `pom.xml` with `mvn -q compile`, and a Gradle build with `gradle compileJava`.
+When the project has a wrapper, `mvnw` or `gradlew`, Runesmith uses it instead. The build's output goes to the **Output** panel, and every
+compiler error and warning appears in the **Problems** panel with its file and line, as soon as the compiler reports it. **Build › Cancel
+Build** stops the build.
+
+## Run configurations
+
+The plugin adds four kinds of [run configuration](/guide/running):
+
+| Type | What it runs | Options |
+| --- | --- | --- |
+| **Java application** | A class with a `main` method, or a compact source file | Main class, JDK, VM options, program arguments, and under Advanced the module (in a project with a `module-info.java`), environment variables and working directory |
+| **Maven goals** | `mvn` with goals and profiles, or `mvnw` when the project has it | Goals, profiles, arguments, JDK, environment variables, working directory |
+| **Gradle tasks** | `gradle` with tasks, or `gradlew` when the project has it | Tasks, arguments, JDK, environment variables, working directory |
+| **JUnit tests** | `mvn test -Dtest=<filter>` or `gradle test --tests <filter>` | Tests (a class, a method such as `MathTest#adds`, or a pattern), arguments, JDK, environment variables, working directory |
+
+When you open a folder, Runesmith finds a **Java application** configuration for every class with a `main` method in the main sources
+(`public static void main(String[] args)`, and Java 25's instance `main` methods and `void main()`) and for every compact source file.
+Test sources, build output and hidden folders are skipped.
+
+How a Java application runs depends on the project:
+
+- **Maven** runs `target/classes` with the libraries from `mvn dependency:build-classpath`.
+- **Gradle** runs `build/classes/java/main` and `build/resources/main` with the main source set's runtime class path, which a small init
+  script prints.
+- **Any other folder** compiles every source with `javac` into `.runesmith/out/classes` as the Build step and runs from there.
+- **A compact source file** runs from its source, `java Hello.java`, without a build.
+
+Asking Maven or Gradle for the class path takes a few seconds, so Runesmith keeps the answer in `.runesmith/cache/classpath` until a build
+file changes. The **JDK** option picks the JDK that runs the program; without one, Runesmith uses your default JDK, then `JAVA_HOME`, then
+the `java` on the `PATH`.
+
+## JDKs
+
+The plugin finds the JDKs on your computer and downloads new ones from Temurin, Zulu, Corretto, Liberica, Microsoft, Oracle OpenJDK,
+GraalVM Community, SapMachine and Semeru, as the foojay Discovery API lists them. **File › SDKs...** lists them, with updates within each
+vendor and major version, and installs each JDK in its own folder after checking the vendor's checksum. The analyzer reads the Java API
+from the default JDK you pick there when it serves the project's release, and finds the JDKs Runesmith installed as well as yours.
+[SDKs](/guide/sdks) describes the page.
+
+## Templates
+
+**File › New Project** offers four Java templates. They come from a separate built-in plugin, **Java templates**
+(`runesmith.java-templates`), which you can turn off in **Settings › Plugins** without losing Java support.
+
+| Template | What it creates |
+| --- | --- |
+| Application | A `Main` class with a `main` method, and a test for it |
+| Library | A public class named after the project, and its test |
+| Compact source file | One Java 25 file with a `void main()` and no class or build, run with `java File.java` |
+| Multi-module project | A `lib` module and an `app` module that uses it, built with Maven or Gradle |
+
+| Option | Values |
+| --- | --- |
+| **Build system** | Maven (`pom.xml`), Gradle, or None: sources in `src`, compiled with `javac -d out $(find src -name '*.java')` |
+| **Gradle DSL** | Kotlin (`build.gradle.kts`) or Groovy (`build.gradle`), for Gradle |
+| **Group id** and **Artifact id** | The coordinates. The code's package is the group id followed by the artifact id, such as `com.example.myapp`; the artifact id defaults to the project's name in lower case. |
+| **Java release** | 8, 11, 17, 21 or 25; 25 unless your default JDK is one of the others |
+| **JDK** | The JDK that builds and runs the project |
+| **JUnit tests** | Adds JUnit 5 and a test class, for Maven and Gradle |
+| **Module declaration** | Adds `module-info.java`, from Java 11 |
+| **Sample code** | A greeting that runs, instead of empty classes |
+
+The templates write their files directly and download nothing. They create no wrapper, since making the Gradle wrapper needs Gradle:
+with Gradle installed, run `gradle wrapper` in the new folder, or `mvn wrapper:wrapper` for Maven.
+
+## Limits
+
+- **Problems are only reported when certain.** The analyzer reports an unknown type or member only where it knows every name in scope
+  and every supertype involved. It reports nothing it cannot prove, so the build may still find errors it does not, such as wrong argument
+  types or a missing `return`.
+- **Code generators.** In projects that use annotation processors, such as Lombok, the types and members they generate are not known,
+  so unknown types and members are not reported there.
+- **Library documentation.** Hover shows documentation for your own sources. For the JDK and libraries it shows the signature only, and
+  their parameters are named `arg0`, `arg1` and so on when the class files do not record the names.
+- **Definitions** go to declarations in the project's sources; the JDK and libraries have no source to go to.
+- **Type inference** covers the common cases. Where a type depends on inference the analyzer does not do, such as some chains of generic
+  methods, completion offers fewer members, and no problem is reported.
+
+## Related
+
+- [Plugins](./index.mdx): how the Java plugin and yours are loaded.
+- [C# support](./csharp.mdx): the other language with its own analyzer.

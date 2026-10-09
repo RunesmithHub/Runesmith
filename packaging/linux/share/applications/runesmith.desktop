@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Runesmith
+GenericName=Code Editor
+Comment=Edit, build and run C# and Java projects
+Exec=runesmith %U
+Icon=runesmith
+Terminal=false
+Categories=Development;IDE;TextEditor;
+MimeType=text/plain;inode/directory;x-scheme-handler/runesmith;
+StartupNotify=true
+StartupWMClass=runesmith

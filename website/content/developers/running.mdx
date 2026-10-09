@@ -1,0 +1,51 @@
+---
+title: Running and debugging
+description: Run Runesmith from source with a clean profile, see startup timings, and debug the app and plugins.
+---
+
+Run Runesmith from the repository with `dotnet run`, and give it a profile of its own so your everyday settings and sessions stay out of
+the way.
+
+## Run
+
+```bash
+dotnet run --project src/Runesmith.App -- --diagnostics
+```
+
+Arguments after `--` go to Runesmith: folders and files to open, and the options on [Command line](/guide/command-line).
+`--diagnostics` writes the startup timings and the plugins to the **Diagnostics** channel of the **Output** panel.
+
+## A clean profile
+
+`RUNESMITH_HOME` moves the settings, key bindings, plugins, sessions, logs and caches into one folder. Point it at an empty folder for a
+clean start, and add `--new-instance` so a Runesmith you already run does not take over:
+
+```bash
+RUNESMITH_HOME=/tmp/runesmith-dev dotnet run --project src/Runesmith.App -- --new-instance ~/code/sample
+```
+
+On Windows, set the variable with `$env:RUNESMITH_HOME = "C:\Temp\runesmith-dev"` in PowerShell first.
+
+## Debug
+
+Open `Runesmith.slnx` in your IDE and debug `Runesmith.App`. In Debug builds, the app references `AvaloniaUI.DiagnosticsSupport` for
+Avalonia's developer tools.
+
+Things worth knowing:
+
+- Errors on the UI thread do not end Runesmith: they are written to a file in the `logs` folder of the cache folder and shown in a
+  notification. Set your debugger to break on thrown exceptions to stop where they happen.
+- Composition errors, such as an import nothing exports, are written to the standard error output when Runesmith starts.
+- Language servers run as child processes. Turn on **Trace language servers** (`languageServers.trace`) to see every message in the
+  server's output channel.
+
+## Debug a plugin
+
+Build the plugin and install it into the profile's plugins folder, such as with the template's `dotnet build -t:InstallPlugin` and the same
+`RUNESMITH_HOME`, then start Runesmith from your IDE and set breakpoints in the plugin's code. The plugin's assembly loads from the plugins
+folder, so set breakpoints after it is installed and rebuild before each run.
+
+## Related
+
+- [Building and testing](./building.mdx)
+- [Composition and plugins](./composition.mdx)

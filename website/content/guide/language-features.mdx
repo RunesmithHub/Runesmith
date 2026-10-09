@@ -1,0 +1,118 @@
+---
+title: Language features
+description: Highlighting, completion, signature help, hover, go to definition, problems, quick fixes, rename, formatting, inlay hints and code lens, and the analyzers and language servers behind them.
+---
+
+Runesmith highlights more than 60 languages by itself. Language analyzers and language servers add the rest: completion, signature help,
+hover, go to definition, problems, quick fixes, rename, formatting, inlay hints and code lens. For C#, Runesmith's own analyzer runs inside
+Runesmith; plugins can add analyzers and language servers for other languages.
+
+## Highlighting
+
+Runesmith picks a file's language by its name or extension, and highlights it with the language's TextMate grammar in the colors of the
+current theme. Large files highlight the visible lines first and the rest in the background, so typing never waits for it. The language
+shows in the status bar.
+
+## Completion
+
+Completion shows while you type a word, after a character such as `.`, or when you press <Keys>Ctrl+Space</Keys>. The letters you have typed
+are highlighted in each suggestion, and the selected one shows its documentation beside the list.
+
+| Key | Does |
+| --- | --- |
+| <Keys>Up</Keys>, <Keys>Down</Keys>, <Keys>Page Up</Keys>, <Keys>Page Down</Keys> | Move through the list. |
+| <Keys>Enter</Keys> or <Keys>Tab</Keys> | Insert the selected suggestion. |
+| <Keys>Escape</Keys> | Close the list. |
+
+Some suggestions also accept characters such as `(` or `;`: typing one inserts the suggestion and then the character. Turn **Suggest while
+typing** (`editor.completionOnType`) off to show completion only on <Keys>Ctrl+Space</Keys> and after characters such as `.`.
+
+## Signature help
+
+Typing `(` in a call shows the signatures of the method above the caret, with the current parameter in bold, and typing `,` moves to the
+next parameter. When a method has overloads, <Keys>Up</Keys> and <Keys>Down</Keys> switch between them. <Keys>Ctrl+Shift+Space</Keys> shows
+the signatures at any time; <Keys>Escape</Keys> closes them.
+
+## Hover
+
+Rest the pointer on a symbol to see what it is, such as its type and documentation. When there is a problem under the pointer, its message
+shows too.
+
+## Problems
+
+Errors and warnings are underlined as you type: red for errors, yellow for warnings and blue for information. Lines with errors or warnings also
+get a mark beside the line number. Every problem is listed in the [Problems panel](./problems.mdx).
+
+## Quick fixes and refactorings
+
+When the language can fix a problem on the caret's line, such as by adding a missing `using`, a light bulb shows in the gutter a moment
+after the caret stops. Click it, or press <Keys>Alt+Enter</Keys> anywhere, to see the menu of code actions for the line, or for the selection
+when text is selected. <Keys>Alt+Enter</Keys> also lists refactorings, such as extracting a method or inlining a variable.
+
+The menu lists quick fixes first, the most likely fix at the top, then refactorings, then changes to the whole file. Pick one with the
+arrow keys and <Keys>Enter</Keys>, or click it. A fix that changes other files opens them in tabs, and each file's changes are one step
+you can undo in that file. When the language has no actions for the line, a short message says so.
+
+## Rename
+
+Put the caret on a name and press <Keys>F2</Keys>, or choose **Edit › Rename Symbol**. A box opens over the name: type the new name and press
+<Keys>Enter</Keys>, or press <Keys>Escape</Keys> to keep it. The language renames the symbol everywhere it is used, in the open files and
+in the files that are not open, which open in tabs so you can review and save them. A name the language cannot rename, such as one a
+library defines, shows a message instead.
+
+## Format
+
+**Format Document** (<Keys>Shift+Alt+F</Keys>) formats the whole file with its language's formatter, and **Format Selection** formats the
+selected lines. Both indent with the editor's **Tab size** and **Insert spaces** settings, and each is one step you can undo. Both are in the
+**Edit** menu and the editor's context menu. When no formatter is installed for the language, a message says so.
+
+Turn on **Format on save** (`editor.formatOnSave`) to format a file each time you save it. Saving waits up to three seconds for the
+formatter, then saves the text as it is. Auto save after a delay does not format, so the text does not move while you type.
+
+## Inlay hints and code lens
+
+Some languages show inlay hints: faint text inside a line that is not part of the file, such as the name of the parameter an argument is
+for, or the type of a variable declared with `var`. The caret moves over a hint in one step, and you cannot select or edit it. Rest the
+pointer on a hint to see more about it, when the language has more.
+
+Code lens are lines of small text above a line, such as how many times a method is used or a command to run a test. Click one to run its
+command.
+
+Both come from language servers, language analyzers and plugins, and follow your typing; the C# analyzer shows inlay hints. Turn them off
+with **Inlay hints** (`editor.inlayHints`) and **Code lens** (`editor.codeLens`).
+
+## Gutter icons and highlights
+
+Plugins can also put icons in the gutter beside a line, such as a bookmark or a test result, and underline or highlight text, such as a
+spelling mistake. Rest the pointer on an icon or on highlighted text to see what it means; click an icon that does something, such as
+running a test. Icons and highlights that matter in the whole file can also mark their line beside the vertical scroll bar.
+
+## Language analyzers
+
+A language analyzer runs inside Runesmith and reads the editor's text directly, so it needs no install step and no separate process. The
+C# analyzer is one; [C# support](/plugins/csharp) describes what it does. Analyzers write their log to the **Language analyzers** channel
+of the **Output** panel, such as which projects they loaded and how long it took.
+
+## Language servers
+
+Plugins can also add language servers, programs that speak the Language Server Protocol. Runesmith starts a language's server the first
+time you open one of its files, in the nearest folder above the file that holds one of the server's root markers, such as a solution
+file, or in the open folder. The server's item in the status bar shows its state:
+
+| State | Meaning |
+| --- | --- |
+| Starting, or a progress message | The server is starting or loading the project. Features work once it finishes. |
+| The server's name | The server runs. |
+| A warning | The server is not installed; a notification says how to install it. |
+| An error | The server stopped and could not be restarted. |
+
+When a server stops on its own, Runesmith restarts it, up to three times within three minutes. **Restart Language Servers**, in the command
+palette, starts every server again, also one that was missing or kept stopping. **Show Language Server Output** shows the server's log in the
+**Output** panel; clicking the status bar item does the same.
+
+Each server has two settings: whether it runs and which executable it runs. See [Settings](./settings.mdx#languages).
+
+## Related
+
+- [C# support](/plugins/csharp)
+- [Troubleshooting](./troubleshooting.mdx)

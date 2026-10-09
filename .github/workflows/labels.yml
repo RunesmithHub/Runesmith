@@ -1,0 +1,34 @@
+# Creates the repository's labels and keeps their colors and descriptions as listed here. Runs when this file changes on main, and on demand.
+name: Labels
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/labels.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Create and update the labels
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Create and update the labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          while IFS='|' read -r name color description; do
+            gh label create "$name" --color "$color" --description "$description" --force
+          done <<'LABELS'
+          bug|D73A4A|Something does not work as documented
+          enhancement|A2EEEF|A request for new behavior
+          dependencies|0366D6|Dependency updates from Renovate
+          security|B60205|Fixes for known vulnerabilities
+          LABELS

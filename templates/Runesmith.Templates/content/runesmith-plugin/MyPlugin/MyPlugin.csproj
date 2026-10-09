@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MyPlugin.Contracts\MyPlugin.Contracts.csproj" />
+    <!-- Runesmith supplies the SDK when it loads the plugin, so it is not copied next to it. Its build targets add InstallPlugin. -->
+    <PackageReference Include="Runesmith.Sdk" Version="RUNESMITH_SDK_VERSION" ExcludeAssets="runtime" />
+  </ItemGroup>
+</Project>

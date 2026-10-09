@@ -1,0 +1,50 @@
+namespace Runesmith.Composition;
+
+/// <summary>Whether a plugin runs, and if not, why.</summary>
+public enum PluginState
+{
+    Loaded,
+
+    /// <summary>The user turned the plugin off.</summary>
+    Disabled,
+
+    /// <summary>The plugin could not be loaded; <see cref="PluginInfo.Error"/> says why.</summary>
+    Failed,
+
+    /// <summary>Another copy of the plugin runs instead, such as a newer version from the hub in place of the one Runesmith ships.</summary>
+    Replaced,
+}
+
+/// <summary>Where a plugin came from.</summary>
+public enum PluginSource
+{
+    /// <summary>It ships with Runesmith.</summary>
+    Bundled,
+
+    /// <summary>The user put it in their plugins folder.</summary>
+    Local,
+
+    /// <summary>The plugin hub installed it in the user's plugins folder.</summary>
+    Hub,
+}
+
+/// <summary>A plugin that was found, and what became of it.</summary>
+/// <param name="Directory">The folder that holds the plugin's manifest.</param>
+public sealed record PluginInfo(PluginManifest Manifest, string Directory, PluginSource Source)
+{
+    /// <summary>Gets whether the plugin ships with Runesmith.</summary>
+    public bool IsBuiltIn => Source == PluginSource.Bundled;
+
+    public PluginState State { get; init; } = PluginState.Loaded;
+
+    /// <summary>Gets why the plugin failed, for the user.</summary>
+    public string? Error { get; init; }
+
+    /// <summary>Gets the full path of the plugin's implementation assembly.</summary>
+    public string AssemblyPath => Path.GetFullPath(Path.Combine(Directory, Manifest.Assembly));
+
+    /// <summary>Gets the full path of the plugin's contracts assembly, or null for a manifest in the older format.</summary>
+    public string? ContractsPath => Manifest.ContractsAssembly is { } contracts ? Path.GetFullPath(Path.Combine(Directory, contracts)) : null;
+
+    internal PluginInfo Fail(string error) => this with { State = PluginState.Failed, Error = error };
+}

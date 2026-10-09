@@ -1,0 +1,50 @@
+---
+title: Command line
+description: Start Runesmith from a terminal with folders and files to open, at a line and column, and the options it takes.
+---
+
+Run `runesmith` with the folders and files to open, or a `runesmith://` link. When Runesmith is running already, they open in its window
+instead of a second one.
+
+## Open folders and files
+
+```bash
+runesmith ~/code/app
+runesmith src/Program.cs:12:5
+runesmith ~/code/app ~/code/app/README.md
+```
+
+A file can end in `:line` or `:line:column`, counted from 1, to open it with the caret there. Relative paths are relative to the folder the
+command runs in.
+
+## Options
+
+```text
+Usage: runesmith [options] [paths...] [link]
+
+Options:
+  -h, --help           Show this help.
+  -v, --version        Show the version.
+  --diagnostics        Log startup timings and the loaded plugins to the Diagnostics output channel.
+  --new-instance       Start another Runesmith instead of using the running one.
+  --disable-plugins    Start without the plugins in the user plugins folder.
+  --safe-mode          Start in safe mode: only the plugins that come with Runesmith load.
+```
+
+A link such as `runesmith://hub/plugin/lumen.todo` opens that plugin's page in the plugin manager; see
+[Plugins from the hub](./plugins.mdx#links).
+
+Put `--` before paths that start with `-`.
+
+On Windows, `runesmith.exe` is a windowed program, so `--help` and `--version` print nothing in a terminal there.
+
+## One Runesmith at a time
+
+The first Runesmith you start keeps running for your user; starting it again hands the paths to that window, which comes to the front.
+`--new-instance` starts a separate Runesmith anyway. A Runesmith with its own `RUNESMITH_HOME` is separate from the others, see
+[Files and folders](./files-and-folders.mdx).
+
+## Related
+
+- [Troubleshooting](./troubleshooting.mdx), for `--diagnostics` and `--disable-plugins`.
+- [Safe mode](./safe-mode.mdx), for `--safe-mode`.

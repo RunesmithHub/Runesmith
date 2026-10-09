@@ -1,0 +1,195 @@
+<Project>
+  <!-- Lays out a plugin's implementation project as Runesmith loads it: plugin.json written from the plugin's own plugin.json, the build
+       output in lib/ and, when given, the icons in icon/. dotnet build -t:InstallPlugin copies that folder into the user's plugins folder. -->
+  <PropertyGroup>
+    <RunesmithPluginRoot Condition="'$(RunesmithPluginRoot)' == ''">$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '..'))</RunesmithPluginRoot>
+    <RunesmithPluginLayoutDir Condition="'$(RunesmithPluginLayoutDir)' == ''">$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(BaseOutputPath)', '$(Configuration)', 'plugin'))</RunesmithPluginLayoutDir>
+  </PropertyGroup>
+
+  <UsingTask TaskName="WriteRunesmithPluginManifest" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <DeveloperManifest ParameterType="System.String" Required="true" />
+      <LibDirectory ParameterType="System.String" Required="true" />
+      <Implementation ParameterType="System.String" Required="true" />
+      <Contracts ParameterType="System.String" Required="true" />
+      <CopiedFiles ParameterType="Microsoft.Build.Framework.ITaskItem[]" />
+      <PackageRoot ParameterType="System.String" />
+      <Version ParameterType="System.String" Required="true" />
+      <Commit ParameterType="System.String" />
+      <Sdk ParameterType="System.String" />
+      <Output ParameterType="System.String" Required="true" />
+      <PluginId ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Class" Language="cs"><![CDATA[
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.Serialization.Json;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Xml;
+using System.Xml.Linq;
+
+public sealed class WriteRunesmithPluginManifest : Microsoft.Build.Utilities.Task
+{
+    public string DeveloperManifest { get; set; }
+    public string LibDirectory { get; set; }
+    public string Implementation { get; set; }
+    public string Contracts { get; set; }
+    public Microsoft.Build.Framework.ITaskItem[] CopiedFiles { get; set; }
+    public string PackageRoot { get; set; }
+    public string Version { get; set; }
+    public string Commit { get; set; }
+    public string Sdk { get; set; }
+    public string Output { get; set; }
+    [Microsoft.Build.Framework.Output] public string PluginId { get; set; }
+
+    public override bool Execute()
+    {
+        XElement root;
+        try
+        {
+            // The JSON reader of the base library maps JSON to XML, which is all an inline task can rely on.
+            using (var reader = JsonReaderWriterFactory.CreateJsonReader(File.ReadAllBytes(DeveloperManifest), XmlDictionaryReaderQuotas.Max))
+                root = XElement.Load(reader);
+        }
+        catch (Exception exception) when (exception is IOException || exception is XmlException)
+        {
+            Log.LogError("{0} could not be read: {1}", DeveloperManifest, exception.Message);
+            return false;
+        }
+
+        foreach (var name in new[] { "projects", "icon", "banner", "gallery", "assemblies", "build" })
+            root.Element(name)?.Remove();
+        PluginId = (string)root.Element("id") ?? "";
+
+        var sources = new Dictionary<string, Microsoft.Build.Framework.ITaskItem>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in CopiedFiles ?? new Microsoft.Build.Framework.ITaskItem[0])
+        {
+            var target = item.GetMetadata("TargetPath");
+            if (target.Length == 0)
+                target = item.GetMetadata("DestinationSubDirectory") + item.GetMetadata("Filename") + item.GetMetadata("Extension");
+            sources[target.Replace('\\', '/')] = item;
+        }
+
+        var lib = Path.GetFullPath(LibDirectory);
+        var bundled = Array("bundled");
+        foreach (var path in Directory.EnumerateFiles(lib, "*.dll", SearchOption.AllDirectories).Select(p => p.Substring(lib.Length).TrimStart('/', '\\').Replace('\\', '/')).OrderBy(p => p, StringComparer.Ordinal))
+        {
+            if (path == Implementation || path == Contracts)
+                continue;
+
+            sources.TryGetValue(path, out var source);
+            var package = Package(source);
+            bundled.Add(Object("item", Text("file", path), Text("sha256", Hash(Path.Combine(lib, path))), Text("package", package.Key), Text("packageVersion", package.Value)));
+        }
+
+        foreach (var file in new[] { Implementation, Contracts })
+        {
+            if (!File.Exists(Path.Combine(lib, file)))
+            {
+                Log.LogError("{0} is not in the plugin's lib folder.", file);
+                return false;
+            }
+        }
+
+        root.Add(Object("assemblies",
+            Object("contracts", Text("file", Contracts), Text("sha256", Hash(Path.Combine(lib, Contracts)))),
+            Object("implementation", Text("file", Implementation), Text("sha256", Hash(Path.Combine(lib, Implementation)))),
+            bundled));
+        root.Add(Object("build", Text("commit", string.IsNullOrEmpty(Commit) ? "unknown" : Commit), Text("run", "local"), Text("sdk", Sdk ?? "")));
+
+        string json;
+        using (var stream = new MemoryStream())
+        {
+            using (var writer = JsonReaderWriterFactory.CreateJsonWriter(stream, new UTF8Encoding(false), false, true, "  "))
+                root.WriteTo(writer);
+            json = new UTF8Encoding(false).GetString(stream.ToArray());
+        }
+
+        json = Regex.Replace(json, @"(?<!\\)((?:\\\\)*)\\/", "$1/").Replace("\r\n", "\n") + "\n";
+        if (!File.Exists(Output) || File.ReadAllText(Output) != json)
+            File.WriteAllText(Output, json, new UTF8Encoding(false));
+        return true;
+    }
+
+    // Files from NuGet packages name their package; files the build made, such as referenced projects, name themselves at this version.
+    private KeyValuePair<string, string> Package(Microsoft.Build.Framework.ITaskItem source)
+    {
+        if (source == null)
+            return new KeyValuePair<string, string>("unknown", Version);
+        if (source.GetMetadata("NuGetPackageId").Length > 0)
+            return new KeyValuePair<string, string>(source.GetMetadata("NuGetPackageId"), source.GetMetadata("NuGetPackageVersion"));
+
+        var full = source.GetMetadata("FullPath");
+        if (!string.IsNullOrEmpty(PackageRoot) && full.StartsWith(Path.GetFullPath(PackageRoot), StringComparison.Ordinal))
+        {
+            var parts = full.Substring(Path.GetFullPath(PackageRoot).Length).Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length > 2)
+                return new KeyValuePair<string, string>(parts[0], parts[1]);
+        }
+
+        return new KeyValuePair<string, string>(source.GetMetadata("Filename"), Version);
+    }
+
+    private static XElement Text(string name, string value) => new XElement(name, new XAttribute("type", "string"), value);
+
+    private static XElement Object(string name, params object[] content) => new XElement(name, new XAttribute("type", "object"), content);
+
+    private static XElement Array(string name) => new XElement(name, new XAttribute("type", "array"));
+
+    private static string Hash(string path)
+    {
+        using (var sha = SHA256.Create())
+        using (var stream = File.OpenRead(path))
+            return string.Concat(sha.ComputeHash(stream).Select(b => b.ToString("x2")));
+    }
+}
+]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="RunesmithPluginLayout" DependsOnTargets="Build;GetCopyToOutputDirectoryItems" Returns="@(_RunesmithPluginLayoutFile)">
+    <Error Condition="$(AssemblyName.EndsWith('.Contracts'))" Text="$(MSBuildProjectName) is a contracts project; lay out or install the plugin from its implementation project." />
+    <PropertyGroup>
+      <_RunesmithPluginLib>$(RunesmithPluginLayoutDir)lib/</_RunesmithPluginLib>
+    </PropertyGroup>
+    <ItemGroup>
+      <_RunesmithPluginOutput Include="$(OutDir)**/*" />
+      <_RunesmithPluginStale Include="$(RunesmithPluginLayoutDir)**/*"
+                             Exclude="@(_RunesmithPluginOutput->'$(_RunesmithPluginLib)%(RecursiveDir)%(Filename)%(Extension)');$(RunesmithPluginLayoutDir)plugin.json;$(RunesmithPluginLayoutDir)icon/*" />
+    </ItemGroup>
+    <Delete Files="@(_RunesmithPluginStale)" />
+    <Copy SourceFiles="@(_RunesmithPluginOutput)" DestinationFiles="@(_RunesmithPluginOutput->'$(_RunesmithPluginLib)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(RunesmithPluginIcon64)" DestinationFiles="$(RunesmithPluginLayoutDir)icon/64.png" SkipUnchangedFiles="true" Condition="'$(RunesmithPluginIcon64)' != ''" />
+    <Copy SourceFiles="$(RunesmithPluginIcon128)" DestinationFiles="$(RunesmithPluginLayoutDir)icon/128.png" SkipUnchangedFiles="true" Condition="'$(RunesmithPluginIcon128)' != ''" />
+    <WriteRunesmithPluginManifest DeveloperManifest="$(RunesmithPluginRoot)plugin.json" LibDirectory="$(_RunesmithPluginLib)" Implementation="$(TargetFileName)"
+                                  Contracts="$(AssemblyName).Contracts.dll" CopiedFiles="@(ReferenceCopyLocalPaths);@(AllItemsFullPathWithTargetPath)" PackageRoot="$(NuGetPackageRoot)" Version="$(Version)" Commit="$(SourceRevisionId)"
+                                  Sdk="$(NETCoreSdkVersion)" Output="$(RunesmithPluginLayoutDir)plugin.json">
+      <Output TaskParameter="PluginId" PropertyName="RunesmithPluginId" />
+    </WriteRunesmithPluginManifest>
+    <ItemGroup>
+      <_RunesmithPluginLayoutFile Include="$(RunesmithPluginLayoutDir)**/*" />
+      <_RunesmithPluginLayoutFile PluginId="$(RunesmithPluginId)" RelativePath="%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+  </Target>
+
+  <PropertyGroup>
+    <RunesmithConfig Condition="'$(RunesmithConfig)' == '' and '$(RUNESMITH_HOME)' != ''">$(RUNESMITH_HOME)</RunesmithConfig>
+    <RunesmithConfig Condition="'$(RunesmithConfig)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">$(HOME)/Library/Application Support/Runesmith</RunesmithConfig>
+    <RunesmithConfig Condition="'$(RunesmithConfig)' == '' and $([MSBuild]::IsOSPlatform('Linux'))">$([System.Environment]::GetFolderPath(SpecialFolder.ApplicationData))/runesmith</RunesmithConfig>
+    <RunesmithConfig Condition="'$(RunesmithConfig)' == ''">$([System.Environment]::GetFolderPath(SpecialFolder.ApplicationData))/Runesmith</RunesmithConfig>
+  </PropertyGroup>
+
+  <Target Name="InstallPlugin" DependsOnTargets="RunesmithPluginLayout">
+    <PropertyGroup>
+      <_RunesmithPluginInstallDir>$(RunesmithConfig)/plugins/$(RunesmithPluginId)/</_RunesmithPluginInstallDir>
+    </PropertyGroup>
+    <RemoveDir Directories="$(_RunesmithPluginInstallDir)" />
+    <Copy SourceFiles="@(_RunesmithPluginLayoutFile)" DestinationFiles="@(_RunesmithPluginLayoutFile->'$(_RunesmithPluginInstallDir)%(RelativePath)')" />
+    <Message Importance="high" Text="Installed $(RunesmithPluginId) in $(_RunesmithPluginInstallDir). Restart Runesmith to load it." />
+  </Target>
+</Project>

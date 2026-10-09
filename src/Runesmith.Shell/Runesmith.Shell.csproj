@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>The Runesmith window: docking, commands, menus, the command palette, settings, the status bar and the tool windows.</Description>
+    <UsesHammerUI>true</UsesHammerUI>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Composition\Runesmith.Composition.csproj" />
+    <ProjectReference Include="..\Runesmith.Hub\Runesmith.Hub.csproj" />
+    <ProjectReference Include="..\Runesmith.Workspace\Runesmith.Workspace.csproj" />
+    <ProjectReference Include="..\Runesmith.Languages\Runesmith.Languages.csproj" />
+    <ProjectReference Include="..\Runesmith.Editor\Runesmith.Editor.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\runesmith.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Shell.Tests" />
+  </ItemGroup>
+</Project>

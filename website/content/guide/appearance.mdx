@@ -1,0 +1,51 @@
+---
+title: Appearance
+description: Choose the color theme, the accent color, the syntax colors of code and the file icons, from Runesmith's own or from plugins.
+---
+
+Runesmith comes with a dark and a light color theme, each with its own syntax colors, and its own file icons. Plugins can add more color
+themes, syntax color schemes and file icon themes. Whatever you choose applies at once, without a restart, and stays chosen the next time
+Runesmith starts.
+
+## Choose a theme
+
+<Steps>
+
+1. Open **Settings** (<Keys>Ctrl+,</Keys>) at **Appearance**, or **Customize** on the welcome screen.
+2. Pick a **Color theme**. The list shows each theme with a few of its colors, whether it is dark or light, and the plugin it comes from.
+3. Pick an **Accent color**, **Syntax colors** and **File icons** if you want others than the theme gives you.
+
+</Steps>
+
+<Keys>Ctrl+Shift+T</Keys> (**View › Toggle Light and Dark Theme**) switches to Runesmith's light theme while a dark one shows, and to its dark
+theme otherwise.
+
+## What each choice changes
+
+| Choice | Setting | What it changes |
+| --- | --- | --- |
+| **Color theme** | `appearance.theme` | The colors of the window, the panels, the menus and the editor. **Follow the system** (`system`) shows Runesmith's dark or light theme as your system's setting asks, and changes along with it. |
+| **Accent color** | `appearance.accent` | Selections, focus, the selected item and progress. Pick a swatch or type a hex color; **Theme default** goes back to the theme's own accent. Text on the accent is white or black, whichever reads better. |
+| **Syntax colors** | `editor.colorScheme` | The colors of keywords, strings, comments and the rest of the code. **The color theme's own** follows the theme: a plugin's theme can bring its own scheme, and Runesmith's themes use theirs. Open editors are colored again at once. |
+| **File icons** | `appearance.fileIconTheme` | The icons of files and folders in the **Explorer**, the editor tabs, **Quick Open** and the search results. Files the icon theme does not cover keep Runesmith's icon. |
+
+The editor's background and plain text always take the color theme's colors, so a syntax color scheme changes only the colors of code.
+
+## Themes from plugins
+
+Install a theme plugin like any other, from the plugin hub or as a local plugin; see [Plugins from the hub](./plugins.mdx). Its themes,
+schemes and icon themes show in the lists after the next start, with the plugin's name beside them. A theme plugin needs no capabilities:
+it only brings colors and icons.
+
+When you turn the plugin off or remove it, Runesmith goes back to its own dark theme, its own syntax colors and its own icons, and the
+setting keeps the theme's id, shown as **Not installed**. When the plugin comes back, so does its theme.
+
+Runesmith checks a plugin's theme before it lists it. A theme whose text would be too faint to read on its backgrounds, whose colors are not
+colors, or that says it is dark but has a light background, is left out. The **Plugins** channel of the **Output** panel says which themes
+were left out and why, and which ones may be hard to read.
+
+## Related
+
+- [Settings](./settings.mdx)
+- [The window](./window.mdx)
+- [Themes, syntax colors and icons for plugin authors](../plugins/themes.mdx)

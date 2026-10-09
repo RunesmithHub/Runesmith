@@ -1,0 +1,130 @@
+---
+title: Plugins from the hub
+description: Find, install, update and remove plugins from the Runesmith plugin hub, what the tiers and warnings mean, and how links open plugins.
+---
+
+The plugin hub is where Runesmith's plugins are published. The plugin manager shows the plugins you have, the updates that wait for you
+and the hub's catalog, and installs plugins with what they need. This page covers using it; [Plugins](/plugins) covers writing them.
+
+## The plugin manager
+
+Open it from the **Plugins** page of the welcome screen, or with **Tools › Plugins**, which shows it as a panel beside the editor. Both show
+the same thing:
+
+| Section | What it shows |
+| --- | --- |
+| **Installed** | Every plugin, with its tier, where it comes from and a switch to turn it off or on. Plugins with a problem come first, with notices above them. |
+| **Updates** | Updates that wait for you, with their release notes and what they change. **Update all** applies them together. |
+| **Browse** | The hub's catalog. Search by name or keyword, and filter by tier, category and whether a plugin runs on your Runesmith. |
+
+Click a plugin to open its page: who publishes it, how it was reviewed, its source repository and the commit it was built from, what it
+may do and why, the plugins it needs, and its versions with their release notes. The status at the top says when Runesmith last checked
+the hub; the button beside it checks now.
+
+## Tiers
+
+Every hub plugin has a tier, shown as a badge:
+
+| Badge | Meaning |
+| --- | --- |
+| **Official** | Published by Runesmith. Every version is reviewed. |
+| **Verified** | From a publisher Runesmith verified. Every version is reviewed before you get it. |
+| **Unverified** | Checked automatically, but no person at Runesmith has read the code. |
+| **Local** | A plugin you put in your plugins folder yourself. It is never updated or reported to the hub. |
+
+The setting **Allowed plugins** (`plugins.hub.allowedTiers`) can limit installs to official and verified plugins, or to official ones; the
+others are then hidden from **Browse**.
+
+## Install a plugin
+
+<Steps>
+
+1. Find the plugin in **Browse**, or open its page from a link, and click **Install**.
+2. Runesmith works out what to install: the plugin, the plugins it needs and any update they require. The dialog lists each with its
+   tier and size, and every capability they have, such as connecting to the internet or starting programs. The ones new to you are
+   marked, and the ones that need the most trust are in red.
+3. For each unverified plugin, read the warning and tick **I understand that … is unverified and I trust its publisher**. **Install**
+   stays off until every box is ticked.
+4. Click **Install**. Runesmith downloads and checks every package, and changes nothing if one fails.
+5. Restart Runesmith when it offers to. New and updated plugins start at the next start.
+
+</Steps>
+
+When no combination of versions works, the dialog says why, such as a plugin that needs a newer Runesmith, and what would fix it.
+
+To remove a plugin, open its page and click **Uninstall**. Plugins that came in only because it needed them go with it. **Disable** turns a
+plugin off without removing it.
+
+## Updates
+
+Runesmith checks the hub after it starts, every six hours while it runs, and when you open the plugin manager.
+
+| Plugin | What happens |
+| --- | --- |
+| Official and verified | Updates by itself within its version line, such as 1.4 to 1.5, and the update starts at the next start. |
+| Unverified | Never updates by itself. **Updates** and a notification say an update exists. |
+| Any | An update that adds a capability, moves to a new major version or brings in an unverified plugin waits for you, with the changes shown. |
+
+Turn automatic updates off for all plugins with **Update automatically** (`plugins.hub.autoUpdate`), or for one plugin on its page. To go
+back to an older version, select it in the plugin's **Versions** list and install it.
+
+## Notices about your plugins
+
+| Notice | What it means |
+| --- | --- |
+| **Disabled because Runesmith found it harmful** | The hub blocked the plugin. Runesmith turned it off and moved it to a quarantine folder, with the plugins that need it. The notice gives the reason and offers a fixed version or removal. A blocked plugin cannot be turned back on. |
+| **New installs are paused** | Runesmith is looking into a report. You can keep using the plugin. |
+| **Withdrawn by its developer** | The installed version was withdrawn. It keeps working; update when you can. |
+| **No longer maintained** | The developer stopped working on it and may suggest a replacement. |
+| **No longer available on the hub** | It keeps working, but gets no updates. |
+| **Its files changed** | A plugin's files changed after it was installed, so Runesmith turned it off. **Reinstall** puts the original back. |
+
+Quarantined plugins are deleted after 30 days, or when you click **Empty the quarantine**.
+
+When Runesmith cannot reach the hub, the plugin manager shows the catalog it saved and installs wait. When it cannot confirm the hub's data
+is current, it says since when, and installs and updates wait; your plugins keep running. If your computer's date is wrong, correct it.
+
+## Report a plugin
+
+**Report** on a plugin's page opens your browser; Runesmith never sends anything itself.
+
+| Choice | Where it goes |
+| --- | --- |
+| **It's malicious or a security risk** | The hub's private report form. Runesmith copies the plugin's details to the clipboard for you to paste. Without a GitHub account, write to `security@runesmith.dev`. |
+| **It's broken or doesn't work** | A new issue in the plugin's repository. You can add recent log lines that mention the plugin, after reading and editing them. |
+| **It breaks the rules** | A policy issue in the hub's registry, for impersonation, spam or license problems. |
+
+## Links
+
+The hub's website, and anyone, can link to a plugin. A link only opens the plugin's page; installing still takes **Install** and the
+dialog.
+
+| Link | Opens |
+| --- | --- |
+| `runesmith://hub/plugin/<id>` | The plugin's page, such as `runesmith://hub/plugin/lumen.todo`. |
+| `runesmith://hub/plugin/<id>?version=<version>` | The page with that version selected. |
+| `runesmith://hub/updates` | **Updates** in the plugin manager. |
+
+Runesmith refuses any other link and says why. When more than three links arrive within a minute, it opens only the latest.
+
+| System | How links reach Runesmith |
+| --- | --- |
+| Windows | Runesmith registers itself for your user when it starts. Turn **Open runesmith:// links** (`plugins.hub.registerLinks`) off to stop that. |
+| Linux | The menu entry Runesmith ships declares the links; install it as [Install and run](./install.mdx) describes. |
+| macOS | Not yet: links need Runesmith to ship as an application bundle. |
+
+## Settings
+
+| Setting | Key | Default | What it does |
+| --- | --- | --- | --- |
+| Use the plugin hub | `plugins.hub.enabled` | `true` | Off: only the plugins that come with Runesmith and the ones in your plugins folder load. |
+| Allowed plugins | `plugins.hub.allowedTiers` | `all-with-warnings` | `all-with-warnings`, `official-and-verified` or `official-only`. |
+| Update automatically | `plugins.hub.autoUpdate` | `true` | Lets official and verified plugins update by themselves. |
+| Check for changes every | `plugins.hub.checkInterval` | `6` | Hours between checks, from 1 to 24. |
+| Open runesmith:// links | `plugins.hub.registerLinks` | `true` | Registers Runesmith for links on Windows. |
+| Pre-releases | `plugins.hub.preReleases` | empty | Ids of the plugins you want pre-releases of, separated by semicolons. |
+
+## Related
+
+- [Safe mode](./safe-mode.mdx), when a plugin keeps Runesmith from starting.
+- [Plugins](/plugins), for writing your own.

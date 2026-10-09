@@ -1,0 +1,75 @@
+---
+title: Install and run
+description: Download Runesmith or build it from source, and set up C#.
+---
+
+Runesmith runs on Windows, Linux and macOS. Download a release archive, or build it from source with the .NET 10 SDK. C# completion, hover
+and problems need no install step; loading C# projects and building them need the .NET SDK.
+
+## Download a release
+
+Each release on the repository's **Releases** page has an archive per system. The archives hold everything Runesmith needs, including
+.NET, so nothing else has to be installed to run it.
+
+| System | Archive |
+| --- | --- |
+| Windows (x64) | `runesmith-<version>-win-x64.zip` |
+| Linux (x64) | `runesmith-<version>-linux-x64.tar.gz` |
+| macOS (Apple silicon) | `runesmith-<version>-osx-arm64.tar.gz` |
+
+<Steps>
+
+1. Unpack the archive. It holds a folder named `runesmith`.
+2. Start `runesmith.exe` on Windows. On Linux and macOS, run `./runesmith` in that folder.
+
+</Steps>
+
+### Add Runesmith to the Linux menu
+
+The Linux archive carries a menu entry and Runesmith's icon in every size, in its `share` folder. To add them for your account, run this
+in the `runesmith` folder:
+
+```bash
+mkdir -p ~/.local/bin ~/.local/share
+cp -r share/. ~/.local/share/
+ln -sf "$PWD/runesmith" ~/.local/bin/runesmith
+update-desktop-database ~/.local/share/applications
+```
+
+Runesmith then shows in the application menu with its icon, opens `runesmith://` links from the plugin hub, and `runesmith` starts it from
+a terminal when `~/.local/bin` is on your `PATH`.
+
+## Build from source
+
+<Steps>
+
+1. Install the [.NET 10 SDK](https://dot.net).
+2. Clone Runesmith:
+
+   ```bash
+   git clone https://github.com/RunesmithHub/Runesmith.git
+   ```
+
+3. Run Runesmith:
+
+   ```bash
+   cd Runesmith
+   dotnet run --project src/Runesmith.App
+   ```
+
+</Steps>
+
+[Building and testing](/developers/building) has more about building, such as building without the HammerUI checkout.
+
+## Set up C#
+
+Completion, signature help, hover, go to definition and problems for C# come from Runesmith's own C# analyzer, which runs inside
+Runesmith. There is no install step, and nothing is downloaded.
+
+To load your solution and projects, with their references and C# version, the analyzer needs the [.NET SDK](https://dot.net) installed, as
+building does. **Build** also needs `dotnet` on the `PATH`. [C# support](/plugins/csharp) has the details.
+
+## Related
+
+- [First steps](./first-steps.mdx)
+- [Troubleshooting](./troubleshooting.mdx)

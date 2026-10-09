@@ -1,0 +1,92 @@
+---
+title: SDKs
+description: See the .NET SDKs and JDKs on your computer, pick the default of each, and download, update and remove them.
+---
+
+The **SDKs** page of the settings lists every .NET SDK and JDK that Runesmith found on your computer or installed itself. From there you
+pick the one builds and new projects use, download new ones from their vendors, update them and remove the ones Runesmith installed.
+
+## Open the page
+
+Choose **File › SDKs...**, or open **File › Settings** and pick **SDKs** in the list at the left. The page has a section per kind of SDK,
+**.NET SDK** and **JDK**, each with its SDKs newest first.
+
+Each row shows the SDK's version, its vendor for JDKs, its folder and processor, and where it came from:
+
+| Badge | Meaning |
+| --- | --- |
+| **Runesmith** | Runesmith downloaded and installed it. You can remove it from the page. |
+| **System** | It was installed outside Runesmith, such as by a package manager or an installer. Runesmith never removes it. |
+
+**Refresh** looks for SDKs again, such as after you installed one yourself.
+
+## Choose the default
+
+Select **Default** on a row to make that SDK the default of its kind. Until you choose, the newest one is the default.
+
+- **.NET SDK.** When the default is one Runesmith installed, **Build** runs the `dotnet` of Runesmith's .NET folder, with `DOTNET_ROOT`
+  set to it and the folder first on the `PATH`. Otherwise **Build** uses the `dotnet` on the `PATH`.
+- **JDK.** The Java analyzer reads the Java API from the default JDK when it serves the project's release, and from the newest JDK that
+  does otherwise.
+
+## Download an SDK
+
+<Steps>
+
+1. Click **Download...** in the section of the kind you want.
+2. Pick what to install. For the .NET SDK, pick the **Channel**, such as 10.0, then the **Version**. For a JDK, pick the **Vendor**, the
+   **Version**, the **Package** (**JDK**, or **JDK with JavaFX** where the vendor has one), the **Architecture** and the **Release**.
+   The dialog starts at the newest long-term support version, and for a JDK at Temurin, and shows the size of the download.
+3. Click **Install**. The dialog and the status bar show the download and the install; **Cancel** stops it.
+
+</Steps>
+
+Badges mark the releases: **LTS** for long-term support, **STS** for the .NET channels with standard-term support, **Preview** for .NET
+versions that are not released yet, and **Latest** for the newest version in the list.
+
+Runesmith checks every download against the checksum its vendor publishes before it unpacks it, and installs nothing when they differ.
+
+| Kind | Where releases come from | Where Runesmith installs them |
+| --- | --- | --- |
+| .NET SDK | Microsoft's .NET release metadata, with a SHA-512 checksum for each archive | One .NET folder, `sdks/dotnet`, with every SDK side by side, so `global.json` picks between them |
+| JDK | The foojay Discovery API, which lists OpenJDK builds from Temurin, Zulu, Corretto, Liberica, Microsoft, Oracle OpenJDK, GraalVM Community, SapMachine and Semeru | One folder per JDK, `sdks/jdk/<vendor>-<version>` |
+
+The `sdks` folder is in Runesmith's data folder: `$XDG_DATA_HOME/runesmith` (usually `~/.local/share/runesmith`) on Linux,
+`~/Library/Application Support/Runesmith` on macOS and `%LOCALAPPDATA%\Runesmith` on Windows, or `data` inside `RUNESMITH_HOME` when you
+set it.
+
+Runesmith reaches these services only while the SDKs page or the download dialog is open, and keeps their lists for a day. The .NET SDK
+list leaves out channels that are out of support, unless you have an SDK of that channel.
+
+## Update an SDK
+
+When a newer version exists, the row shows **Update to** with that version. For the .NET SDK this is a newer SDK in the same channel; for
+a JDK, a newer version of the same vendor and major version. The update installs next to the SDK you have, which stays until you remove
+it.
+
+## Remove an SDK
+
+Click **Remove** (the trash icon) on a row with the **Runesmith** badge and confirm. For the .NET SDK, Runesmith deletes that SDK's folder from its .NET
+folder, and the whole folder with the last SDK. For a JDK, it deletes the JDK's folder.
+
+## Where Runesmith looks for SDKs
+
+| Kind | Places |
+| --- | --- |
+| .NET SDK | Runesmith's own .NET folder, `DOTNET_ROOT`, the folder of the `dotnet` on the `PATH` (following links), `~/.dotnet`, and the usual install folders: `/usr/share/dotnet`, `/usr/lib/dotnet` and `/usr/local/share/dotnet` on Linux, `/usr/local/share/dotnet` on macOS and `Program Files\dotnet` on Windows |
+| JDK | Runesmith's own JDK folder, `JAVA_HOME`, the JDK of the `java` on the `PATH` (following links), `~/.sdkman/candidates/java`, `~/.jdks`, `~/.gradle/jdks`, `/usr/lib/jvm` on Linux, `/Library/Java/JavaVirtualMachines` on macOS, and the vendors' folders in `Program Files` on Windows, such as `Java` and `Eclipse Adoptium` |
+
+A JDK's version and vendor come from its `release` file.
+
+## NixOS
+
+The SDKs Runesmith downloads are built for other Linux distributions. On NixOS they run through `nix-ld`; turn it on with
+`programs.nix-ld.enable = true;` in your system configuration. Without it, starting `dotnet` or `java` from Runesmith's folder fails with
+an error about a missing program loader.
+
+## Related
+
+- [Settings](./settings.mdx)
+- [Building](./building.mdx)
+- [C# support](/plugins/csharp)
+- [Java support](/plugins/java)

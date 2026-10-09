@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Runesmith.Shell\Runesmith.Shell.csproj" />
+  </ItemGroup>
+  <!-- The signed sample index the hub client's tests use, for the plugin manager's models and dialogs. -->
+  <ItemGroup>
+    <Compile Include="..\Shared\Hub\*.cs" LinkBase="Shared" />
+    <None Include="..\Shared\Hub\Index\**" LinkBase="HubIndex" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <!-- The editor services the editors in these tests are made with. -->
+  <ItemGroup>
+    <Compile Include="..\Runesmith.Editor.Tests\EditorFakes.cs" Link="Editors\EditorFakes.cs" />
+  </ItemGroup>
+</Project>

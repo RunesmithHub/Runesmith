@@ -1,0 +1,126 @@
+---
+title: Create a plugin
+description: Create, build, install, debug and release a Runesmith plugin with the runesmith-plugin template.
+---
+
+The `runesmith-plugin` template creates a plugin that adds a **Say Hello** command. Build it, install it and run the command to see the
+whole cycle, then change it into your own plugin.
+
+## Create the project
+
+Each Runesmith release publishes the SDK package plugins build against, `Runesmith.Sdk`, to the plugin hub's feed at
+`https://nuget.runesmith.dev/index.json`. The feed needs no sign-in, and the plugin's `nuget.config` already lists it.
+
+The template package, `Runesmith.Templates`, is on the same feed. Add it as a source once:
+
+```bash
+dotnet nuget add source https://nuget.runesmith.dev/index.json --name runesmith-hub
+```
+
+Before the first release, build the packages from a Runesmith checkout instead and use the folder as a source: run
+`dotnet pack src/Runesmith.Text -o packages`, `dotnet pack src/Runesmith.Sdk -o packages` and
+`dotnet pack templates/Runesmith.Templates -o packages`.
+
+<Steps>
+
+1. Install the templates:
+
+   ```bash
+   dotnet new install Runesmith.Templates
+   ```
+
+2. Create a plugin. `--name` names the projects and their assemblies; `--id` is the plugin's id, `publisher.<name>` when you leave it out:
+
+   ```bash
+   dotnet new runesmith-plugin --name TodoHighlighter --id acme.todo
+   ```
+
+3. The plugin's `nuget.config` restores from nuget.org and the hub's feed. While you use an SDK you built yourself, add the folder
+   as a source and map `Runesmith.*` to it instead of the hub's feed.
+
+4. Build it and install it into your plugins folder:
+
+   ```bash
+   cd TodoHighlighter
+   dotnet build TodoHighlighter -t:InstallPlugin
+   ```
+
+5. Start Runesmith, or restart it, press <Keys>Ctrl+K</Keys> and run **Say Hello**. A notification says hello.
+
+</Steps>
+
+## What the template creates
+
+| File | What it is |
+| --- | --- |
+| `plugin.json` | The [manifest](./index.mdx#the-manifest). Fill in the summary, the authors, the license and the repository. |
+| `TodoHighlighter.Contracts/` | The contracts project, the plugin's public API for plugins that depend on it. It starts empty. |
+| `TodoHighlighter/` | The implementation project. |
+| `TodoHighlighter/TodoHighlighterCommands.cs` | An `ICommandContributor` that adds the **Say Hello** command to the command palette and the **Help** menu. |
+| `icon.png` | A placeholder icon. Replace it with your own, 256 to 1024 pixels square. |
+| `nuget.config` | Restores from nuget.org and the plugin hub's feed, and always takes `Runesmith.*` and `RunesmithHub.*` packages from the hub's feed. |
+| `TodoHighlighter.slnx` | The solution with both projects. |
+| `README.md` | These steps, for the people who work on the plugin. |
+
+Both projects turn on NuGet lock files, so restores use exactly the packages you built with; commit the `packages.lock.json` files.
+
+The command shows how a plugin gets Runesmith's services: the constructor takes an `INotificationService`, and Runesmith passes it in.
+
+```csharp title="TodoHighlighterCommands.cs"
+[Export(typeof(ICommandContributor))]
+[method: ImportingConstructor]
+public sealed class TodoHighlighterCommands(INotificationService notifications) : ICommandContributor
+{
+    public const string SayHelloId = "todohighlighter.sayHello";
+
+    public void Contribute(ICommandRegistry registry)
+    {
+        var sayHello = new CommandDefinition(SayHelloId, "Say Hello", "TodoHighlighter") { Icon = "sparkles" };
+        registry.Add(sayHello, _ =>
+        {
+            notifications.Notify(NotificationKind.Success, "Hello from TodoHighlighter");
+            return Task.CompletedTask;
+        });
+        registry.AddMenuItem(new MenuItemDefinition(Menus.Help, SayHelloId, Group: "plugins"));
+    }
+}
+```
+
+## Install and update
+
+`dotnet build TodoHighlighter -t:InstallPlugin` builds the plugin, lays it out as Runesmith loads it, with the packaged `plugin.json` and the
+assemblies in `lib/`, and copies it into a subfolder of your plugins folder named after the plugin's id. Run it again after each change and
+restart Runesmith to load the new build. Set `RUNESMITH_HOME` to install into a separate Runesmith home, such as one you test with.
+
+Runesmith holds the installed plugin to its manifest: the secret store and the launcher refuse it unless it declares the
+[capabilities](./index.mdx#capabilities) they need.
+
+## Debug
+
+1. Install the plugin.
+2. Start Runesmith from your IDE as the program to debug, or start it and attach the debugger to the `runesmith` process.
+3. Set breakpoints in your plugin. They bind when Runesmith loads it.
+
+Start Runesmith with `--diagnostics` when the plugin does not load: it lists each plugin and the reason one failed.
+
+## Use other packages
+
+A plugin can use other NuGet packages. Add the package to the implementation project and set
+`<EnableDynamicLoading>true</EnableDynamicLoading>` in it, so the build copies the package next to the plugin. Copies of libraries Runesmith
+shares, such as Avalonia, are ignored when the plugin loads. The contracts project uses only .NET, the SDK and the contracts of the plugins
+it depends on.
+
+To use another plugin, reference its contracts package and add it to `dependencies` in `plugin.json`; see
+[Dependencies](./index.mdx#dependencies).
+
+## Release
+
+1. Put the plugin in a public GitHub repository with a `LICENSE` that matches `license` in `plugin.json`, and set `repository` to it.
+2. Set `version` in `plugin.json`, commit, and tag the commit `v` followed by the version, such as `v1.2.0`.
+3. Create a GitHub release from the tag.
+4. Register the plugin at the Runesmith plugin hub once; the hub builds each release from its tag.
+
+## Related
+
+- [Plugins](./index.mdx): the manifest, capabilities, dependencies and API versions.
+- [C# support](./csharp.mdx), a complete plugin that ships with Runesmith.

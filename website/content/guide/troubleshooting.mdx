@@ -1,0 +1,84 @@
+---
+title: Troubleshooting
+description: What to do when a language server is not found, C# does not load a project, a plugin does not load, Runesmith starts slowly or something goes wrong.
+---
+
+Most problems show up in the status bar, a notification or the **Output** panel. This page lists the common ones and how to find out more.
+
+## The language server is not found
+
+This applies to language servers that plugins add. C# needs no server: its analyzer runs inside Runesmith.
+
+The status bar shows a warning for the server, and a notification says how to install it.
+
+<Steps>
+
+1. Install the server as the notification says.
+2. Run **Restart Language Servers** from the command palette.
+
+</Steps>
+
+Runesmith looks for a server on the `PATH`, and then in the .NET global tools folder, where `dotnet tool install --global` puts it:
+`~/.dotnet/tools` on Linux and macOS and `%USERPROFILE%\.dotnet\tools` on Windows. So it finds a server installed as a .NET tool also when
+it starts from a desktop launcher, which does not see the `PATH` your terminal sets. For a server installed anywhere else, set its command
+setting (`languageServers.<id>.command`) to the server's full path. The server's output channel shows the path Runesmith started.
+
+A server that runs on .NET has to find it. When `DOTNET_ROOT` is not set, Runesmith passes on the .NET it runs on itself, or else the one
+that `dotnet` on the `PATH` belongs to, so this works on NixOS too.
+
+## A language server misbehaves
+
+**Show Language Server Output**, or a click on the server's status bar item, shows what the server wrote. To see every message between
+Runesmith and the server, turn on **Trace language servers** (`languageServers.trace`); the messages go to the server's channel in the
+**Output** panel.
+
+## C# does not see a project's references
+
+When completion in a C# file does not know the types of the project's packages or other projects, or problems report names that build
+fine, the analyzer has not loaded the file's project. The **Language analyzers** channel of the **Output** panel says which solution or
+projects it loaded, and why one failed.
+
+- Loading projects needs the [.NET SDK](https://dot.net), as building does.
+- Open the folder that holds the solution, or a folder with the projects at most three levels below it. See
+  [C# support](/plugins/csharp#projects).
+- Until the projects finish loading, files have a project of their own without your references.
+
+## A plugin does not load
+
+A notification says which plugin could not load, and the **Plugins** channel of the **Output** panel says why. The plugin manager lists
+every plugin with its state. To check whether a plugin causes a problem, start Runesmith in [safe mode](./safe-mode.mdx), without your
+plugins:
+
+```bash
+runesmith --safe-mode
+```
+
+The plugins that ship with Runesmith still load. [Plugins](/plugins#when-a-plugin-does-not-load) lists the usual reasons a plugin fails.
+
+## Find out what happens at startup
+
+`runesmith --diagnostics` writes how long each startup step took, whether the composition came from the cache, every plugin with its state
+and the memory in use to the **Diagnostics** channel of the **Output** panel.
+
+## Something went wrong
+
+When Runesmith meets an error it did not expect, a notification says what went wrong and where the details are: a file in the `logs` folder
+of the cache folder, see [Files and folders](./files-and-folders.mdx). Attach that file when you report the problem.
+
+## Start slowly or wrongly after an update
+
+Runesmith keeps a cache of how its parts and plugins fit together, and rebuilds it when an assembly changes. If it seems stuck on an old
+state, close Runesmith and delete the `composition` folder in the cache folder.
+
+## Start from a clean profile
+
+To try Runesmith without your settings, plugins and sessions, point `RUNESMITH_HOME` at an empty folder:
+
+```bash
+RUNESMITH_HOME=/tmp/runesmith-clean runesmith --new-instance
+```
+
+## Related
+
+- [Files and folders](./files-and-folders.mdx)
+- [Command line](./command-line.mdx)

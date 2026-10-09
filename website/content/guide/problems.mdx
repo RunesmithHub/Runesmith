@@ -1,0 +1,29 @@
+---
+title: Problems
+description: The Problems panel lists every error and warning that language analyzers, language servers and builds report.
+---
+
+The **Problems** panel lists the errors, warnings and information that language analyzers and language servers report as you type and that
+builds report, grouped by file. <Keys>Ctrl+Shift+M</Keys> shows it.
+
+## Read the list
+
+Files with errors come first. Under each file, every problem shows its severity, its message, where it comes from with its code, such as
+`csharp CS0103` or `build CS1503`, and its line and column. Click a problem to go to it.
+
+The **Problems** button on the left stripe counts the errors and warnings; click it to show or hide the panel.
+
+## Where problems come from
+
+| Source | When it reports |
+| --- | --- |
+| A language analyzer, named after its language, such as `csharp` | For each open file, once you pause typing. Typing pauses the check, and it runs again when you stop. |
+| A language server, named after the server | As you type, for the files the server has open. |
+| `build` | During a build. Each build replaces what the previous one found. |
+
+The same problem can appear twice, once from each source, until the next build.
+
+## Related
+
+- [Language features](./language-features.mdx)
+- [Building](./building.mdx)

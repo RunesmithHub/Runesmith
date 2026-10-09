@@ -1,0 +1,124 @@
+---
+title: The window
+description: The toolbar with the main menu and search everywhere, the tool window stripes, the editor area with its tabs, and the status bar.
+---
+
+The Runesmith window has four parts: the toolbar at the top, the tool window stripes at the left and right edges, the editor area with the
+tool windows around it, and the status bar at the bottom. While no folder and no file is open, a welcome screen takes the place of the editor
+area.
+
+## The toolbar
+
+| Part | What it does |
+| --- | --- |
+| Menu button | Opens the main menu: **File**, **Edit**, **Selection**, **View**, **Go**, **Run**, **Build**, **Tools** and **Help**. Pressing <Keys>Alt</Keys> on its own opens it too. Menus without items are left out. |
+| Project | The open folder's name. Its menu lists the recent folders, **New Project...**, **Open Folder...**, **Clone Repository...** when a plugin provides it, and **Close Folder**. |
+| Plugin widgets | Controls plugins add, such as the version control branch widget, after the project and before the run widget. |
+| **Search everywhere** | Finds files, commands and settings in one list. Press <Keys>Shift</Keys> twice, or <Keys>Ctrl+Shift+A</Keys>. |
+| Run widget | With a folder open, the selected [run configuration](./running.mdx) with its list, and **Run** (<Keys>Shift+F10</Keys>), **Debug**, **Stop** (<Keys>Ctrl+F2</Keys>) and **Build** (<Keys>Ctrl+Shift+B</Keys>), which builds the selected configuration's project or the open folder. |
+| Gear | **Settings**, **Plugins**, **SDKs**, **Keyboard Shortcuts** and the switch between light and dark. |
+
+To keep the menus in a bar of their own under the toolbar, set **Menus** (`window.menuBar`) to `separate`. The menu button then hides.
+
+On Windows and Linux the toolbar is the window's title bar: drag it to move the window, double-click it to maximize, use the buttons at
+its right end to minimize, maximize and close, and drag the window's edges to resize it. To keep the system's title bar above the toolbar
+instead, set **Title bar** (`window.titleBar`) to `system` and start Runesmith again. On Linux, Runesmith draws the window's border for X11
+with Avalonia's drawn decorations, which Avalonia still marks as experimental. On macOS the system draws the title bar.
+
+## Search everywhere
+
+Search everywhere shows a few of each: the files whose names match, the commands and the settings. Use <Keys>Up</Keys> and
+<Keys>Down</Keys> to move and <Keys>Enter</Keys> to open. A file opens in the editor, a command runs, and a setting opens its page of the
+settings. Start the query with `>` to search only commands, or `:` to go to a line.
+
+## Tool windows
+
+Tool windows are the panels around the editor area. Each has a button on a stripe:
+
+| Stripe | Group | Opens in |
+| --- | --- | --- |
+| Left | Upper | The left area: **Explorer** and **Search**. |
+| Left | Lower | The bottom area: **Problems** and **Output**. |
+| Right | | The right area, for the tool windows plugins add. |
+
+Each area shows one tool window at a time. Click a button to show its window, or to hide it when it is the one shown. A button with a count
+says how many problems there are, on **Problems**, or how many programs still run, on **Run**.
+
+| Window | Starts in | Key | What it shows |
+| --- | --- | --- | --- |
+| **Explorer** | Left | <Keys>Ctrl+Shift+E</Keys> | The open folder's files. |
+| **Search** | Left | <Keys>Ctrl+Shift+F</Keys> | [Find in files](./search.mdx). |
+| **Run** | Bottom | | A tab per [run](./running.mdx) with its output; it opens when a run starts. |
+| **Problems** | Bottom | <Keys>Ctrl+Shift+M</Keys> | [Errors and warnings](./problems.mdx) from language analyzers, language servers and builds. |
+| **Output** | Bottom | <Keys>Ctrl+Shift+U</Keys> | The logs of builds, language analyzers, language servers and plugins. |
+
+The **View** menu has a **Show** item for each window; the same key hides the window again. Plugins can add windows of their own, which get
+a button and a **View** menu item too.
+
+### Arrange tool windows
+
+| Action | Result |
+| --- | --- |
+| Drag a stripe button | It moves to where the line shows: another place on its stripe, the other group or the other stripe. Its window moves to that area. <Keys>Escape</Keys> cancels. |
+| Right-click a stripe button | **Move to Left**, **Move to Right**, **Move to Bottom** and **Hide**. |
+| The **...** button in a window's header | The same menu. |
+| The **-** button in a window's header | Hides the window. |
+| Drag the gap beside an area | Resizes the area. |
+
+**View › Reset Layout** puts every tool window back where it started. The places, the shown windows and the areas' sizes are saved when
+Runesmith closes and come back at the next start.
+
+## The editor area
+
+Every open file is a tab. A tab shows the file's icon and name, a dot while it has unsaved changes, and the name of its folder when another
+open file has the same name. Hover a tab to see the file's full path and its close button. When the tabs do not fit, the arrow at the end of
+the tab row lists them all.
+
+Under the tabs, the file's path shows as parts, from the open folder down to the file. Click a part to show it in the **Explorer**. Turn
+**Breadcrumbs** (`editor.breadcrumbs`) off to hide the path; the status bar shows it instead.
+
+| Action | Result |
+| --- | --- |
+| Drag a tab onto a guide | The tab moves there: among another group's tabs, against a side of a group, or against a side of the editor area. |
+| Drag a tab out of the window | The tab opens in a window of its own, under the pointer. |
+| Double-click a tab | Its group fills the editor area, or the layout comes back. |
+| Middle-click a tab | Closes it. |
+| Right-click a tab | **Close**, **Close other tabs**, **Maximize** or **Restore layout**, **Move to new window**, and in a floating window **Move to main window**. |
+| Drag a splitter | Resizes the groups on either side. Double-click it to share the space equally. |
+
+Closing an editor with unsaved changes asks whether to save them first. With every file closed, the editor area lists the keys to search
+everywhere, go to a file, find in files and show the Explorer.
+
+## The welcome screen
+
+While no folder is open and nothing is in the editor area, the welcome screen shows. **Help › Welcome** brings it back at any time; the
+**X** at its top right returns to the workbench.
+
+| Section | What is there |
+| --- | --- |
+| **Projects** | The recent folders with when you last opened each, a search box, **New Project** and **Open**, and **Clone** when a plugin such as version control provides it. Click a folder to open it; right-click it to remove it from the list. |
+| **Customize** | The color theme, the accent color, the syntax colors, the file icons, the interface and editor font sizes, and the keymap; see [Appearance](./appearance.mdx). |
+| **Plugins** | Opens the **Plugins** page of the settings. |
+
+## The status bar
+
+| Part | What it shows | Click it to |
+| --- | --- | --- |
+| Left | The active file's path, when **Breadcrumbs** is off. | Show a part in the **Explorer**. |
+| Middle | What runs in the background, such as **Loading C# projects** or **Building**, with its progress. With several tasks, it shows the latest and how many others run. | List every task, and cancel the ones that can stop. |
+| `12:5` | The caret's line and column, and how many characters are selected. | Go to a line. |
+| `LF` or `CRLF` | The file's line endings. | Choose the line endings the file is saved with. |
+| `UTF-8` | The file's encoding. A UTF-8 file that starts with a byte order mark shows **with BOM**. | |
+| `4 spaces` | How the editor indents, from the settings. | Open the **Editor** settings. |
+| `C#` | The file's language. | Choose another language for the file. |
+| Bell | The notifications since Runesmith started; a dot means new ones. | List them, and clear the list. |
+
+Language analyzers show work that takes longer than 300 ms, such as loading projects, and never the small work that follows each key press.
+Language servers that plugins add show an item at the right, named after the server. It shows when the server starts, its progress while it
+loads, and a warning when it is not installed. Click it to see the server's output.
+
+## Related
+
+- [The editor](./editor.mdx)
+- [Keyboard shortcuts](./keyboard-shortcuts.mdx)
+- [Settings](./settings.mdx)

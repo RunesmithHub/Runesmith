@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsBenchmarkProject>true</IsBenchmarkProject>
+    <Description>Micro-benchmarks for the text buffer, highlighting, the file index and the editor's layout.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Runesmith.Text\Runesmith.Text.csproj" />
+    <ProjectReference Include="..\..\src\Runesmith.Workspace\Runesmith.Workspace.csproj" />
+    <ProjectReference Include="..\..\src\Runesmith.Languages\Runesmith.Languages.csproj" />
+    <ProjectReference Include="..\..\src\Runesmith.Editor\Runesmith.Editor.csproj" />
+    <ProjectReference Include="..\..\src\Runesmith.LanguageServices\Runesmith.LanguageServices.csproj" />
+    <ProjectReference Include="..\..\src\Runesmith.Languages.CSharp\Runesmith.Languages.CSharp.csproj" />
+    <ProjectReference Include="..\..\src\Runesmith.Languages.Java.Syntax\Runesmith.Languages.Java.Syntax.csproj" />
+    <ProjectReference Include="..\..\src\Runesmith.Languages.Java\Runesmith.Languages.Java.csproj" />
+  </ItemGroup>
+</Project>

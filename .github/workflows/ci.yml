@@ -1,0 +1,66 @@
+# Builds the solution and runs the tests on Linux and Windows, on each pull request and each push to main.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-and-test:
+    name: Build and test on ${{ matrix.system }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: Linux
+            os: linux
+            runner: ubuntu-24.04
+          - system: Windows
+            os: windows
+            runner: windows-2025
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Set up .NET from global.json
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build Runesmith.slnx -warnaserror
+
+      # Projects without tests run none, which the test platform reports with exit code 8.
+      - name: Test
+        run: >-
+          dotnet test --solution Runesmith.slnx --no-build --results-directory TestResults --
+          --ignore-exit-code 8 --report-xunit-trx --hangdump --hangdump-timeout 10m --hangdump-type Mini
+
+      - name: Summarize the tests
+        if: ${{ !cancelled() }}
+        run: dotnet run .github/scripts/TestSummary.cs -- TestResults
+
+      - name: Upload the test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: TestResults
+          retention-days: 14
+          if-no-files-found: ignore

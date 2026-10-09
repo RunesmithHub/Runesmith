@@ -1,0 +1,10 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="https://github.com/runesmithhub/hammerui"
+             x:Class="Runesmith.App.App"
+             Name="Runesmith"
+             RequestedThemeVariant="Dark">
+  <Application.Styles>
+    <ui:ToolkitTheme />
+  </Application.Styles>
+</Application>

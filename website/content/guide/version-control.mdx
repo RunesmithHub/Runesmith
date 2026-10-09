@@ -1,0 +1,90 @@
+---
+title: Version control
+description: Commit your changes, create and switch branches, pull and push, and read the history of a Git repository in Runesmith.
+---
+
+Runesmith works with Git repositories through the built-in [Git](/plugins/git) plugin. This page walks through the everyday
+tasks: committing, branching, updating and pushing, reading the history and undoing changes. Git must be installed and on the `PATH`.
+
+## Start with a repository
+
+Open a folder that is in a Git repository, and Runesmith finds the repository by itself. The branch widget appears in the toolbar, the
+**Commit** window on the left stripe and the **Git** window under it. Outside a repository they stay hidden.
+
+To make the open folder a repository, choose **Git › Initialize Repository**.
+
+## Commit your changes
+
+<Steps>
+
+1. Press <Keys>Ctrl+Alt+K</Keys>, or choose **Git › Commit...**. The **Commit** window opens with the message box focused; its stripe
+   button shows how many files changed.
+2. Check the files, folders or groups to commit. Checked files move to **Staged**; uncheck them to unstage. <Keys>Space</Keys> does the
+   same for the selected files.
+3. Double-click a file, or press <Keys>Enter</Keys>, to see its diff before you commit it.
+4. Type the message. Keep the first line short: past 72 characters, the box shows its length.
+5. Press <Keys>Ctrl+Enter</Keys> or select **Commit**. To push right after, press <Keys>Ctrl+Shift+Enter</Keys> or select
+   **Commit and Push**.
+
+</Steps>
+
+To change the last commit, turn on **Amend**: the box loads that commit's message, and **Amend Commit** replaces the commit with the staged
+changes and the message. Turning **Amend** off brings back what you had typed.
+
+## Create and switch branches
+
+<Steps>
+
+1. Click the branch widget in the toolbar, or choose **Git › Branches...**.
+2. To create a branch, choose **New Branch...**, type its name and select **Create**. The new branch is checked out unless you clear
+   **Check out the new branch**.
+3. To switch, type part of a branch's name in the search field, select the branch and choose **Checkout**. A remote branch becomes a local
+   branch that tracks it.
+
+</Steps>
+
+When local changes are in the way of a checkout, choose **Smart Checkout** to take them along to the other branch, or **Force Checkout**
+to throw them away.
+
+## Update and push
+
+- **Pull...** (<Keys>Ctrl+T</Keys>), or **Update Project...** in the branch popup, brings in the commits of the current branch's upstream.
+  Your local changes are kept.
+- **Push...** (<Keys>Ctrl+Alt+Shift+K</Keys>) shows the commits that go and where they go. Select **Push**. A new branch gets its upstream
+  on its first push.
+- **Fetch** brings in every remote's branches without changing yours. The branch widget then shows the commits to pull (↓) and to push (↑).
+
+Pulls, pushes and fetches run in the background with **Cancel** in the status bar, and end with a toast. When a push is rejected because
+the remote has commits you do not, select **Update and Push** in the toast.
+
+## Read the history
+
+Choose **Git › Show History** to open the **Git** window in the bottom area. Each row is a commit, with the branch graph, its labels, the
+author and the date; more commits load as you scroll.
+
+- Filter by text in the message, by branch, by author or by path in the bar above the log.
+- Select a commit to see its message, author, parents and changed files. Double-click a file to see what the commit changed in it.
+- Right-click a commit to check it out, branch from it, cherry-pick or revert it, reset the current branch to it, copy its hash or open
+  it on its hosting service, such as GitHub.
+
+## See a file's history
+
+Open the file and choose **Git › Show File History**, or right-click in the editor, or on the file in the **Explorer**, and choose
+**Show File History**. The **Git** window shows the commits that changed the file, following it through renames. On a folder in the
+**Explorer**, it shows the commits that changed anything in the folder.
+
+## Undo changes
+
+- To undo every change to a file since the last commit, open it and choose **Git › Roll Back...**, right-click the file or a folder in
+  the **Explorer** and choose **Roll Back...**, or select files in the **Commit** window and press <Keys>Delete</Keys>. Runesmith asks
+  first; untracked files are deleted.
+- To undo only some changed lines, select them and press <Keys>Ctrl+Alt+Z</Keys>, or right-click and choose **Rollback Lines**.
+- To put your changes aside for a while, choose **Git › Stash Changes...**, and **Git › Unstash Changes...** to bring them back.
+- To move the current branch back to an earlier commit, right-click the commit in the **Git** window and choose
+  **Reset** *branch* **to Here**.
+
+## Related
+
+- [Git](/plugins/git): every part, command and setting.
+- [GitHub](/plugins/github), [Forgejo](/plugins/forgejo) and [Gitea](/plugins/gitea): signing in, cloning, links and pull requests.
+- [Keyboard shortcuts](./keyboard-shortcuts.mdx)

@@ -1,0 +1,35 @@
+.combo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+
+.key {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0.05em 0.45em;
+  border: 1px solid var(--ts-border-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--ts-surface);
+  box-shadow: none;
+  color: var(--ts-text);
+  font-family: var(--ifm-font-family-base);
+  font-size: 0.78em;
+  font-weight: 600;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.symbol {
+  font-family: system-ui, sans-serif;
+  font-size: 0.9em;
+  line-height: 1.35;
+}
+
+.plus {
+  color: var(--ts-text-muted);
+  font-size: 0.75em;
+}

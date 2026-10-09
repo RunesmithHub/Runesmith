@@ -1,0 +1,66 @@
+---
+title: Composition and plugins
+description: How Runesmith finds plugins, loads them in dependency order into their own load contexts and composes them with VS-MEF behind a cache.
+---
+
+Runesmith's own services and every plugin are parts: classes with `System.Composition` attributes that export contracts and import
+services. `Runesmith.Composition` puts them together with VS-MEF (`Microsoft.VisualStudio.Composition`). This page describes how, for people
+who change it; plugin authors need only [Plugins](/plugins).
+
+## The steps
+
+<Steps>
+
+1. **Find.** `PluginDiscovery` looks at every subfolder of the built-in `plugins` folder next to the executable, then of the user's plugins
+   folder, for a `plugin.json`. `PluginManifest` reads the packaged manifest (`schemaVersion` 1) with `RunesmithHub.Protocol`, or an
+   older manifest without `schemaVersion`. Discovery checks the manifest: the required fields, a `runesmithApi` range this Runesmith
+   supports, assemblies that exist inside the plugin's folder, an id no plugin before it took, and the user's `plugins.disabled` setting.
+   Plugins the hub installed (`CompositionOptions.HubPlugins`) load as hub plugins, and a newer hub copy of a bundled plugin runs in its
+   place while the bundled copy stays as the fallback. Plugins the hub withholds (`CompositionOptions.WithheldPlugins`), such as blocked
+   ones and their dependents, stay off with the reason.
+2. **Order.** `PluginLoader` sorts the plugins so that each comes after the plugins it depends on. A plugin whose dependency is missing,
+   turned off, failed, of a version outside the range, or part of a cycle fails with a reason that names the dependency.
+3. **Load.** Each plugin's contracts assembly loads into the one `ContractsLoadContext`, after a check that it references only .NET, the
+   host-shared assemblies and the contracts of the plugins it declares. Its implementation loads into a `PluginLoadContext` of its own,
+   which resolves the plugin's own assemblies, its own and its dependencies' contracts from the contracts context, the host-shared
+   assemblies (`HostAssemblies` in `RunesmithHub.Protocol`) and .NET, and refuses another plugin's implementation or undeclared contracts.
+   Bundled plugins and older manifests may also use Runesmith's other assemblies, such as `Runesmith.LanguageServices`.
+4. **Compose.** `RunesmithComposition` discovers the parts of Runesmith's host assemblies (`Runesmith.Sdk`, `Runesmith.Workspace`,
+   `Runesmith.Languages`, `Runesmith.Editor` and `Runesmith.Shell`) and of each plugin's implementation assembly, in dependency order.
+   A plugin whose parts cannot be read fails, and so do the plugins that depend on it. It checks that every import has a fitting export, and
+   creates an export provider. Parts with errors are left out and their errors reported; the rest works.
+
+</Steps>
+
+The result, a `CompositionResult`, has the export provider, every plugin found with its state, and the errors. The app writes the errors and
+the plugins that could not load to the standard error output and the shell lists failed plugins in the **Plugins** output channel.
+
+## Calling plugins
+
+`PluginCallers.Current` finds the plugin that called a service from the load context of the calling code: the nearest frame on the call
+stack outside the service's own assembly and .NET. The secret store, the launcher, the settings service and `IPluginStorage` use it to
+check capabilities and to keep each plugin's data under its own id. Runesmith's own code is never refused. Plugins with older manifests
+declare no capabilities and pass the capability checks, but keep to their own data like every plugin.
+
+## The cache
+
+Checking every import against every export takes a while. Runesmith saves the composed result in the `composition` folder of the cache
+folder, in a file named after a key of every assembly that took part: its name, its module version id, its size and its write time, plus the
+version of VS-MEF. When any of them changes, the key changes, and Runesmith composes from scratch and replaces the cache. A cache it cannot
+read, such as one from another build, is deleted and rebuilt. A composition with errors is not cached.
+
+With `--diagnostics`, the **Diagnostics** channel says whether the composition came from the cache and how long it took.
+
+## Rules for parts
+
+- Import services through an `[ImportingConstructor]`. A constructor import that leads back to the part itself is a cycle VS-MEF rejects;
+  break it by importing `Lazy<T>` for the dependency that is needed later.
+- Import extension points with `[ImportMany]`, and as `Lazy<T, TMetadata>` with metadata when only some of them are needed, as the
+  language feature providers do with `[Languages]`.
+- Mark a part `[Shared]` when it must be one instance, such as every service. With several exports, a shared part is still one instance.
+- Keep constructors cheap: Runesmith creates many parts while the window opens.
+
+## Related
+
+- [Plugins](/plugins)
+- [Architecture](./architecture.mdx)

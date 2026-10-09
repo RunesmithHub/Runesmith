@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Folders, solutions, the file tree and watcher, the file index, documents on disk and find in files.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Sdk\Runesmith.Sdk.csproj" />
+    <ProjectReference Include="..\Runesmith.Composition\Runesmith.Composition.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Workspace.Tests" />
+    <InternalsVisibleTo Include="Runesmith.Benchmarks" />
+    <InternalsVisibleTo Include="Runesmith.Shell.Tests" />
+  </ItemGroup>
+</Project>

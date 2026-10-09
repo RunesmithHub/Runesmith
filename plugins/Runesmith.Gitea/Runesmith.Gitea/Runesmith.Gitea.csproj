@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Gitea in Runesmith: signing in to gitea.com and other Gitea servers, cloning, links and pull requests.</Description>
+    <!-- Runesmith supplies the SDK, Avalonia, HammerUI and everything they depend on, so none of it is copied next to the plugin. -->
+    <DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences>
+    <UsesHostHammerUI>true</UsesHostHammerUI>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Gitea.Contracts\Runesmith.Gitea.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\src\Runesmith.Sdk\Runesmith.Sdk.csproj" Private="false" ExcludeAssets="runtime" />
+    <PackageReference Include="Avalonia" ExcludeAssets="runtime" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Shared\Gitea\*.cs" LinkBase="Gitea" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Gitea.Tests" />
+  </ItemGroup>
+</Project>

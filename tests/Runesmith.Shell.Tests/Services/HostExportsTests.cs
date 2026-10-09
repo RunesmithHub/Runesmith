@@ -1,0 +1,44 @@
+using System.Reflection;
+using HammerUI.Controls;
+using HammerUI.Services;
+using Runesmith.Composition;
+using Runesmith.Sdk.Documents;
+using Runesmith.Sdk.Plugins;
+using Runesmith.Sdk.Shell;
+using Runesmith.Shell.Appearance;
+using Runesmith.Shell.Diffs;
+using Runesmith.Shell.Services;
+
+namespace Runesmith.Shell.Tests.Services;
+
+public sealed class HostExportsTests
+{
+    [Fact]
+    public async Task PluginsCanImportTheHostServices()
+    {
+        string[] hostAssemblies = ["Runesmith.Sdk", "Runesmith.Workspace", "Runesmith.Languages", "Runesmith.Editor", "Runesmith.Shell"];
+        using var result = await RunesmithComposition.CreateAsync(new CompositionOptions([.. hostAssemblies.Select(Assembly.Load)], [], null), TestContext.Current.CancellationToken);
+
+        Assert.Empty(result.Errors);
+        await HeadlessSession.Value.Dispatch(() =>
+        {
+            var notifications = result.Exports.GetExportedValue<NotificationService>();
+            Assert.Same(notifications.Dialogs, result.Exports.GetExportedValue<IDialogService>());
+            Assert.Same(notifications.Toasts, result.Exports.GetExportedValue<IToastService>());
+            Assert.Same(result.Exports.GetExportedValue<ILauncher>(), result.Exports.GetExportedValue<ILauncher>());
+            Assert.Same(result.Exports.GetExportedValue<ISecretStore>(), result.Exports.GetExportedValue<ISecretStore>());
+            Assert.IsType<DiffService>(result.Exports.GetExportedValue<IDiffService>());
+            Assert.IsType<PluginStorage>(result.Exports.GetExportedValue<IPluginStorage>());
+            var appearance = result.Exports.GetExportedValue<AppearanceCatalog>();
+            Assert.Equal(["dark", "light"], appearance.Themes.Select(e => e.Theme.Id));
+            Assert.Equal(["runesmith-dark", "runesmith-light"], appearance.Schemes.Select(e => e.Scheme.Id));
+            Assert.Empty(appearance.Problems);
+        }, TestContext.Current.CancellationToken);
+    }
+
+    [Theory]
+    [InlineData("file:///etc/passwd")]
+    [InlineData("mailto:someone@example.com")]
+    public void TheLauncherOpensOnlyWebAddresses(string address) =>
+        Assert.Throws<ArgumentException>(() => new SystemLauncher(() => null, _ => { }).OpenUrl(new Uri(address)));
+}
