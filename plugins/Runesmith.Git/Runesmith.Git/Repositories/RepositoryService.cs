@@ -117,16 +117,23 @@ internal sealed class RepositoryService : IRepositoryService, IDisposable
         {
             disposed = true;
             debounceTimer.Dispose();
+            watcher?.Dispose();
+            watcher = null;
         }
 
         filesSubscription?.Dispose();
-        watcher?.Dispose();
         opening?.Cancel();
         opening?.Dispose();
     }
 
     private Task OpenAsync(string? root)
     {
+        lock (gate)
+        {
+            if (disposed)
+                return Task.CompletedTask;
+        }
+
         opening?.Cancel();
         var cancellation = opening = new CancellationTokenSource();
         return Opened = Task.Run(() => OpenCoreAsync(root, cancellation.Token));
@@ -138,8 +145,7 @@ internal sealed class RepositoryService : IRepositoryService, IDisposable
         if (cancellationToken.IsCancellationRequested)
             return;
 
-        watcher?.Dispose();
-        watcher = null;
+        ReplaceWatcher(null);
         Repository = repository;
         if (repository is null)
         {
@@ -148,7 +154,7 @@ internal sealed class RepositoryService : IRepositoryService, IDisposable
             Publish(null);
             if (root is not null && Directory.Exists(root))
             {
-                watcher = RepositoryWatcher.ForMissingRepository(root, () => _ = ReopenAsync());
+                ReplaceWatcher(RepositoryWatcher.ForMissingRepository(root, () => _ = ReopenAsync()));
                 // A .git that is not a repository yet is usually one git is still writing, which the folder watcher will not report again.
                 if (Path.Exists(Path.Combine(root, ".git")) && unfinishedRetries++ < UnfinishedRepositoryRetries)
                     _ = ReopenAfterDebounceAsync(cancellationToken);
@@ -160,8 +166,22 @@ internal sealed class RepositoryService : IRepositoryService, IDisposable
         unfinishedRetries = 0;
 
         repository.Running += (_, arguments) => CommandRunning?.Invoke(this, arguments);
-        watcher = new RepositoryWatcher(repository.GitDirectory, ScheduleRefresh, () => IndexChanged?.Invoke(this, EventArgs.Empty));
+        ReplaceWatcher(new RepositoryWatcher(repository.GitDirectory, ScheduleRefresh, () => IndexChanged?.Invoke(this, EventArgs.Empty)));
         await RefreshQuietlyAsync().ConfigureAwait(false);
+    }
+
+    private void ReplaceWatcher(RepositoryWatcher? next)
+    {
+        bool kept;
+        lock (gate)
+        {
+            watcher?.Dispose();
+            kept = !disposed;
+            watcher = kept ? next : null;
+        }
+
+        if (!kept)
+            next?.Dispose();
     }
 
     private async Task ReopenAfterDebounceAsync(CancellationToken cancellationToken)
