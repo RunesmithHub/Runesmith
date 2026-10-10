@@ -28,7 +28,6 @@ public sealed class DebugViewTests
         var window = new Window { Width = 1000, Height = 400, Content = view };
         window.Show();
         Assert.Null(view.HeaderTitle);
-        Assert.False(view.HeaderActions.IsVisible);
 
         var session = (await debug.StartAsync("App", Plan(Path.Combine(root, "App.dll")), new ConsoleBuffer(), null, Token))!;
         await program.StopAtBreakpointAsync();
@@ -39,7 +38,6 @@ public sealed class DebugViewTests
         await WaitAsync(() => view.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "count"));
 
         Assert.Equal("App, paused at a breakpoint", view.HeaderTitle);
-        Assert.True(view.HeaderActions.IsVisible);
         var texts = view.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
         Assert.Contains("Program.Main()", texts);
         Assert.Contains("Locals", texts);

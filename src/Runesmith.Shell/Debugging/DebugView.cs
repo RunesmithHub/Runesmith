@@ -138,7 +138,6 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
             HeaderChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        actions.IsVisible = session is not null;
         UpdateButtons();
         callStack.Refresh();
         callStackMessage.Text = callStack.Message;
@@ -219,7 +218,12 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
         Place(grid, Splitter(), 1);
         Place(grid, Pane("Variables", null, new Panel { Children = { variableTree, variablesMessage } }), 2);
         Place(grid, Splitter(), 3);
-        Place(grid, Pane("Watch", addWatch, watchTree), 4);
+        var watchHint = Message();
+        watchHint.Text = "Press + to watch an expression, or right-click a variable and choose Add to Watch.";
+        void UpdateWatchHint() => watchHint.IsVisible = watches.Items.Count == 0;
+        watches.Items.CollectionChanged += (_, _) => UpdateWatchHint();
+        UpdateWatchHint();
+        Place(grid, Pane("Watch", addWatch, new Panel { Children = { watchTree, watchHint } }), 4);
         return grid;
     }
 
@@ -250,8 +254,8 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
 
     private static StackPanel FrameRow(FrameItem frame)
     {
-        var marker = new SymbolIcon { Data = Icons.Find(DebugIcons.CurrentLine), Size = 12, IsVisible = frame.IsCurrent, VerticalAlignment = VerticalAlignment.Center };
-        marker[!SymbolIcon.ForegroundProperty] = new DynamicResourceExtension("WarningBrush");
+        var marker = Filled(DebugIcons.CurrentLine, "WarningBrush", 10);
+        marker.IsVisible = frame.IsCurrent;
         var name = new TextBlock { Text = frame.Name, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         if (!frame.HasSource)
             name[!TextBlock.ForegroundProperty] = new DynamicResourceExtension("TextMutedBrush");
@@ -508,7 +512,7 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
                 SmallButton(Icons.Trash, "Remove all breakpoints", () => _ = commands.ExecuteAsync(DebugCommands.RemoveAllBreakpoints)),
             },
         };
-        var empty = new EmptyState { Icon = Icons.Find(DebugIcons.Breakpoint), Title = "No breakpoints", Hint = "Click beside a line number, or press F9 on a line, to add one." };
+        var empty = new EmptyState { Icon = Icons.Circle, Title = "No breakpoints", Hint = "Click beside a line number, or press F9 on a line, to add one." };
         void UpdateEmpty() => empty.IsVisible = breakpointList.Items.Count == 0;
         breakpointList.Items.CollectionChanged += (_, _) => UpdateEmpty();
         UpdateEmpty();
@@ -521,8 +525,9 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
     {
         var enabled = new CheckBox { IsChecked = item.IsEnabled, VerticalAlignment = VerticalAlignment.Center, MinWidth = 0, Padding = new Thickness(0) };
         enabled.IsCheckedChanged += (_, _) => item.IsEnabled = enabled.IsChecked == true;
-        var icon = new SymbolIcon { Data = Icons.Find(item.Breakpoint.IsLogPoint ? DebugIcons.LogPoint : DebugIcons.Breakpoint), Size = 12, VerticalAlignment = VerticalAlignment.Center };
-        icon[!SymbolIcon.ForegroundProperty] = new DynamicResourceExtension(!item.IsEnabled ? "TextMutedBrush" : item.IsUnverified ? "WarningBrush" : item.Breakpoint.IsLogPoint ? "InfoBrush" : "DangerBrush");
+        var icon = Filled(item.Breakpoint.IsLogPoint ? DebugIcons.LogPoint : DebugIcons.Breakpoint, !item.IsEnabled ? "TextMutedBrush" : item.Breakpoint.IsLogPoint ? "InfoBrush" : item.Breakpoint.IsConditional ? "WarningBrush" : "DangerBrush", 9);
+        if (!item.IsEnabled || item.IsUnverified)
+            icon.Opacity = 0.6;
         var row = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -556,6 +561,14 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
         menu.Items.Add(new Separator());
         menu.Items.Add(Item("Remove", Icons.Trash, () => breakpointList.Remove(item)));
         return menu;
+    }
+
+    // The gutter fills these icons, so lists do too; SymbolIcon only draws outlines.
+    private static Avalonia.Controls.Shapes.Path Filled(string icon, string brush, double size)
+    {
+        var path = new Avalonia.Controls.Shapes.Path { Data = Icons.Find(icon), Stretch = Stretch.Uniform, Width = size, Height = size, VerticalAlignment = VerticalAlignment.Center };
+        path[!Avalonia.Controls.Shapes.Shape.FillProperty] = new DynamicResourceExtension(brush);
+        return path;
     }
 
     private static Button SmallButton(Geometry icon, string tip, Action action)

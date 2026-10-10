@@ -9,8 +9,8 @@ using Runesmith.Sdk.Shell;
 
 namespace Runesmith.Shell.Debugging;
 
-/// <summary>The debug toolbar in the main toolbar, beside the run widget: continue or pause, the steps, restart and stop, shown while a
-/// session runs.</summary>
+/// <summary>The debug toolbar in the main toolbar, beside the run widget, while a session runs: continue or pause and the steps. The run
+/// widget's Stop ends the session, and the Debug tool window's header has every control.</summary>
 [Export(typeof(IToolbarWidgetProvider))]
 [method: ImportingConstructor]
 public sealed class DebugToolbar(DebugService debug, Lazy<ICommandService> commands) : IToolbarWidgetProvider
@@ -32,8 +32,6 @@ public sealed class DebugToolbar(DebugService debug, Lazy<ICommandService> comma
             (CommandIds.StepOver, DebugIcons.StepOver, null),
             (CommandIds.StepInto, DebugIcons.StepInto, null),
             (CommandIds.StepOut, DebugIcons.StepOut, null),
-            (CommandIds.RestartDebugging, "rotate-cw", null),
-            (CommandIds.StopDebugging, "stop", "DangerBrush"),
         })
         {
             var symbol = new SymbolIcon { Data = Icons.Find(icon), Size = 16 };
@@ -44,7 +42,7 @@ public sealed class DebugToolbar(DebugService debug, Lazy<ICommandService> comma
             panel.Children.Add(button);
         }
 
-        panel.Children.Add(new Border { Width = 1, Height = 16, Margin = new Avalonia.Thickness(6, 0), Classes = { "divider" } });
+        panel.Children.Add(new Border { Width = 1, Height = 16, Margin = new Avalonia.Thickness(4, 0), Classes = { "divider" } });
 
         void Update()
         {
