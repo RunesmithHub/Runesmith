@@ -60,6 +60,10 @@ public sealed partial class TextArea
     /// <summary>Raised when the user clicks a gutter icon or a code lens that runs a command: its id and argument.</summary>
     public event EventHandler<(string CommandId, object? Argument)>? DecorationCommandRequested;
 
+    /// <summary>Gets or sets what a click in the icon column of a line without a clickable icon does, such as adding a breakpoint: it gets the
+    /// line's number and returns whether it did anything; null leaves such clicks to select the line.</summary>
+    public Func<int, bool>? GlyphMarginClick { get; set; }
+
     private DecorationPaint Paint => decorationPaint ??= DecorationPaint.From(this, Formatting);
 
     /// <summary>Replaces one source's decorations; their spans must be in the current text.</summary>
@@ -224,13 +228,13 @@ public sealed partial class TextArea
             return true;
         }
 
-        return false;
+        return GlyphMarginClick?.Invoke(line) == true;
     }
 
     /// <summary>Whether a point is over something in the gutter or a code lens that a click runs.</summary>
     private bool IsOverClickableDecoration(Point point) =>
         lensLines.Length > 0 && LensAt(point) is { Decoration: CodeLens { CommandId: not null } }
-        || GlyphLineAt(point) is { } line && (line == lightBulbLine || MarkerOn(line) is { Decoration: GutterMarker { CommandId: not null } });
+        || GlyphLineAt(point) is { } line && (line == lightBulbLine || GlyphMarginClick is not null || MarkerOn(line) is { Decoration: GutterMarker { CommandId: not null } });
 
     private void DrawHighlightBackgrounds(DrawingContext context, TextSpan visible, double left)
     {
@@ -305,15 +309,15 @@ public sealed partial class TextArea
             if (line < first || line > last || line == lightBulbLine || !drawn.Add(line) || HammerUI.Icons.Find(marker.Icon) is not { } icon)
                 continue;
 
-            DrawIcon(context, icon, Paint.Tone(marker.Tone), GlyphRect(line));
+            DrawIcon(context, icon, Paint.Tone(marker.Tone), GlyphRect(line), marker.IsFilled);
         }
     }
 
-    private static void DrawIcon(DrawingContext context, Geometry icon, IBrush brush, Rect rect)
+    private static void DrawIcon(DrawingContext context, Geometry icon, IBrush brush, Rect rect, bool filled = false)
     {
         var scale = rect.Width / 24;
         using (context.PushTransform(Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation(Math.Round(rect.X), Math.Round(rect.Y))))
-            context.DrawGeometry(null, new Pen(brush, 2, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), icon);
+            context.DrawGeometry(filled ? brush : null, new Pen(brush, 2, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), icon);
     }
 
     private void DrawCodeLenses(DrawingContext context, int first, int last, double width)
