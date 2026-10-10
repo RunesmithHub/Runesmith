@@ -89,8 +89,9 @@ public sealed record DeleteFileOperation(string Path) : FileOperation
     /// <summary>Gets whether to go on when the path does not exist.</summary>
     public bool IgnoreIfMissing { get; init; }
 
-    /// <summary>Gets whether the deleted files go to the system's trash: on Linux the desktop trash, for files on its drive, and on macOS
-    /// <c>~/.Trash</c>. Otherwise, or when false, Runesmith keeps them while the edit can be undone and then deletes them for good.</summary>
+    /// <summary>Gets whether the deleted files go to the system's trash: on Windows the Recycle Bin, for files on local drives, on macOS
+    /// <c>~/.Trash</c>, and on Linux the desktop trash, for files on its drive. Otherwise, or when false, Runesmith keeps them while the edit
+    /// can be undone and then deletes them for good.</summary>
     public bool UseTrash { get; init; } = true;
 }
 
