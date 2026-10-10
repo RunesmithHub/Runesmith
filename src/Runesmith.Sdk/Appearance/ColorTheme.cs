@@ -70,6 +70,11 @@ public sealed record ThemeColors
 
     /// <summary>Gets the translucent shade behind dialogs.</summary>
     public string? Scrim { get; init; }
+
+    /// <summary>Gets the terminal's 16 ANSI colors: black, red, green, yellow, blue, magenta, cyan and white, then their bright forms in the
+    /// same order. Null, or a list without 16 colors, has the terminal derive them from the theme's other colors.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public IReadOnlyList<string>? TerminalColors { get; init; }
 }
 
 /// <summary>Adds color themes. Export it with <c>[Export(typeof(IColorThemeContributor))]</c>.</summary>

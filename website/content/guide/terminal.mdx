@@ -1,0 +1,113 @@
+---
+title: Terminal
+description: Run your shell in the Terminal panel, with tabs, colors, full-screen programs, selection, copy and paste, and links to files.
+---
+
+The **Terminal** panel runs your shell in the open folder, in as many tabs as you like. It is a full terminal: programs such as `less`,
+`htop` or `vim` work in it, with their colors, cursor and mouse. This page covers opening terminals, the keys, selecting and copying, links
+to files, and the settings.
+
+## Open a terminal
+
+<Steps>
+
+1. Press <Keys combo="Ctrl+`" />, or click **Terminal** on the bottom stripe. The first time, the panel starts your shell in the open folder.
+2. Type commands as in any terminal.
+3. Press <Keys combo="Ctrl+Shift+`" />, or click **+** in the panel's header, for another tab.
+
+</Steps>
+
+<Keys combo="Ctrl+`" /> shows and hides the panel, and showing it puts the keyboard focus in the selected terminal. In the **Explorer**,
+right-click a folder and choose **Open in Terminal** to start a shell there.
+
+| Part | What it does |
+| --- | --- |
+| Tabs | One per terminal, named after the shell or the title the program sets, such as the folder you are in. A tab's tooltip shows its folder. |
+| **+** | Starts your shell in a new tab (**New Terminal**). |
+| **Clear** | Empties the selected terminal's screen and scrollback, keeping the line you are on (**Clear Terminal**). |
+| **Kill** | Ends the selected terminal's program and closes its tab (**Kill Terminal**). |
+| The tab's cross | The same as **Kill**. |
+
+When your shell ends with exit code 0, such as after `exit`, its tab closes. When another program ends, its tab stays with its exit code, so
+you can read what it wrote.
+
+## Your shell
+
+The terminal starts the shell in `$SHELL` on Linux and macOS, as a login shell on macOS, and PowerShell or `cmd` on Windows. The setting
+`terminal.shell` picks another, such as `/bin/zsh` or `pwsh.exe`. Terminals start with `TERM=xterm-256color` and `COLORTERM=truecolor`, so
+programs use their colors.
+
+With **Shell integration** on, bash and zsh tell Runesmith the folder they are in after each command. Links to files then open from that
+folder, and the tab's tooltip shows it. Runesmith loads your own startup files, such as `~/.bashrc`, first.
+
+## Keys
+
+Keys go to the program in the terminal, as they would in any terminal. A few run Runesmith's commands instead:
+
+| Keys | In the terminal |
+| --- | --- |
+| Letters, <Keys>Ctrl</Keys> with a letter, <Keys>Alt</Keys> with a key, and keys without modifiers such as <Keys>F10</Keys> | Go to the program, so <Keys>Ctrl+C</Keys> interrupts it and <Keys>Ctrl+R</Keys> searches the shell's history. |
+| <Keys>Ctrl+C</Keys> while text is selected | Copies the selection. |
+| <Keys>Ctrl+Shift+C</Keys> | Copies the selection. |
+| <Keys>Ctrl+Shift+V</Keys> or <Keys>Shift+Insert</Keys> | Pastes. A program that asks for it gets the text marked as pasted, so a shell does not run it line by line. |
+| <Keys>Shift+PageUp</Keys>, <Keys>Shift+PageDown</Keys> | Scrolls the scrollback by a page. |
+| Other keys with <Keys>Ctrl+Shift</Keys>, and keys such as <Keys combo="Ctrl+`" /> or <Keys>Shift+F10</Keys> | Run their commands when they have one, such as <Keys>Ctrl+Shift+P</Keys> for the command palette. |
+
+## Select, copy and scroll
+
+| Do this | What happens |
+| --- | --- |
+| Drag | Selects text. Dragging past the top or bottom scrolls. |
+| Double-click | Selects a word, such as a path. |
+| Triple-click | Selects a line. |
+| <Keys>Shift</Keys>+click | Extends the selection. |
+| Right-click | **Copy**, **Paste**, **Select All** and **Clear**. |
+| Wheel | Scrolls the scrollback. In a full-screen program it moves through the program, such as the lines in `less`. |
+| Typing | Scrolls back to the prompt. |
+
+Lines that wrapped are copied as one line. The terminal keeps 10,000 lines after they scroll off its top; `terminal.scrollback` changes
+how many.
+
+When a program reports the mouse, such as `htop` or `vim` with the mouse on, clicks and the wheel go to it. Hold <Keys>Shift</Keys> to
+select text anyway.
+
+## Links
+
+Places in files and web addresses that a program writes are links. Point at one to underline it, and <Keys>Ctrl</Keys>+click it to open it:
+files open in the editor at the line, and web addresses in the browser.
+
+| Written as | Example |
+| --- | --- |
+| A path with a line | `src/App.cs:12`, `src/App.cs:12:5` |
+| Compiler messages | `Program.cs(12,5): error CS0103: ...` |
+| Stack frames | `at App.Program.Main() in /src/App/Program.cs:line 17`, `at com.example.Main.run(Main.java:42)` |
+| Web addresses | `https://example.com/docs` |
+
+Relative paths are found from the shell's folder and from the open folder.
+
+## Run configurations in the terminal
+
+Turn on **Run in the terminal** (`run.useTerminal`) to run configurations in a tab of the Terminal panel instead of the **Run** panel's
+console, so programs that read keys or draw on the whole screen work. The **Run** panel still shows the run, with **Stop** and the exit
+code, and debugging still uses it.
+
+## Settings
+
+| Setting | Key | Default | What it does |
+| --- | --- | --- | --- |
+| Shell | `terminal.shell` | empty | The program new terminals start. Empty is your default shell. |
+| Font family | `terminal.fontFamily` | empty | The terminal's font. Empty uses the editor's. |
+| Font size | `terminal.fontSize` | `0` | The font size in pixels. `0` uses the editor's. |
+| Scrollback | `terminal.scrollback` | `10000` | How many lines a terminal keeps after they scroll off its top. |
+| Shell integration | `terminal.shellIntegration` | `true` | Lets bash and zsh tell Runesmith their folder. Applies to new terminals. |
+| Blinking cursor | `terminal.cursorBlink` | `false` | Makes the cursor blink. |
+| Run in the terminal | `run.useTerminal` | `false` | Runs configurations in a terminal tab instead of the **Run** panel's console. |
+
+The terminal takes its colors from the color theme: its background and text are the editor's, and its 16 colors are the theme's own
+terminal colors or follow its red, green, yellow and blue. See [Appearance](./appearance.mdx).
+
+## Related
+
+- [Running](./running.mdx)
+- [Keyboard shortcuts](./keyboard-shortcuts.mdx#terminal)
+- [Terminals](/plugins/terminal), for plugins

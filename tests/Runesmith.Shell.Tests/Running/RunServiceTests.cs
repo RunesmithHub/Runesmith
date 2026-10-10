@@ -3,6 +3,7 @@ using Runesmith.Sdk.Build;
 using Runesmith.Sdk.Options;
 using Runesmith.Sdk.Running;
 using Runesmith.Shell.Running;
+using Runesmith.Shell.Terminal;
 
 namespace Runesmith.Shell.Tests.Running;
 
@@ -197,6 +198,33 @@ public sealed class RunServiceTests : IDisposable
     }
 
     private static string LongCommand => OperatingSystem.IsWindows() ? "ping -n 60 127.0.0.1 > nul" : "sleep 60";
+
+    [Fact]
+    public async Task WithTheTerminalSettingTheProgramRunsInATerminalTab()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+
+        var terminals = new TerminalService(new FakeWorkspace(root), null, () => null, _ => { });
+        var inTerminal = new RunService(configurations, build, new FakeWorkspace(root), () => Task.CompletedTask, new FakeOutput(), new FakeDiagnostics(), notifications,
+            null, null, () => terminals);
+
+        await HeadlessSession.Value.Dispatch(async () =>
+        {
+            var session = await inTerminal.RunAsync(Config("App", "printf 'in a terminal'; exit 4", []));
+            Assert.NotNull(session);
+            await session.Completion.WaitAsync(Timeout);
+
+            Assert.Equal(4, session.ExitCode);
+            Assert.Contains("runs in the Terminal panel", session.Console.GetText(), StringComparison.Ordinal);
+            Assert.Contains("exit code 4", session.Console.GetText(), StringComparison.Ordinal);
+            var terminal = (TerminalSession)Assert.Single(terminals.Tabs);
+            Assert.Equal("App", terminal.Name);
+            lock (terminal.Gate)
+                Assert.Contains("in a terminal", terminal.Screen.GetAllText(), StringComparison.Ordinal);
+            terminal.Close();
+        }, TestContext.Current.CancellationToken);
+    }
 
     private async Task<RunSession> RunAsync(RunConfiguration configuration)
     {

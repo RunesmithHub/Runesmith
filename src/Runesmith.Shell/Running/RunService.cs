@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using Runesmith.Sdk.Build;
 using Runesmith.Sdk.Running;
+using Runesmith.Sdk.Settings;
 using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.Tasks;
 using Runesmith.Sdk.Workspace;
@@ -29,19 +30,22 @@ public sealed class RunService
     private readonly INotificationService notifications;
     private readonly IBackgroundTasks? tasks;
     private readonly Func<Debugging.IRunDebugger?> debugger;
+    private readonly Func<Terminal.TerminalService?> terminals;
     private CancellationTokenSource? building;
 
     /// <summary>Creates the service.</summary>
     [ImportingConstructor]
     public RunService(IRunConfigurationService configurations, IBuildService build, IWorkspace workspace, Lazy<EditorService> editors,
         IOutputService output, IDiagnosticService diagnostics, INotificationService notifications, [Import(AllowDefault = true)] IBackgroundTasks? tasks,
-        [Import(AllowDefault = true)] Lazy<Debugging.IRunDebugger>? debugger)
-        : this(configurations, build, workspace, () => editors.Value.SaveAllAsync(), output, diagnostics, notifications, tasks, () => debugger?.Value)
+        [Import(AllowDefault = true)] Lazy<Debugging.IRunDebugger>? debugger, ISettingsService settings, [Import(AllowDefault = true)] Lazy<Terminal.TerminalService>? terminals)
+        : this(configurations, build, workspace, () => editors.Value.SaveAllAsync(), output, diagnostics, notifications, tasks, () => debugger?.Value,
+            () => settings.Get<bool>(RunSettings.UseTerminal) ? terminals?.Value : null)
     {
     }
 
     internal RunService(IRunConfigurationService configurations, IBuildService build, IWorkspace workspace, Func<Task> saveAll,
-        IOutputService output, IDiagnosticService diagnostics, INotificationService notifications, IBackgroundTasks? tasks, Func<Debugging.IRunDebugger?>? debugger = null)
+        IOutputService output, IDiagnosticService diagnostics, INotificationService notifications, IBackgroundTasks? tasks, Func<Debugging.IRunDebugger?>? debugger = null,
+        Func<Terminal.TerminalService?>? terminals = null)
     {
         this.configurations = configurations;
         this.build = build;
@@ -52,6 +56,7 @@ public sealed class RunService
         this.notifications = notifications;
         this.tasks = tasks;
         this.debugger = debugger ?? (() => null);
+        this.terminals = terminals ?? (() => null);
         build.StateChanged += (_, _) => StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -222,6 +227,12 @@ public sealed class RunService
                 return;
             }
 
+            if (session.Mode == RunMode.Run && terminals() is { } host)
+            {
+                session.Finish(await RunInTerminalAsync(session, host, plan).ConfigureAwait(true));
+                return;
+            }
+
             var process = RunProcess.Start(plan, console.Append);
             session.Started(process);
             var exitCode = await process.Exited.ConfigureAwait(true);
@@ -240,6 +251,26 @@ public sealed class RunService
             console.AppendLine($"{configuration.Name} could not start: {exception.Message}", ConsoleSource.Error);
             session.Finish(null);
         }
+    }
+
+    // The program runs in a tab of the Terminal panel, where it can use the whole terminal; its tab stays when it ends.
+    private static async Task<int?> RunInTerminalAsync(RunSession session, Terminal.TerminalService host, LaunchPlan plan)
+    {
+        var console = session.Console;
+        var terminal = host.StartProgram(session.Configuration.Name, plan.Program, plan.Arguments, plan.WorkingDirectory, plan.Environment);
+        var exited = new TaskCompletionSource<int?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        terminal.Exited += (_, e) => exited.TrySetResult(e.ExitCode);
+        if (terminal.HasExited)
+            exited.TrySetResult(terminal.ExitCode);
+        session.StartedElsewhere(terminal.Kill);
+        console.AppendLine("The program runs in the Terminal panel.", ConsoleSource.System);
+        var code = await exited.Task.ConfigureAwait(true);
+        console.AppendLine(session.WasStopped
+            ? $"Stopped after {Seconds(session.Elapsed)} s."
+            : code is { } exit
+                ? string.Create(CultureInfo.CurrentCulture, $"Process finished with exit code {exit} in {Seconds(session.Elapsed)} s.")
+                : $"Process finished in {Seconds(session.Elapsed)} s.", ConsoleSource.System);
+        return code;
     }
 
     private async Task<bool> RunStepAsync(RunSession session, IRunConfigurationType type, BeforeLaunchStep step, string root, IReadOnlyList<string> chain)

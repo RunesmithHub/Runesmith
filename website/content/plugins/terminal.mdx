@@ -1,0 +1,89 @@
+---
+title: Terminals
+description: Start programs and shells in the Terminal panel with ITerminalService, type into them, follow their output and learn when they end.
+---
+
+A plugin can open tabs in the [Terminal panel](/guide/terminal) with `ITerminalService`: a program of its own, such as a watcher or a REPL,
+or the user's shell. The program runs in a real terminal, so it can use colors, move the cursor and read keys, and the user can type into
+it. This page shows how to create a terminal, talk to it and follow it. `ITerminalService` and the types on this page were added in plugin
+API 0.1.2.
+
+## Create a terminal
+
+Import `ITerminalService` and call `CreateTerminal` with a name for the tab and `TerminalOptions`:
+
+```csharp title="WatchCommands.cs"
+using System.Composition;
+using Runesmith.Sdk.Commands;
+using Runesmith.Sdk.Shell;
+using Runesmith.Sdk.Terminals;
+
+namespace AcmeWatch;
+
+[Export(typeof(ICommandContributor))]
+[method: ImportingConstructor]
+public sealed class WatchCommands(ITerminalService terminals, INotificationService notifications) : ICommandContributor
+{
+    public void Contribute(ICommandRegistry registry) =>
+        registry.Add(new CommandDefinition("acme.watch", "Start Watcher", "Acme"), _ =>
+        {
+            var terminal = terminals.CreateTerminal("Acme watch", new TerminalOptions
+            {
+                Command = "npm",
+                Arguments = ["run", "watch"],
+                Environment = new Dictionary<string, string?> { ["FORCE_COLOR"] = "1" },
+            });
+            terminal.Exited += (_, e) => notifications.Notify(NotificationKind.Info, "The watcher ended", $"Exit code {e.ExitCode}.");
+            return Task.CompletedTask;
+        });
+}
+```
+
+Creating a terminal starts a program, so the plugin needs the `process` [capability](./index.mdx#capabilities). Without it,
+`CreateTerminal` throws an `UnauthorizedAccessException` and the **Plugins** output channel says why. A program that cannot start throws an
+`InvalidOperationException` whose message says why.
+
+| `TerminalOptions` member | Default | What it does |
+| --- | --- | --- |
+| `Command` | null | The program to run, found on the `PATH` unless it is a full path. Null starts the user's shell, the one new terminals start. |
+| `Arguments` | none | The program's arguments, or the shell's when there is no command, unquoted. |
+| `WorkingDirectory` | null | The folder the program starts in. Null is the open folder, or the home folder when no folder is open. |
+| `Environment` | none | Variables to set over Runesmith's environment. A null value removes a variable. |
+| `IsHidden` | `false` | Keeps the tab out of the panel until `Show` is called. The program runs meanwhile. |
+
+Every terminal gets `TERM=xterm-256color`, `COLORTERM=truecolor` and `TERM_PROGRAM=Runesmith`, and a UTF-8 `LANG` when none is set.
+
+## Talk to a terminal
+
+`CreateTerminal` returns an `ITerminal`:
+
+| Member | What it does |
+| --- | --- |
+| `SendText(text, addNewLine)` | Types text, as if the user did, and presses <Keys>Enter</Keys> after it unless `addNewLine` is false. |
+| `Show(takeFocus)` | Shows the tab and the panel, and gives it the keyboard focus unless `takeFocus` is false. |
+| `Close()` | Ends the program and closes the tab. |
+| `Data` | Raised with the text the program writes, escape sequences included. The first handler added also gets what the program wrote before it, up to 64 KB. |
+| `Exited` | Raised once, when the program ends, with its exit code. |
+| `Name`, `ProcessId`, `HasExited`, `ExitCode` | The tab's name, the program's process id, and whether and how it ended. |
+
+`ITerminalService.Terminals` lists the open terminals, including hidden ones and the user's.
+
+```csharp
+var shell = terminals.CreateTerminal("Release", new TerminalOptions { IsHidden = true });
+shell.SendText("git fetch --tags");
+shell.Data += (_, e) => output.GetChannel("Release").Append(e.Text);
+shell.Show(takeFocus: false);
+```
+
+When a program ends, its tab stays with the exit code, so the user can read what it wrote, until the user or the plugin closes it.
+
+## Threads
+
+`ITerminalService` and `ITerminal` can be called from any thread. `Data` and `Exited` are raised on a background thread, the one that reads
+the program's output; post to the UI thread before you change controls.
+
+## Related
+
+- [Terminal](/guide/terminal), for users
+- [API overview](./api.mdx#terminals)
+- [Capabilities](./index.mdx#capabilities)

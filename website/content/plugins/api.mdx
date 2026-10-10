@@ -46,6 +46,7 @@ Runesmith creates a part the first time something needs it. Services can be impo
 | `IDiffService` | Opens two versions of a text side by side in an editor tab. |
 | `ISecretStore` | Keeps secrets such as access tokens in the system's secret store. |
 | `ILauncher` | Opens links in the browser and shows files in the file manager. |
+| `ITerminalService` | Starts programs and shells in the **Terminal** panel, types into them and follows their output. |
 | `IPluginStorage` | Gives the plugin a folder of its own for its files. |
 | `IWebViewService` | Creates web views that show the plugin's own web pages. |
 | `IDialogService`, `IToastService` | HammerUI's dialogs and toasts, shown in the main window. |
@@ -408,6 +409,19 @@ Starting a debugger needs the `process` [capability](./index.mdx#capabilities). 
 `CommandIds` has the debugger's commands, such as `ToggleBreakpoint`, `Continue`, `StepOver`, `StepInto`, `StepOut` and `StopDebugging`,
 for plugins that place them in menus.
 
+## Terminals
+
+Import `ITerminalService` to start a program, or the user's shell, in a tab of the [Terminal](/guide/terminal) panel. The returned
+`ITerminal` types text into it with `SendText`, shows it with `Show`, ends it with `Close`, and raises `Data` with what the program writes
+and `Exited` when it ends. A plugin needs the `process` [capability](./index.mdx#capabilities) to create a terminal.
+[Terminals](./terminal.mdx) has the details.
+
+```csharp
+var terminal = terminals.CreateTerminal("Database", new TerminalOptions { Command = "psql", Arguments = ["--dbname", "orders"] });
+terminal.SendText("\\dt");
+terminal.Exited += (_, e) => log.AppendLine($"psql ended with {e.ExitCode}");
+```
+
 ## Documents and editors
 
 `IDocumentService` opens files as `IDocument`s, whose `Buffer` holds the text. Edit the text on the UI thread; snapshots of it can be read
@@ -612,10 +626,18 @@ New plugins start at `^0.1.1`. See [API versions](./index.mdx#api-versions) for 
 | `ColorScheme(id, name, json)` and `ColorScheme.Json` | A [syntax color scheme](./themes.mdx#syntax-color-schemes) given as JSON instead of a file. |
 | `RunesmithPaths.Hub` | The folder Runesmith manages for the plugin hub. |
 
+A plugin that uses anything added in 0.1.2 declares `"runesmithApi": "^0.1.2"` in the same way.
+
+| Added in 0.1.2 | What it is |
+| --- | --- |
+| `ITerminalService`, `ITerminal`, `TerminalOptions`, `TerminalDataEventArgs`, `TerminalExitedEventArgs` | [Terminals](./terminal.mdx). |
+| `ThemeColors.TerminalColors` | The terminal's ANSI colors in a [color theme](./themes.mdx). |
+
 ## Related
 
 - [Create a plugin](./create-a-plugin.mdx)
 - [Editor extensions](./language-features.mdx): decorations, code actions, rename, formatting and keyboard hooks.
 - [Custom editors](./custom-editors.mdx) and [Web views](./web-views.mdx)
+- [Terminals](./terminal.mdx)
 - [C# support](./csharp.mdx), a complete plugin.
 - [Git](./git.mdx) and [GitHub](./github.mdx), the version control plugins.
