@@ -1,13 +1,13 @@
 ---
 title: C# support
-description: "How Runesmith edits, builds and runs C#: highlighting, Runesmith's own C# analyzer on the C# compiler, building with dotnet build, and run configurations."
+description: "How Runesmith edits, builds, runs and debugs C#: highlighting, Runesmith's own C# analyzer on the C# compiler, building with dotnet build, run configurations and debugging with netcoredbg."
 ---
 
 Runesmith supports C# through an official plugin you install from the plugin hub, `runesmith.csharp`, developed in
 [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp). It highlights `.cs` and `.csx` files, gives completion, hover,
-go to definition, signature help, problems, quick fixes, rename, formatting and inlay hints from Runesmith's own C# analyzer, and builds
-solutions and projects with `dotnet build`. This page covers what the analyzer does, how it finds your projects, how fast it is and what it
-does not do yet.
+go to definition, signature help, problems, quick fixes, rename, formatting and inlay hints from Runesmith's own C# analyzer, builds
+solutions and projects with `dotnet build` and debugs .NET projects with netcoredbg. This page covers what the analyzer does, how it
+finds your projects, how fast it is and what it does not do yet.
 
 ## Set up
 
@@ -130,8 +130,23 @@ A **.NET project** configuration has these settings:
 The **Build** step before a .NET project or tests configuration builds only that project, with `dotnet build` and the same configuration
 and framework, and its errors and warnings appear in the **Problems** panel as a folder build's do. A **.NET command** builds the folder.
 
-Debugging a .NET project starts the built assembly, `bin/<configuration>/<framework>/<assembly>.dll`, under the `dotnet` debugger, which
-a [debug engine](/plugins/debug-engines) plugin provides; the C# plugin does not include one yet.
+## Debugging
+
+**Debug** on a **.NET project** configuration builds the project and starts the built assembly,
+`bin/<configuration>/<framework>/<assembly>.dll`, under [netcoredbg](https://github.com/Samsung/netcoredbg), Samsung's open source .NET
+debugger, with the configuration's arguments, environment variables and working directory. The assembly runs with the `dotnet` of the
+configuration's **.NET SDK**, with `DOTNET_ROOT` set when that SDK has its own `dotnet`. [Debugging](/guide/debugging) covers breakpoints,
+stepping and the **Debug** panel. **.NET tests** and **.NET command** configurations cannot be debugged yet.
+
+The plugin does not ship netcoredbg. The first time you debug, it downloads netcoredbg 3.2.0-1092 from the project's GitHub release page,
+with its progress in the status bar, checks the download against the SHA-256 checksum the plugin pins for it, and keeps it in the plugin's
+storage folder, so later sessions start at once. The download comes from `github.com` and `release-assets.githubusercontent.com`.
+netcoredbg is MIT licensed; its license notice is in the plugin's
+[THIRD-PARTY-NOTICES.md](https://github.com/RunesmithHub/plugin-csharp/blob/main/THIRD-PARTY-NOTICES.md).
+
+netcoredbg has builds for Linux on x64 and Arm64, Windows on x64 and macOS on Apple silicon. On other computers, such as a Mac with an
+Intel processor, **Debug** says there is no build for it. When the download fails, the **Run** panel says why, and the next **Debug** tries
+again.
 
 ## SDKs
 
