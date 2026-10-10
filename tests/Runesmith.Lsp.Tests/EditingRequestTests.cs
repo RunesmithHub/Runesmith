@@ -151,6 +151,46 @@ public sealed class EditingRequestTests
     }
 
     [Fact]
+    public async Task ReadsRenamesThatCreateRenameAndDeleteFilesInOrderAndDeclaresThem()
+    {
+        await using var server = new FakeServer(AllFeatures);
+        server.Answer("textDocument/rename", _ => """
+            { "documentChanges": [
+                { "kind": "create", "uri": "file:///work/New.cs", "options": { "ignoreIfExists": true } },
+                { "textDocument": { "uri": "file:///work/New.cs", "version": null },
+                  "edits": [ { "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 0, "character": 0 } }, "newText": "class New {}" } ] },
+                { "kind": "rename", "oldUri": "file:///work/Program.cs", "newUri": "file:///work/Main.cs", "options": { "overwrite": true } },
+                { "kind": "delete", "uri": "file:///work/obj", "options": { "recursive": true, "ignoreIfNotExists": true } } ] }
+            """);
+        await server.StartAsync();
+
+        var edit = await server.Client.RenameAsync(Uri, new Position(0, 5), "Main", Token);
+
+        Assert.Collection(edit!.DocumentChanges!,
+            change => Assert.Equal(new CreateFile("file:///work/New.cs", new CreateFileOptions(null, true)), change),
+            change => Assert.Equal("class New {}", Assert.Single(Assert.IsType<TextDocumentEdit>(change).Edits).NewText),
+            change => Assert.Equal(new RenameFile(Uri, "file:///work/Main.cs", new RenameFileOptions(true, null)), change),
+            change => Assert.Equal(new DeleteFile("file:///work/obj", new DeleteFileOptions(true, true)), change));
+        Assert.Single(edit.Documents);
+        var workspaceEdit = server.Parameters("initialize").GetProperty("capabilities").GetProperty("workspace").GetProperty("workspaceEdit");
+        Assert.Equal(["create", "rename", "delete"], workspaceEdit.GetProperty("resourceOperations").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal("transactional", workspaceEdit.GetProperty("failureHandling").GetString());
+    }
+
+    [Fact]
+    public void WritesResourceOperationsWithTheirKind()
+    {
+        var edit = new WorkspaceEdit { DocumentChanges = [new DeleteFile("file:///work/a.txt"), new TextDocumentEdit(new OptionalVersionedTextDocumentIdentifier(Uri, 3), [])] };
+
+        var json = JsonSerializer.Serialize(edit, LspJsonContext.Default.WorkspaceEdit);
+
+        Assert.Contains("""{"uri":"file:///work/a.txt","kind":"delete"}""", json, StringComparison.Ordinal);
+        var read = JsonSerializer.Deserialize(json, LspJsonContext.Default.WorkspaceEdit)!.DocumentChanges!;
+        Assert.Equal(new DeleteFile("file:///work/a.txt"), read[0]);
+        Assert.Equal(3, Assert.IsType<TextDocumentEdit>(read[1]).TextDocument.Version);
+    }
+
+    [Fact]
     public async Task FormatsWithTheEditorsIndentation()
     {
         await using var server = new FakeServer(AllFeatures);

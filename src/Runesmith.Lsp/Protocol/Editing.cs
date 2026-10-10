@@ -54,25 +54,113 @@ internal sealed class ProviderOptionsConverter : JsonConverter<ProviderOptions?>
 /// <summary>A command the server runs, with <c>workspace/executeCommand</c>.</summary>
 public sealed record Command(string Title, [property: JsonPropertyName("command")] string Name, IReadOnlyList<JsonElement>? Arguments);
 
+/// <summary>One entry of a workspace edit's <c>documentChanges</c>: a <see cref="TextDocumentEdit"/>, or a <see cref="CreateFile"/>,
+/// <see cref="RenameFile"/> or <see cref="DeleteFile"/> resource operation.</summary>
+public abstract record DocumentChange;
+
 /// <summary>Edits to one version of a document.</summary>
-public sealed record TextDocumentEdit(OptionalVersionedTextDocumentIdentifier TextDocument, IReadOnlyList<TextEdit> Edits);
+public sealed record TextDocumentEdit(OptionalVersionedTextDocumentIdentifier TextDocument, IReadOnlyList<TextEdit> Edits) : DocumentChange;
 
 /// <summary>Identifies a document and, when known, its version.</summary>
 public sealed record OptionalVersionedTextDocumentIdentifier(string Uri, int? Version);
 
-/// <summary>Changes to many documents. Edits arrive in <see cref="Changes"/> or <see cref="DocumentChanges"/>; file operations are not
-/// supported, so the client declares none.</summary>
+public sealed record CreateFileOptions(bool? Overwrite, bool? IgnoreIfExists);
+
+/// <summary>Creates an empty file.</summary>
+public sealed record CreateFile(string Uri, CreateFileOptions? Options = null) : DocumentChange
+{
+    public string Kind { get; init; } = "create";
+}
+
+public sealed record RenameFileOptions(bool? Overwrite, bool? IgnoreIfExists);
+
+/// <summary>Renames or moves a file or folder.</summary>
+public sealed record RenameFile(string OldUri, string NewUri, RenameFileOptions? Options = null) : DocumentChange
+{
+    public string Kind { get; init; } = "rename";
+}
+
+public sealed record DeleteFileOptions(bool? Recursive, bool? IgnoreIfNotExists);
+
+/// <summary>Deletes a file or folder.</summary>
+public sealed record DeleteFile(string Uri, DeleteFileOptions? Options = null) : DocumentChange
+{
+    public string Kind { get; init; } = "delete";
+}
+
+/// <summary>Reads and writes <c>documentChanges</c>, whose entries are told apart by their <c>kind</c>; text edits have none.</summary>
+internal sealed class DocumentChangesConverter : JsonConverter<IReadOnlyList<DocumentChange>?>
+{
+    public override IReadOnlyList<DocumentChange>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        if (document.RootElement.ValueKind != JsonValueKind.Array)
+            return null;
+
+        var changes = new List<DocumentChange>();
+        foreach (var entry in document.RootElement.EnumerateArray())
+        {
+            DocumentChange? change = (entry.TryGetProperty("kind", out var kind) ? kind.GetString() : null) switch
+            {
+                "create" => entry.Deserialize(LspJsonContext.Default.CreateFile),
+                "rename" => entry.Deserialize(LspJsonContext.Default.RenameFile),
+                "delete" => entry.Deserialize(LspJsonContext.Default.DeleteFile),
+                null => entry.Deserialize(LspJsonContext.Default.TextDocumentEdit),
+                _ => throw new JsonException($"documentChanges has an entry of the unknown kind {kind}."),
+            };
+            if (change is not null)
+                changes.Add(change);
+        }
+
+        return changes;
+    }
+
+    public override void Write(Utf8JsonWriter writer, IReadOnlyList<DocumentChange>? value, JsonSerializerOptions options)
+    {
+        if (value is null)
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
+        writer.WriteStartArray();
+        foreach (var change in value)
+        {
+            switch (change)
+            {
+                case TextDocumentEdit edit:
+                    JsonSerializer.Serialize(writer, edit, LspJsonContext.Default.TextDocumentEdit);
+                    break;
+                case CreateFile create:
+                    JsonSerializer.Serialize(writer, create, LspJsonContext.Default.CreateFile);
+                    break;
+                case RenameFile rename:
+                    JsonSerializer.Serialize(writer, rename, LspJsonContext.Default.RenameFile);
+                    break;
+                case DeleteFile delete:
+                    JsonSerializer.Serialize(writer, delete, LspJsonContext.Default.DeleteFile);
+                    break;
+            }
+        }
+
+        writer.WriteEndArray();
+    }
+}
+
+/// <summary>Changes to many documents. Edits arrive in <see cref="Changes"/> or <see cref="DocumentChanges"/>; only the latter can create,
+/// rename and delete files, in order with the text edits.</summary>
 public sealed record WorkspaceEdit
 {
     public IReadOnlyDictionary<string, IReadOnlyList<TextEdit>>? Changes { get; init; }
 
-    public IReadOnlyList<TextDocumentEdit>? DocumentChanges { get; init; }
+    [JsonConverter(typeof(DocumentChangesConverter))]
+    public IReadOnlyList<DocumentChange>? DocumentChanges { get; init; }
 
-    /// <summary>Gets each document's edits, from whichever form the server sent.</summary>
+    /// <summary>Gets each document's edits, from whichever form the server sent, without the resource operations.</summary>
     [JsonIgnore]
     public IEnumerable<(string Uri, int? Version, IReadOnlyList<TextEdit> Edits)> Documents =>
         DocumentChanges is { } changes
-            ? changes.Select(change => (change.TextDocument.Uri, change.TextDocument.Version, change.Edits))
+            ? changes.OfType<TextDocumentEdit>().Select(change => (change.TextDocument.Uri, change.TextDocument.Version, change.Edits))
             : (Changes ?? new Dictionary<string, IReadOnlyList<TextEdit>>()).Select(pair => (pair.Key, (int?)null, pair.Value));
 }
 

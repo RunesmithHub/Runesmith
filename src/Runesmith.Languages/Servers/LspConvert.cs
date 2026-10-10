@@ -34,22 +34,99 @@ internal static partial class LspConvert
     public static IReadOnlyList<TextChange> ToChanges(TextSnapshot snapshot, IEnumerable<Protocol.TextEdit> edits) =>
         WorkspaceEdits.ToChanges(snapshot, edits.Select(edit => (ToTextPosition(edit.Range.Start), ToTextPosition(edit.Range.End), edit.NewText)));
 
-    /// <summary>Turns a server's workspace edit into Runesmith's, reading the files that are not open.</summary>
+    /// <summary>Turns a server's workspace edit into Runesmith's, reading the files that are not open. Resource operations become file
+    /// operations, and each text edit names its file as it is once they are made.</summary>
     /// <exception cref="LanguageFeatureException">A file is not a local file or cannot be read.</exception>
     public static Sdk.Languages.WorkspaceEdit ToWorkspaceEdit(Protocol.WorkspaceEdit edit, Sdk.Documents.IDocumentService documents)
     {
-        var result = new List<Sdk.Languages.DocumentEdit>();
-        foreach (var (uri, _, edits) in edit.Documents)
+        if (edit.DocumentChanges is not { } changes)
         {
-            if (LspUri.ToPath(uri) is not { } path)
-                throw new LanguageFeatureException($"The language server changes {uri}, which is not a local file.");
-            if (WorkspaceEdits.ReadBasis(documents, path) is not { } basis)
-                throw new LanguageFeatureException($"{Path.GetFileName(path)} could not be read.");
-
-            result.Add(new Sdk.Languages.DocumentEdit(path, ToChanges(basis, edits)) { Snapshot = documents.Find(path) is null ? null : basis });
+            return new Sdk.Languages.WorkspaceEdit([.. edit.Documents.Select(document => ToDocumentEdit(document.Uri, document.Edits, documents, null))]);
         }
 
-        return new Sdk.Languages.WorkspaceEdit(result);
+        var operations = new List<FileOperation>();
+        var texts = new List<(int After, Sdk.Languages.DocumentEdit Edit)>();
+        foreach (var change in changes)
+        {
+            switch (change)
+            {
+                case Protocol.TextDocumentEdit text:
+                    texts.Add((operations.Count, ToDocumentEdit(text.TextDocument.Uri, text.Edits, documents, Source(ToLocalPath(text.TextDocument.Uri), operations))));
+                    break;
+                case Protocol.CreateFile create:
+                    operations.Add(new CreateFileOperation(ToLocalPath(create.Uri))
+                    {
+                        Overwrite = create.Options?.Overwrite ?? false,
+                        IgnoreIfExists = create.Options?.IgnoreIfExists ?? false,
+                    });
+                    break;
+                case Protocol.RenameFile rename:
+                    operations.Add(new RenameFileOperation(ToLocalPath(rename.OldUri), ToLocalPath(rename.NewUri))
+                    {
+                        Overwrite = rename.Options?.Overwrite ?? false,
+                        IgnoreIfExists = rename.Options?.IgnoreIfExists ?? false,
+                    });
+                    break;
+                case Protocol.DeleteFile delete:
+                    operations.Add(new DeleteFileOperation(ToLocalPath(delete.Uri))
+                    {
+                        Recursive = delete.Options?.Recursive ?? false,
+                        IgnoreIfMissing = delete.Options?.IgnoreIfNotExists ?? false,
+                    });
+                    break;
+            }
+        }
+
+        return new Sdk.Languages.WorkspaceEdit([.. texts.Select(t => t.Edit with { FilePath = FinalPath(t.Edit.FilePath, operations, t.After) })])
+        {
+            FileOperations = operations,
+        };
+    }
+
+    private static Sdk.Languages.DocumentEdit ToDocumentEdit(string uri, IReadOnlyList<Protocol.TextEdit> edits, Sdk.Documents.IDocumentService documents, string? source)
+    {
+        var path = ToLocalPath(uri);
+        var basis = source is null ? TextSnapshot.Create("") : WorkspaceEdits.ReadBasis(documents, source)
+            ?? throw new LanguageFeatureException($"{Path.GetFileName(path)} could not be read.");
+        return new Sdk.Languages.DocumentEdit(path, ToChanges(basis, edits)) { Snapshot = source is not null && documents.Find(source) is not null ? basis : null };
+    }
+
+    private static string ToLocalPath(string uri) =>
+        LspUri.ToPath(uri) ?? throw new LanguageFeatureException($"The language server changes {uri}, which is not a local file.");
+
+    private static bool FileExists(string path) => File.Exists(path) || Directory.Exists(path);
+
+    private static bool IsInside(string path, string folder) =>
+        path.StartsWith(folder, StringComparison.Ordinal) && (path.Length == folder.Length || path[folder.Length] == Path.DirectorySeparatorChar);
+
+    // Where a file the server names after some operations is on disk now, or null for a file one of them creates.
+    private static string? Source(string path, List<FileOperation> operations)
+    {
+        for (var i = operations.Count - 1; i >= 0; i--)
+        {
+            switch (operations[i])
+            {
+                case CreateFileOperation create when string.Equals(create.FilePath, path, StringComparison.Ordinal) && (create.Overwrite || !FileExists(path)):
+                    return null;
+                case RenameFileOperation rename when IsInside(path, rename.NewPath):
+                    path = rename.OldPath + path[rename.NewPath.Length..];
+                    break;
+            }
+        }
+
+        return path;
+    }
+
+    // Follows a path through the renames that come after the text edit that named it.
+    private static string FinalPath(string path, List<FileOperation> operations, int after)
+    {
+        foreach (var operation in operations.Skip(after))
+        {
+            if (operation is RenameFileOperation rename && IsInside(path, rename.OldPath))
+                path = rename.NewPath + path[rename.OldPath.Length..];
+        }
+
+        return path;
     }
 
     /// <summary>Turns a change set into the protocol's incremental changes, last change first, so positions in the old text stay right while

@@ -85,7 +85,12 @@ internal static class ClientCapabilities
             ["configuration"] = true,
             ["workspaceFolders"] = true,
             ["applyEdit"] = true,
-            ["workspaceEdit"] = new JsonObject { ["documentChanges"] = true, ["resourceOperations"] = new JsonArray() },
+            ["workspaceEdit"] = new JsonObject
+            {
+                ["documentChanges"] = true,
+                ["resourceOperations"] = new JsonArray("create", "rename", "delete"),
+                ["failureHandling"] = "transactional",
+            },
             ["executeCommand"] = new JsonObject { ["dynamicRegistration"] = false },
             ["inlayHint"] = new JsonObject { ["refreshSupport"] = true },
             ["codeLens"] = new JsonObject { ["refreshSupport"] = true },
