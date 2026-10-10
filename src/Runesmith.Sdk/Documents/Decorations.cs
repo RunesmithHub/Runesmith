@@ -28,6 +28,9 @@ public sealed record GutterMarker(TextSpan Span, string Icon) : Decoration(Span)
 {
     public DecorationTone Tone { get; init; } = DecorationTone.Accent;
 
+    /// <summary>Gets whether the icon is filled with its tone, such as a breakpoint's dot, rather than drawn as an outline.</summary>
+    public bool IsFilled { get; init; }
+
     /// <summary>Gets the command a click on the icon runs, or null when the icon is not clickable.</summary>
     public string? CommandId { get; init; }
 
