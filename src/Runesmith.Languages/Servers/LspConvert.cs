@@ -41,7 +41,7 @@ internal static partial class LspConvert
     {
         if (edit.DocumentChanges is not { } changes)
         {
-            return new Sdk.Languages.WorkspaceEdit([.. edit.Documents.Select(document => ToDocumentEdit(document.Uri, document.Edits, documents, null))]);
+            return new Sdk.Languages.WorkspaceEdit([.. edit.Documents.Select(document => ToDocumentEdit(document.Uri, document.Edits, documents))]);
         }
 
         var operations = new List<FileOperation>();
@@ -83,6 +83,12 @@ internal static partial class LspConvert
         };
     }
 
+    /// <summary>Turns a server's text edits of one file into Runesmith's, in the coordinates of the open document or of the file on disk.</summary>
+    /// <exception cref="LanguageFeatureException">The file is not a local file or cannot be read.</exception>
+    public static Sdk.Languages.DocumentEdit ToDocumentEdit(string uri, IReadOnlyList<Protocol.TextEdit> edits, Sdk.Documents.IDocumentService documents) =>
+        ToDocumentEdit(uri, edits, documents, ToLocalPath(uri));
+
+    // The source is where the file is now, or null for a file that the edit's operations create.
     private static Sdk.Languages.DocumentEdit ToDocumentEdit(string uri, IReadOnlyList<Protocol.TextEdit> edits, Sdk.Documents.IDocumentService documents, string? source)
     {
         var path = ToLocalPath(uri);
