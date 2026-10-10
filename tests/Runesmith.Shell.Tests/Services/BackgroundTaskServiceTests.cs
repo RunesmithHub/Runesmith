@@ -57,10 +57,12 @@ public sealed class BackgroundTaskServiceTests
 
         Assert.True(build.CanCancel);
         Assert.False(load.CanCancel);
+        Assert.False(build.IsCancelling);
         build.Cancel();
         load.Cancel();
 
         Assert.Equal(1, cancelled);
+        Assert.True(build.IsCancelling);
         Assert.Equal(2, service.Running.Count);
     }
 

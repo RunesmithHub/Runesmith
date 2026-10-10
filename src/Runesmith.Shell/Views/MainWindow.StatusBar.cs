@@ -23,6 +23,7 @@ namespace Runesmith.Shell.Views;
 public partial class MainWindow
 {
     private readonly DispatcherTimer taskRefresh = new() { Interval = TimeSpan.FromMilliseconds(150) };
+    private readonly Flyout taskFlyout = new() { Placement = PlacementMode.TopEdgeAlignedLeft, ShowMode = FlyoutShowMode.Standard };
     private readonly PathBreadcrumbs? statusPath;
     private TextEditor? watched;
     private bool watchedModified;
@@ -41,13 +42,13 @@ public partial class MainWindow
         {
             taskRefresh.Stop();
             UpdateTasks();
+            RefreshTaskList();
         };
         tasks!.Changed += (_, _) => Dispatcher.UIThread.Post(() =>
         {
             if (!taskRefresh.IsEnabled)
                 taskRefresh.Start();
         });
-        var taskFlyout = new Flyout { Placement = PlacementMode.TopEdgeAlignedLeft, ShowMode = FlyoutShowMode.Standard };
         taskFlyout.Opening += (_, _) => taskFlyout.Content = TaskList();
         TaskIndicator.Flyout = taskFlyout;
         ToolTip.SetTip(TaskIndicator, "Show the tasks that run");
@@ -174,6 +175,16 @@ public partial class MainWindow
         TaskProgress.Value = (latest.Fraction ?? 0) * 100;
     }
 
+    private void RefreshTaskList()
+    {
+        if (!taskFlyout.IsOpen)
+            return;
+        if (tasks!.Running.Count == 0)
+            taskFlyout.Hide();
+        else
+            taskFlyout.Content = TaskList();
+    }
+
     private StackPanel TaskList()
     {
         var list = new StackPanel { Spacing = 8, Width = 320 };
@@ -192,7 +203,7 @@ public partial class MainWindow
             var row = new DockPanel();
             if (task.CanCancel)
             {
-                var cancel = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.X, Size = 16 }, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8, 0, 0, 0) };
+                var cancel = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.X, Size = 16 }, IsEnabled = !task.IsCancelling, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8, 0, 0, 0) };
                 ToolTip.SetTip(cancel, "Cancel");
                 cancel.Click += (_, _) =>
                 {

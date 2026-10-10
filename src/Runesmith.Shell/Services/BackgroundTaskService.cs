@@ -85,6 +85,9 @@ public sealed class BackgroundTaskService : IBackgroundTasks
         /// <summary>Gets whether the task can be cancelled from the indicator.</summary>
         public bool CanCancel => cancel is not null;
 
+        /// <summary>Gets whether the user asked the task to stop.</summary>
+        public bool IsCancelling { get; private set; }
+
         public void Report(string? detail, double? fraction = null)
         {
             this.detail = detail;
@@ -94,7 +97,11 @@ public sealed class BackgroundTaskService : IBackgroundTasks
         }
 
         /// <summary>Asks the task to stop; it shows until its owner disposes it.</summary>
-        public void Cancel() => cancel?.Invoke();
+        public void Cancel()
+        {
+            IsCancelling = true;
+            cancel?.Invoke();
+        }
 
         public void Dispose() => owner.End(this);
     }
