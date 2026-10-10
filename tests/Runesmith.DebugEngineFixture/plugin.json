@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "runesmithtests.netcoredbg",
+  "name": "netcoredbg for tests",
+  "version": "0.1.0",
+  "summary": "A debug engine for Runesmith's own end-to-end checks: debugs .NET programs with netcoredbg from the PATH. Not shipped.",
+  "authors": ["Dylan de Beer"],
+  "license": "Apache-2.0",
+  "repository": "https://github.com/RunesmithHub/Runesmith",
+  "runesmithApi": "^0.1.0",
+  "projects": {
+    "contracts": "Runesmith.Tests.Netcoredbg.Contracts/Runesmith.Tests.Netcoredbg.Contracts.csproj",
+    "implementation": "Runesmith.Tests.Netcoredbg/Runesmith.Tests.Netcoredbg.csproj"
+  },
+  "dependencies": [],
+  "capabilities": [
+    {
+      "id": "process",
+      "reason": "Starts netcoredbg, which starts the program being debugged."
+    }
+  ],
+  "categories": ["Other"]
+}

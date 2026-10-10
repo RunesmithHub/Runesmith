@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A debug engine for end-to-end checks, outside the solution and never shipped; -t:InstallPlugin installs it under RUNESMITH_HOME. -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <SdkOutput>$(MSBuildThisFileDirectory)../../../src/Runesmith.Sdk/bin/$(Configuration)/net10.0/</SdkOutput>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Tests.Netcoredbg.Contracts\Runesmith.Tests.Netcoredbg.Contracts.csproj" />
+    <!-- Runesmith supplies the SDK when it loads the plugin, so it is not copied next to it. -->
+    <ProjectReference Include="..\..\..\src\Runesmith.Sdk\Runesmith.Sdk.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <Reference Include="$(SdkOutput)Runesmith.Sdk.dll" Private="false" />
+    <Reference Include="$(SdkOutput)Runesmith.Text.dll" Private="false" />
+    <PackageReference Include="System.Composition.AttributedModel" ExcludeAssets="runtime" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Shared\Dap\NetcoredbgEngine.cs" Link="NetcoredbgEngine.cs" />
+  </ItemGroup>
+  <Import Project="..\..\..\src\Runesmith.Sdk\build\Runesmith.Sdk.targets" />
+</Project>
