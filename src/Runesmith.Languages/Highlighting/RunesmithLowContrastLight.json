@@ -345,6 +345,44 @@
       }
     },
     {
+      "name": "interface",
+      "scope": [
+        "entity.name.type.interface"
+      ],
+      "settings": {
+        "foreground": "#276C78",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "type parameter",
+      "scope": [
+        "entity.name.type.parameter"
+      ],
+      "settings": {
+        "foreground": "#7A5E3A",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "event",
+      "scope": [
+        "variable.other.event"
+      ],
+      "settings": {
+        "foreground": "#475A80"
+      }
+    },
+    {
+      "name": "label",
+      "scope": [
+        "entity.name.label"
+      ],
+      "settings": {
+        "foreground": "#475A80"
+      }
+    },
+    {
       "name": "invalid",
       "scope": [
         "invalid",

@@ -55,6 +55,7 @@ public sealed class LanguageServerManager : IDisposable
         {
             ApplyEdit = workspaceEdits is null ? null : request => ApplyEditAsync(workspaceEdits.Value, request.Edit),
             DecorationsChanged = () => DecorationsChanged?.Invoke(this, EventArgs.Empty),
+            SyntaxChanged = () => SyntaxChanged?.Invoke(this, EventArgs.Empty),
         };
         workspaceRoot = workspace.RootPath;
 
@@ -69,6 +70,17 @@ public sealed class LanguageServerManager : IDisposable
 
     /// <summary>Raised, on any thread, when a server starts running or asks for its inlay hints and code lenses to be requested again.</summary>
     public event EventHandler? DecorationsChanged;
+
+    /// <summary>Raised, on any thread, when a server starts running or asks for its semantic tokens or folding ranges to be requested again, so
+    /// what depends on them is asked for again.</summary>
+    public event EventHandler? SyntaxChanged;
+
+    /// <summary>Gets the servers that are running.</summary>
+    internal IReadOnlyList<ServerSession> RunningSessions()
+    {
+        lock (gate)
+            return [.. sessions.Values.Where(session => session.State == SessionState.Running)];
+    }
 
     /// <summary>Gets the running server that has a document open, or null.</summary>
     internal ServerSession? FindSession(IDocument document)
