@@ -112,7 +112,11 @@ public sealed class RunSession : IDisposable
     }
 
     /// <summary>Marks the run as running under a debugger, which <paramref name="stop"/> ends.</summary>
-    internal void StartedDebugging(Action stop)
+    internal void StartedDebugging(Action stop) => StartedElsewhere(stop);
+
+    /// <summary>Marks the run as running somewhere Runesmith does not read the output of, such as a debugger or a terminal, which
+    /// <paramref name="stop"/> ends.</summary>
+    internal void StartedElsewhere(Action stop)
     {
         Volatile.Write(ref stopDebugger, stop);
         State = RunState.Running;

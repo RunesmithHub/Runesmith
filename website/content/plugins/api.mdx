@@ -48,6 +48,7 @@ Runesmith creates a part the first time something needs it. Services can be impo
 | `IDiffService` | Opens two versions of a text side by side in an editor tab. |
 | `ISecretStore` | Keeps secrets such as access tokens in the system's secret store. |
 | `ILauncher` | Opens links in the browser and shows files in the file manager. |
+| `ITerminalService` | Starts programs and shells in the **Terminal** panel, types into them and follows their output. |
 | `IPluginStorage` | Gives the plugin a folder of its own for its files. |
 | `IWebViewService` | Creates web views that show the plugin's own web pages. |
 | `IQuickInputService` | Asks the user to pick from a list or type a value in the quick input box, also in steps. |
@@ -435,6 +436,44 @@ Starting a debugger needs the `process` [capability](./index.mdx#capabilities). 
 `CommandIds` has the debugger's commands, such as `ToggleBreakpoint`, `Continue`, `StepOver`, `StepInto`, `StepOut` and `StopDebugging`,
 for plugins that place them in menus.
 
+## Tests
+
+Export an `ITestProvider` to find and run the tests of a kind of project. `DiscoverAsync` returns the folder's tests as a tree of
+`TestItem`s, `DiscoverDocumentAsync` the tests of one file as it changes, and `RunAsync` runs a `TestRunRequest`, reporting each test to an
+`ITestRun`. Runesmith shows the tests in the [Test Explorer](/guide/test-explorer), puts run markers and results beside them in the editor,
+and turns failed assertions into problems. [Test providers](./testing.mdx) has a complete provider.
+
+```csharp
+public async Task RunAsync(TestRunRequest request, ITestRun run, CancellationToken cancellationToken)
+{
+    foreach (var test in request.Tests)
+    {
+        run.Started(test.Id);
+        var outcome = await host.RunAsync(test.Id, cancellationToken);
+        if (outcome.Passed)
+            run.Passed(test.Id, outcome.Duration);
+        else
+            run.Failed(test.Id, new TestFailure(outcome.Message) { Expected = outcome.Expected, Actual = outcome.Actual }, outcome.Duration);
+    }
+}
+```
+
+A provider whose `CanDebug` is true debugs tests by calling `ITestRun.DebugAsync` with a `LaunchPlan` whose `Debug` names a debugger;
+Runesmith starts it with the [debug engine](./debug-engines.mdx) that serves it, as it does for run configurations.
+
+## Terminals
+
+Import `ITerminalService` to start a program, or the user's shell, in a tab of the [Terminal](/guide/terminal) panel. The returned
+`ITerminal` types text into it with `SendText`, shows it with `Show`, ends it with `Close`, and raises `Data` with what the program writes
+and `Exited` when it ends. A plugin needs the `process` [capability](./index.mdx#capabilities) to create a terminal.
+[Terminals](./terminal.mdx) has the details.
+
+```csharp
+var terminal = terminals.CreateTerminal("Database", new TerminalOptions { Command = "psql", Arguments = ["--dbname", "orders"] });
+terminal.SendText("\\dt");
+terminal.Exited += (_, e) => log.AppendLine($"psql ended with {e.ExitCode}");
+```
+
 ## Documents and editors
 
 `IDocumentService` opens files as `IDocument`s, whose `Buffer` holds the text. Edit the text on the UI thread; snapshots of it can be read
@@ -731,6 +770,9 @@ The members marked "Added in plugin API 0.1.2" in the SDK's documentation come w
 | `ICallHierarchyProvider`, `ITypeHierarchyProvider`, `HierarchyItem`, `HierarchyCall` | [Call and type hierarchies](./language-features.mdx#call-and-type-hierarchies). |
 | `INavigationFeatures`, `ISyntaxFeatures` | The merged answers of the providers above. See [Use the merged answers](./language-features.mdx#use-the-merged-answers). |
 | `CommandIds.FindReferences`, `GoToImplementation`, `GoToSymbolInFile`, `GoToSymbolInWorkspace`, `ShowCallHierarchy`, `ShowTypeHierarchy`, `Fold`, `Unfold`, `FoldAll`, `UnfoldAll`, `ExpandSelection`, `ShrinkSelection` | The commands of these features. |
+| `ITestProvider`, `ITestRun`, `TestItem`, `TestItemKind`, `TestDiscoveryContext`, `TestDocumentContext`, `TestsChangedEventArgs`, `TestRunRequest`, `TestFailure`, `TestStackFrame` | [Test providers](./testing.mdx). |
+| `ITerminalService`, `ITerminal`, `TerminalOptions`, `TerminalDataEventArgs`, `TerminalExitedEventArgs` | [Terminals](./terminal.mdx). |
+| `ThemeColors.TerminalColors` | The terminal's ANSI colors in a [color theme](./themes.mdx). |
 
 ## Related
 
@@ -739,5 +781,6 @@ The members marked "Added in plugin API 0.1.2" in the SDK's documentation come w
 - [Files and search](./workspace.mdx): file watchers, search and file operations.
 - [Editor extensions](./language-features.mdx): decorations, code actions, rename, formatting and keyboard hooks.
 - [Custom editors](./custom-editors.mdx) and [Web views](./web-views.mdx)
+- [Test providers](./testing.mdx) and [Terminals](./terminal.mdx)
 - [C# support](./csharp.mdx), a complete plugin.
 - [Git](./git.mdx) and [GitHub](./github.mdx), the version control plugins.

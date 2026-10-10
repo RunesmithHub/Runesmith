@@ -139,7 +139,7 @@ public sealed class EditingServicesTests : IDisposable
         Assert.Equal(2, result.Exports.GetExports<IRenameProvider, LanguageMetadata>().Count());
         Assert.Equal(2, result.Exports.GetExports<IDocumentFormattingProvider, LanguageMetadata>().Count());
         Assert.Equal(2, result.Exports.GetExports<IRangeFormattingProvider, LanguageMetadata>().Count());
-        Assert.Equal(3, result.Exports.GetExports<IDecorationProvider, LanguageMetadata>().Count());
+        Assert.Equal(4, result.Exports.GetExports<IDecorationProvider, LanguageMetadata>().Count());
         Assert.All(result.Exports.GetExports<ICodeActionProvider, LanguageMetadata>(), export => Assert.Equal([LanguagesAttribute.Any], export.Metadata.LanguageIds));
     }
 

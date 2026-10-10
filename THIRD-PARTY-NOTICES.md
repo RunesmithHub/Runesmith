@@ -26,6 +26,13 @@ Runesmith is licensed under the Apache License 2.0; see [LICENSE](LICENSE). It u
 | [MessagePack for C#](https://github.com/MessagePack-CSharp/MessagePack-CSharp) 2.5.307, through Microsoft.VisualStudio.Composition | MIT | The composition cache |
 | [System.Composition](https://github.com/dotnet/runtime) 10.0.12 and the [.NET runtime](https://github.com/dotnet/runtime) | MIT | Every part of Runesmith |
 
+## The terminal
+
+The terminal carries no third-party code. Its emulator, which reads the xterm escape sequences programs write, is Runesmith's own. On Linux
+and macOS it starts programs in a pseudoterminal with the C library's `posix_openpt` and `posix_spawn`, and on Windows in a pseudo console
+with ConPTY, both through the system's own interfaces. .NET libraries that wrap these were considered, such as forks of vs-pty.net under
+the MIT License; they start the program with `forkpty`, which runs managed code in the forked child, so Runesmith does not use them.
+
 The texts below are the licenses of these components.
 
 ## JetBrains Mono

@@ -95,6 +95,19 @@ saves the file. When a file is not valid JSON, Runesmith uses the other scopes a
 | Menus | `window.menuBar` | `toolbar` | Where the menus are: `toolbar`, behind the menu button at the left of the toolbar, or `separate`, in a menu bar of their own under it. |
 | Title bar | `window.titleBar` | `custom` | `custom` makes the toolbar the window's title bar on Windows and Linux; `system` keeps the system's title bar above it. Applies when Runesmith starts. |
 
+## Run, tests and terminal
+
+| Setting | Key | Default | What it does |
+| --- | --- | --- | --- |
+| Run in the terminal | `run.useTerminal` | `false` | Runs a configuration's program in a tab of the Terminal panel instead of the **Run** panel's console. See [Run configurations in the terminal](./terminal.mdx#run-configurations-in-the-terminal). |
+| Run tests on save | `testing.autoRunOnSave` | `false` | Runs a file's tests when you save it, or the last run's tests when it has none. See [Test Explorer](./test-explorer.mdx#run-tests-on-save). |
+| Shell | `terminal.shell` | empty | The program new terminals start, such as `/bin/zsh`. Empty is your default shell. |
+| Font family | `terminal.fontFamily` | empty | The terminal's font. Empty uses the editor's. |
+| Font size | `terminal.fontSize` | `0` | The terminal's font size in pixels, up to 40. `0` uses the editor's. |
+| Scrollback | `terminal.scrollback` | `10000` | How many lines a terminal keeps after they scroll off its top. |
+| Shell integration | `terminal.shellIntegration` | `true` | Lets bash and zsh tell Runesmith the folder they are in. Applies to new terminals. |
+| Blinking cursor | `terminal.cursorBlink` | `false` | Makes the terminal's cursor blink. |
+
 ## Languages
 
 Each language server a plugin adds has two settings, named after the server's id and name. The C# analyzer runs inside Runesmith and
