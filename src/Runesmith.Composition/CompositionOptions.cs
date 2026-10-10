@@ -20,7 +20,7 @@ public sealed record CompositionOptions(
     /// <summary>Gets the plugins Runesmith keeps from loading, with why, such as a plugin whose files changed since it was installed.</summary>
     public IReadOnlyDictionary<string, string> WithheldPlugins { get; init; } = new Dictionary<string, string>();
 
-    /// <summary>Gets whether a copy in the user's plugins folder of a plugin Runesmith ships or the hub installed runs in its place; when
+    /// <summary>Gets whether a copy in the user's plugins folder of a plugin the hub installed runs in its place; when
     /// false, such a copy is refused.</summary>
     public bool AllowLocalOverrides { get; init; }
 }

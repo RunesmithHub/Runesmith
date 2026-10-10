@@ -17,7 +17,7 @@ public sealed record HubConfiguration(ReadOnlyMemory<byte>? TrustRoot, IReadOnly
     /// <summary>The variable that points development builds at another index, such as a local fixture.</summary>
     public const string IndexUrlVariable = "RUNESMITH_HUB_INDEX_URL";
 
-    /// <summary>Gets whether this build has a trust root, without which only bundled and local plugins load.</summary>
+    /// <summary>Gets whether this build has a trust root, without which only local plugins load.</summary>
     public bool IsSetUp => TrustRoot is not null;
 
     /// <summary>Reads the shipped root from the application's folder; development builds take <see cref="RootVariable"/> and

@@ -26,8 +26,8 @@ internal sealed record CommandLine(
           -v, --version        Show the version.
           --diagnostics        Log startup timings and the loaded plugins to the Diagnostics output channel.
           --new-instance       Start another Runesmith instead of using the running one.
-          --disable-plugins    Start without the plugins from the hub and the user plugins folder.
-          --safe-mode          Start in safe mode: only the plugins that come with Runesmith load.
+          --disable-plugins    Start without plugins.
+          --safe-mode          Start in safe mode, which loads no plugins.
         """;
 
     public bool IsSafeMode { get; init; }

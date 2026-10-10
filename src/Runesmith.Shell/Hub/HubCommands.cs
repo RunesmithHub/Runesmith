@@ -23,7 +23,7 @@ public sealed class HubCommands(Lazy<HubService> hub) : ICommandContributor
             _ => hub.Value.RefreshAsync());
         registry.Add(new CommandDefinition(RestartInSafeMode, "Restart in Safe Mode", "Help")
         {
-            Description = "Start Runesmith again with only the plugins that come with it, to find a plugin that causes problems.",
+            Description = "Start Runesmith again without plugins, to find a plugin that causes problems.",
         }, _ => Run(() => hub.Value.Restart(safeMode: true)));
         registry.AddMenuItem(new MenuItemDefinition(Menus.Tools, ShowPlugins, "1-plugins", 0));
         registry.AddMenuItem(new MenuItemDefinition(Menus.Help, RestartInSafeMode, "2-docs", 100));

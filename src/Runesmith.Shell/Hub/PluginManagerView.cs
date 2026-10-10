@@ -183,7 +183,7 @@ internal sealed class PluginManagerView : DockPanel
         if (model.IsSafeMode)
         {
             body.Children.Add(HubVisuals.Notice(PageNoticeKind.Info, "Runesmith is in safe mode.",
-                "Only the plugins that come with Runesmith load. Turn off a plugin you suspect, then restart normally.",
+                "No plugins load. Turn off a plugin you suspect, then restart normally.",
                 [SmallButton("Restart normally", () => hub.Restart(), accent: true)], icon: "shield-check"));
         }
 
@@ -340,8 +340,6 @@ internal sealed class PluginManagerView : DockPanel
             _ when update.Tier == PluginTier.Unverified => ("Unverified: never updates by itself.", "TextMutedBrush"),
             _ => ("Automatic updates are off.", "TextMutedBrush"),
         };
-        if (update.IsBundled)
-            subtitle = $"Replaces the version that comes with Runesmith. {subtitle}";
         var note = HubVisuals.Themed(new TextBlock { Text = subtitle, Classes = { "caption" }, TextWrapping = TextWrapping.Wrap }, TextBlock.ForegroundProperty, brush);
 
         Control action = pending

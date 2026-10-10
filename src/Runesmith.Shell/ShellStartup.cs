@@ -19,7 +19,7 @@ namespace Runesmith.Shell;
 /// <param name="IsDiagnosticsEnabled">Whether <c>--diagnostics</c> was given.</param>
 public sealed record StartupOptions(IReadOnlyList<string> Paths, string WorkingDirectory, bool IsDiagnosticsEnabled)
 {
-    /// <summary>Gets whether Runesmith runs in safe mode, with only the plugins that come with it.</summary>
+    /// <summary>Gets whether Runesmith runs in safe mode, which loads no plugins.</summary>
     public bool IsSafeMode { get; init; }
 
     /// <summary>Gets what the plugin hub decided before plugins loaded.</summary>

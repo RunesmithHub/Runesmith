@@ -24,15 +24,11 @@ public enum PluginManagerTab
 /// <summary>Where a plugin comes from, as the plugin manager shows it.</summary>
 public enum InstalledSource
 {
-    Bundled,
     Hub,
-
-    /// <summary>A hub plugin that runs in place of the bundled copy.</summary>
-    BundledFromHub,
     Local,
 }
 
-/// <summary>What became of a copy in the user's plugins folder of a plugin Runesmith ships or the hub installed.</summary>
+/// <summary>What became of a copy in the user's plugins folder of a plugin the hub installed.</summary>
 public enum LocalCopyState
 {
     /// <summary>It runs in place of that plugin, with its own secrets and storage.</summary>
@@ -58,7 +54,7 @@ public sealed record InstalledRow(
     /// <summary>Gets the state badge to show beside the name, if any.</summary>
     public NoticeKind? Badge { get; init; }
 
-    /// <summary>Gets what became of the plugin when it is a local copy of a plugin Runesmith ships or the hub installed, or null.</summary>
+    /// <summary>Gets what became of the plugin when it is a local copy of a plugin the hub installed, or null.</summary>
     public LocalCopyState? LocalCopy { get; init; }
 
     /// <summary>Gets the plugin's folder, for its icon.</summary>
@@ -124,7 +120,7 @@ public sealed class PluginManagerModel
     /// <summary>Tells the views to show the data again.</summary>
     public void Refresh() => Changed?.Invoke(this, EventArgs.Empty);
 
-    /// <summary>Gets every plugin, problems first, then local copies of plugins Runesmith ships or the hub installed.</summary>
+    /// <summary>Gets every plugin, problems first, then local copies of plugins the hub installed.</summary>
     public IReadOnlyList<InstalledRow> Installed()
     {
         var state = client.State;
@@ -145,21 +141,13 @@ public sealed class PluginManagerModel
             }
 
             var hub = state.Find(id);
-            var replacesBundled = all.Any(p => p.Manifest.Id == id && p.State == PluginState.Replaced && p.Source == PluginSource.Bundled);
-            var source = plugin.Source switch
-            {
-                PluginSource.Bundled => InstalledSource.Bundled,
-                PluginSource.Hub => replacesBundled ? InstalledSource.BundledFromHub : InstalledSource.Hub,
-                _ => InstalledSource.Local,
-            };
-            var tier = source is InstalledSource.Hub or InstalledSource.BundledFromHub || source == InstalledSource.Bundled ? catalog?.FindPlugin(id)?.Tier : null;
-            if (source == InstalledSource.Bundled && tier is null)
-                tier = PluginTier.Official;
+            var source = plugin.Source == PluginSource.Hub ? InstalledSource.Hub : InstalledSource.Local;
+            var tier = source == InstalledSource.Hub ? catalog?.FindPlugin(id)?.Tier : null;
 
             var replacedBy = all.FirstOrDefault(p => p.Manifest.Id == id && p.State == PluginState.Replaced && p.Source is PluginSource.Hub or PluginSource.Local);
-            var (note, problem) = Note(plugin, hub, state, source, replacesBundled, replacedBy);
+            var (note, problem) = Note(plugin, hub, state, source, replacedBy);
             rows.Add(new InstalledRow(id, plugin.Manifest.Name, plugin.Manifest.Version, source == InstalledSource.Local ? null : tier, source, note, problem,
-                !off.Contains(id) && !report.Withheld.ContainsKey(id), CanToggle: !report.Withheld.ContainsKey(id) || plugin.Source == PluginSource.Bundled)
+                !off.Contains(id) && !report.Withheld.ContainsKey(id), CanToggle: !report.Withheld.ContainsKey(id))
             {
                 Badge = report.ChangedFiles.ContainsKey(id) ? NoticeKind.FilesChanged : catalog is not null && hub is not null ? Badge(catalog, hub) : null,
                 Folder = plugin.Directory,
@@ -169,7 +157,7 @@ public sealed class PluginManagerModel
         foreach (var hub in state.Plugins.Where(p => !shown.Contains(p.Id)))
         {
             var name = catalog?.FindPlugin(hub.Id)?.Name ?? hub.Id;
-            var note = IsSafeMode && !state.IsPending(hub.Id) ? "Off in safe mode, which loads only the plugins that come with Runesmith." : "Installed. Restart Runesmith to start it.";
+            var note = IsSafeMode && !state.IsPending(hub.Id) ? "Off in safe mode, which loads no plugins." : "Installed. Restart Runesmith to start it.";
             rows.Add(new InstalledRow(hub.Id, name, hub.Version, Enum.TryParse<PluginTier>(hub.Tier, true, out var tier) ? tier : null, InstalledSource.Hub, note,
                 IsProblem: false, IsEnabled: !off.Contains(hub.Id), CanToggle: true)
             {
@@ -191,15 +179,11 @@ public sealed class PluginManagerModel
     public IReadOnlyList<PluginNotice> Notices() => client.Notices(startup().ChangedFiles, preferences());
 
     /// <summary>Gets the available updates.</summary>
-    public IReadOnlyList<UpdateCandidate> Updates() => client.Updates(Bundled(), preferences());
-
-    /// <summary>Gets the plugins Runesmith ships, for updates and install plans.</summary>
-    public IReadOnlyList<BundledPlugin> Bundled() =>
-        [.. plugins().Where(p => p.Source == PluginSource.Bundled).Select(p => new BundledPlugin(p.Manifest.Id, p.Manifest.Version, [.. (p.Manifest.Capabilities ?? []).Select(c => c.Id)]))];
+    public IReadOnlyList<UpdateCandidate> Updates() => client.Updates(preferences());
 
     public CatalogResults Browse(CatalogQuery query) => client.Search(query, preferences());
 
-    /// <summary>Gets the version that runs now of a plugin, from the hub, Runesmith or the user's folder, or null.</summary>
+    /// <summary>Gets the version that runs now of a plugin, from the hub or the user's folder, or null.</summary>
     public string? RunningVersion(string id) =>
         plugins().FirstOrDefault(p => p.Manifest.Id == id && IsRunningCopy(p))?.Manifest.Version;
 
@@ -212,7 +196,7 @@ public sealed class PluginManagerModel
     }
 
     /// <summary>Gets the model of an install plan's dialog.</summary>
-    public InstallPlanModel Plan(InstallPlan plan) => new(plan, client, CurrentCapabilities, BundledVersion);
+    public InstallPlanModel Plan(InstallPlan plan) => new(plan, client, CurrentCapabilities);
 
     /// <summary>Gets what a plugin's page shows.</summary>
     public PluginPageModel Describe(PageTarget target)
@@ -225,13 +209,13 @@ public sealed class PluginManagerModel
             PluginState.Disabled => running.Error ?? "It is turned off.",
             _ => null,
         };
-        return PluginPageModel.Create(client, target, preferences(), running?.Manifest.Version, plugins().Any(p => p.Manifest.Id == target.PluginId && p.Source == PluginSource.Bundled)) with
+        return PluginPageModel.Create(client, target, preferences(), running?.Manifest.Version) with
         {
             Problem = problem,
         };
     }
 
-    /// <summary>Gets the notices to show once at start about local copies of plugins Runesmith ships or the hub installed: those that run in
+    /// <summary>Gets the notices to show once at start about local copies of plugins the hub installed: those that run in
     /// their place, and those that were refused.</summary>
     public static IReadOnlyList<(NotificationKind Kind, string Title, string Message)> LocalCopyNotices(IReadOnlyList<PluginInfo> plugins)
     {
@@ -251,7 +235,7 @@ public sealed class PluginManagerModel
         {
             notices.Add((NotificationKind.Warning,
                 refused.Count == 1 ? $"A local copy of {refused[0]} was not loaded" : $"{refused.Count} local copies of plugins were not loaded",
-                $"Your plugins folder has a copy of {Names(refused)}, which Runesmith ships or the hub installed. The plugin manager says how to run it."));
+                $"Your plugins folder has a copy of {Names(refused)}, which the hub installed. The plugin manager says how to run it."));
         }
 
         return notices;
@@ -271,9 +255,8 @@ public sealed class PluginManagerModel
             };
         }
 
-        var replaced = all.FirstOrDefault(p => p.Manifest.Id == id && p.State == PluginState.Replaced && p.Source == PluginSource.Hub)
-            ?? all.FirstOrDefault(p => p.Manifest.Id == id && p.State == PluginState.Replaced && p.Source == PluginSource.Bundled);
-        var instead = replaced is null ? "the installed plugin" : $"version {replaced.Manifest.Version} {(replaced.Source == PluginSource.Hub ? "from the hub" : "that comes with Runesmith")}";
+        var replaced = all.FirstOrDefault(p => p.Manifest.Id == id && p.State == PluginState.Replaced && p.Source == PluginSource.Hub);
+        var instead = replaced is null ? "the installed plugin" : $"version {replaced.Manifest.Version} from the hub";
         var (note, problem) = plugin.State switch
         {
             PluginState.Failed => ($"Could not load: {plugin.Error}", true),
@@ -293,8 +276,6 @@ public sealed class PluginManagerModel
         _ => string.Join(", ", names.Take(names.Count - 1)) + " and " + names[^1],
     };
 
-    private string? BundledVersion(string id) => plugins().FirstOrDefault(p => p.Manifest.Id == id && p.Source == PluginSource.Bundled)?.Manifest.Version;
-
     private static NoticeKind? Badge(RunesmithHub.Protocol.Catalog.HubCatalog catalog, InstalledHubPlugin hub) => Moderation.StateOf(catalog, hub)?.State switch
     {
         VersionState.Blocked => NoticeKind.Blocked,
@@ -304,7 +285,7 @@ public sealed class PluginManagerModel
         _ => catalog.FindPlugin(hub.Id)?.State == RunesmithHub.Protocol.Index.PluginState.Deprecated ? NoticeKind.Deprecated : null,
     };
 
-    private static (string Note, bool Problem) Note(PluginInfo plugin, InstalledHubPlugin? hub, HubState state, InstalledSource source, bool replacesBundled, PluginInfo? replacedBy)
+    private static (string Note, bool Problem) Note(PluginInfo plugin, InstalledHubPlugin? hub, HubState state, InstalledSource source, PluginInfo? replacedBy)
     {
         if (plugin.State == PluginState.Failed)
             return ($"Could not load: {plugin.Error}", true);
@@ -314,15 +295,13 @@ public sealed class PluginManagerModel
             return (reason, true);
         if (hub is not null && state.IsPending(hub.Id))
             return (hub.Version == plugin.Manifest.Version ? "Restart Runesmith to finish the change." : $"Version {hub.Version} is installed. Restart Runesmith to start it.", false);
-        if (source != InstalledSource.Bundled && state.Pending?.Removed.Contains(plugin.Manifest.Id) == true)
+        if (state.Pending?.Removed.Contains(plugin.Manifest.Id) == true)
             return ("Removed. Restart Runesmith to finish.", false);
         if (plugin.State == PluginState.Disabled)
             return ("Turned off.", false);
 
         return source switch
         {
-            InstalledSource.Bundled => ("Comes with Runesmith.", false),
-            InstalledSource.BundledFromHub => (replacesBundled ? "Comes with Runesmith, updated from the hub." : "From the hub.", false),
             InstalledSource.Hub => (hub?.Requested == false ? "From the hub, installed because another plugin needs it." : "From the hub.", false),
             _ => ("From your plugins folder. Never updated or reported to the hub.", false),
         };

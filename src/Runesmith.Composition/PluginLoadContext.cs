@@ -29,7 +29,7 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
         this.contracts = contracts;
         this.visibleContracts = visibleContracts;
         this.pluginAssemblies = pluginAssemblies;
-        seesHost = plugin.IsBuiltIn || plugin.Manifest.IsLegacy;
+        seesHost = plugin.Manifest.IsLegacy;
     }
 
     /// <summary>Gets the plugin whose assemblies this context loads.</summary>

@@ -14,16 +14,16 @@ public static class PluginDiscovery
     /// <summary>Gets the oldest plugin API version this Runesmith runs plugins for.</summary>
     public static SemanticVersion OldestSupportedApiVersion { get; } = ToSemanticVersion(RunesmithApi.OldestSupported);
 
-    /// <summary>The setting that lets a local copy of a plugin Runesmith ships or the hub installed run in its place.</summary>
+    /// <summary>The setting that lets a local copy of a plugin the hub installed run in its place.</summary>
     public const string AllowLocalOverridesSetting = "plugins.allowLocalOverrides";
 
     /// <summary>Finds the plugins in the given folders; earlier folders come first, and a plugin found again later is reported as a
-    /// duplicate, except that a newer copy the hub installed replaces the one Runesmith ships, and a local copy of a plugin Runesmith ships or
-    /// the hub installed replaces it when <paramref name="allowLocalOverrides"/> is set and is refused otherwise.</summary>
+    /// duplicate, except that a local copy of a plugin the hub installed replaces it when <paramref name="allowLocalOverrides"/> is set and is
+    /// refused otherwise.</summary>
     /// <param name="disabledIds">The ids of plugins the user turned off.</param>
     /// <param name="hubIds">The ids of the plugins the hub's installed state lists; a hub folder's other subfolders are skipped. Null takes them all.</param>
     /// <param name="withheld">The plugins Runesmith keeps from loading, with why.</param>
-    /// <param name="allowLocalOverrides">Whether a local copy runs in place of the plugin Runesmith ships or the hub installed, whatever its version.</param>
+    /// <param name="allowLocalOverrides">Whether a local copy runs in place of the plugin the hub installed, whatever its version.</param>
     public static IReadOnlyList<PluginInfo> Discover(
         IEnumerable<(string Path, PluginSource Source)> folders, IReadOnlySet<string> disabledIds, IReadOnlySet<string>? hubIds = null,
         IReadOnlyDictionary<string, string>? withheld = null, bool allowLocalOverrides = false)
@@ -77,7 +77,7 @@ public static class PluginDiscovery
                 var running = plugins[earlier];
                 if (plugin.IsLocalCopy && !allowLocalOverrides)
                 {
-                    plugin = plugin with { State = PluginState.Refused, Error = Refusal(running) };
+                    plugin = plugin with { State = PluginState.Refused, Error = Refusal };
                 }
                 else if (plugin.IsLocalCopy && !running.IsLocalCopy && plugin.State != PluginState.Failed)
                 {
@@ -87,15 +87,6 @@ public static class PluginDiscovery
                 else if (plugin.IsLocalCopy && !running.IsLocalCopy)
                 {
                     plugin = plugin with { State = PluginState.Replaced, Error = $"Version {plugin.Manifest.Version} from your plugins folder could not load: {plugin.Error} {Instead(running)}" };
-                }
-                else if (ReplacesBundled(plugin, running))
-                {
-                    plugins[earlier] = running with { State = PluginState.Replaced, Error = $"Version {plugin.Manifest.Version} from the hub runs instead." };
-                    seen[plugin.Manifest.Id] = plugins.Count;
-                }
-                else if (plugin.Source == PluginSource.Hub && running.Source == PluginSource.Bundled)
-                {
-                    plugin = plugin with { State = PluginState.Replaced, Error = plugin.Error is { } error ? $"Version {plugin.Manifest.Version} from the hub could not load: {error} {Instead(running)}" : Instead(running) };
                 }
                 else
                 {
@@ -113,17 +104,10 @@ public static class PluginDiscovery
         return plugins;
     }
 
-    // A hub copy replaces the bundled one only when it can run and is newer, so the bundled copy stays the fallback.
-    private static bool ReplacesBundled(PluginInfo hub, PluginInfo bundled) =>
-        hub.Source == PluginSource.Hub && bundled.Source == PluginSource.Bundled && hub.State == PluginState.Loaded
-        && SemanticVersion.TryParse(hub.Manifest.Version, out var newer) && SemanticVersion.TryParse(bundled.Manifest.Version, out var older) && newer > older;
+    private static string Instead(PluginInfo running) => $"Version {running.Manifest.Version} from the hub runs instead.";
 
-    private static string Instead(PluginInfo running) => running.Source == PluginSource.Bundled
-        ? $"Runesmith ships version {running.Manifest.Version}, which runs instead."
-        : $"Version {running.Manifest.Version} from the hub runs instead.";
-
-    private static string Refusal(PluginInfo running) =>
-        $"{(running.Source == PluginSource.Bundled ? "Runesmith ships this plugin" : "The hub installed this plugin")}, so the copy in your plugins folder does not load. "
+    private static readonly string Refusal =
+        "The hub installed this plugin, so the copy in your plugins folder does not load. "
         + $"To run it instead, turn on {AllowLocalOverridesSetting} in Settings, under Plugins, and restart Runesmith.";
 
     /// <summary>Gets whether a plugin that works with the API versions in <paramref name="range"/> runs on an API: the API's version is in
@@ -137,7 +121,7 @@ public static class PluginDiscovery
     private static PluginInfo Validate(PluginInfo plugin, IReadOnlySet<string> disabledIds, IReadOnlyDictionary<string, string>? withheld)
     {
         var manifest = plugin.Manifest;
-        if (plugin.Source != PluginSource.Bundled && withheld?.TryGetValue(manifest.Id, out var reason) == true)
+        if (withheld?.TryGetValue(manifest.Id, out var reason) == true)
             return plugin with { State = PluginState.Disabled, Error = reason };
         if (disabledIds.Contains(manifest.Id))
             return plugin with { State = PluginState.Disabled };
@@ -154,7 +138,7 @@ public static class PluginDiscovery
                 return plugin.Fail("The assembly must be inside the plugin's folder.");
             if (!File.Exists(path))
                 return plugin.Fail($"The assembly {relative} does not exist.");
-            if (plugin.Source != PluginSource.Bundled && !IsAssembly(path))
+            if (!IsAssembly(path))
                 return plugin.Fail($"{relative} is not a .NET assembly.");
         }
 

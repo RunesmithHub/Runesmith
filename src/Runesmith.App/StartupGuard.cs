@@ -47,7 +47,7 @@ internal sealed class StartupGuard
         return guard;
     }
 
-    /// <summary>Records the plugins that were loading besides the bundled ones.</summary>
+    /// <summary>Records the plugins that were loading.</summary>
     public void Loaded(IEnumerable<SuspectPlugin> plugins) => Change(record => record with { Plugins = [.. plugins] });
 
     public void Shown() => Change(record => record with { ShownAt = time.GetUtcNow() });
@@ -143,7 +143,7 @@ internal sealed record StartRecord
 
     public DateTimeOffset? CrashedAt { get; init; }
 
-    /// <summary>Gets the plugins that loaded besides the bundled ones.</summary>
+    /// <summary>Gets the plugins that loaded.</summary>
     public IReadOnlyList<SuspectPlugin> Plugins { get; init; } = [];
 
     /// <summary>Gets the plugins whose code was on the stack when Runesmith crashed.</summary>

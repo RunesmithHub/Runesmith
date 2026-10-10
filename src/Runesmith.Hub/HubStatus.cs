@@ -5,7 +5,7 @@ namespace Runesmith.Hub;
 /// <summary>Whether the hub's data can be trusted right now, which decides whether installs and updates are offered.</summary>
 public enum HubStatusKind
 {
-    /// <summary>This build of Runesmith has no trust root; only bundled and local plugins load.</summary>
+    /// <summary>This build of Runesmith has no trust root; only local plugins load.</summary>
     NotSetUp,
 
     /// <summary>The user turned the hub off.</summary>
@@ -45,8 +45,8 @@ public sealed record HubStatus(HubStatusKind Kind, DateTimeOffset? CheckedAt = n
     /// <summary>Gets a sentence for the user about what the status means.</summary>
     public string Describe() => Kind switch
     {
-        HubStatusKind.NotSetUp => "The plugin hub is not set up in this build of Runesmith. Bundled and local plugins work as usual.",
-        HubStatusKind.TurnedOff => "The plugin hub is turned off in Settings. Only bundled and local plugins load.",
+        HubStatusKind.NotSetUp => "The plugin hub is not set up in this build of Runesmith. Plugins in your plugins folder work as usual.",
+        HubStatusKind.TurnedOff => "The plugin hub is turned off in Settings. Only the plugins in your plugins folder load.",
         HubStatusKind.Checking => "Checking the plugin hub.",
         HubStatusKind.Verified => "The plugin hub's data is verified and current.",
         HubStatusKind.Offline => "Runesmith can't reach the plugin hub, so this is the saved catalog. Installs and updates are unavailable.",

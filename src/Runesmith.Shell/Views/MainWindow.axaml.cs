@@ -53,6 +53,7 @@ public partial class MainWindow : Window
     private readonly Hub.HubService? hub;
     private readonly OutputService? output;
     private readonly ThemeService? themes;
+    private readonly Hub.PluginSuggestions? suggestions;
     private readonly WorkbenchView? workbenchView;
     private readonly DispatcherTimer menuRefresh = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private WelcomePage? welcome;
@@ -87,6 +88,7 @@ public partial class MainWindow : Window
         hub = exports.GetExportedValue<Hub.HubService>();
         output = exports.GetExportedValue<OutputService>();
         themes = exports.GetExportedValue<ThemeService>();
+        suggestions = exports.GetExportedValue<Hub.PluginSuggestions>();
         hub.ShowRequested += (_, _) => ShowPlugins();
 
         notifications.Host.Attach(this, Dialogs, Toasts);
@@ -137,6 +139,7 @@ public partial class MainWindow : Window
             UpdateProject();
             UpdateBody();
             UpdatePath();
+            SuggestFolderPlugin();
         });
         settings.Changed += (_, e) =>
         {
@@ -158,6 +161,14 @@ public partial class MainWindow : Window
         UpdateProject();
         UpdateBody();
         FollowActiveEditor();
+        SuggestFolderPlugin();
+    }
+
+    private void SuggestFolderPlugin()
+    {
+        var plugin = suggestions!.ForFolder(workspace!.RootPath);
+        FolderNotice.Content = plugin is null ? null : Hub.PluginSuggestionBar.Create(plugin, suggestions, SuggestFolderPlugin);
+        FolderNotice.IsVisible = plugin is not null;
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)

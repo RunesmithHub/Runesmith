@@ -3,17 +3,22 @@ using Runesmith.Sdk.Settings;
 
 namespace Runesmith.Shell.Hub;
 
-/// <summary>An official plugin on the hub that brings a language's features, and the files that tell Runesmith to suggest it.</summary>
+/// <summary>An official plugin on the hub that Runesmith suggests, and the files that tell it to.</summary>
 /// <param name="PluginId">The plugin's id on the hub.</param>
-/// <param name="Language">The language's name, as the suggestion shows it.</param>
-/// <param name="Extensions">The file extensions, with their dot.</param>
-/// <param name="FileNames">Whole file names, such as <c>pom.xml</c>.</param>
-public sealed record SuggestedPlugin(string PluginId, string Language, IReadOnlyList<string> Extensions, IReadOnlyList<string> FileNames)
+/// <param name="Name">The plugin's name, as the suggestion shows it.</param>
+/// <param name="Brings">What the plugin adds, as the suggestion says it.</param>
+public sealed record SuggestedPlugin(string PluginId, string Name, string Brings)
 {
-    /// <summary>Gets what the suggestion says.</summary>
-    public string Message => $"Install the {Language} plugin for completion, problems and builds.";
+    /// <summary>Gets the file extensions, with their dot, that tell Runesmith to suggest it.</summary>
+    public IReadOnlyList<string> Extensions { get; init; } = [];
 
-    /// <summary>Gets whether a file is one of the language's.</summary>
+    /// <summary>Gets the whole file names, such as <c>pom.xml</c>, that tell Runesmith to suggest it.</summary>
+    public IReadOnlyList<string> FileNames { get; init; } = [];
+
+    /// <summary>Gets what the suggestion says.</summary>
+    public string Message => $"Install the {Name} plugin for {Brings}.";
+
+    /// <summary>Gets whether a file is one that tells Runesmith to suggest it.</summary>
     public bool Matches(string filePath)
     {
         var name = Path.GetFileName(filePath);
@@ -22,18 +27,27 @@ public sealed record SuggestedPlugin(string PluginId, string Language, IReadOnly
     }
 }
 
-/// <summary>Suggests installing the official plugin of a language when the user opens one of its files and the plugin is not installed: once
-/// per language in a session, and never again for a language the user said not to.</summary>
+/// <summary>Suggests installing an official plugin that is not installed: a language's when the user opens one of its files, Git's when the
+/// open folder is a Git repository and GitHub's when it has a remote on github.com. Each is suggested once in a session, and never again once
+/// the user said not to.</summary>
 [Export]
 [Shared]
 public sealed class PluginSuggestions
 {
-    /// <summary>The official language plugins Runesmith suggests.</summary>
-    public static IReadOnlyList<SuggestedPlugin> Plugins { get; } =
+    private const string LanguageFeatures = "completion, problems and builds";
+
+    /// <summary>The official language plugins Runesmith suggests for files.</summary>
+    public static IReadOnlyList<SuggestedPlugin> LanguagePlugins { get; } =
     [
-        new("runesmith.csharp", "C#", [".cs", ".csproj", ".sln", ".slnx", ".razor"], []),
-        new("runesmith.java", "Java", [".java"], ["pom.xml", "build.gradle", "build.gradle.kts"]),
+        new("runesmith.csharp", "C#", LanguageFeatures) { Extensions = [".cs", ".csproj", ".sln", ".slnx", ".razor"] },
+        new("runesmith.java", "Java", LanguageFeatures) { Extensions = [".java"], FileNames = ["pom.xml", "build.gradle", "build.gradle.kts"] },
     ];
+
+    /// <summary>The Git plugin, suggested for a folder that is a Git repository.</summary>
+    public static SuggestedPlugin Git { get; } = new("runesmith.git", "Git", "commits, branches, diffs and the log");
+
+    /// <summary>The GitHub plugin, suggested for a repository with a remote on github.com.</summary>
+    public static SuggestedPlugin GitHub { get; } = new("runesmith.github", "GitHub", "pull requests, reviews and checks");
 
     private readonly ISettingsService settings;
     private readonly Func<bool> canInstall;
@@ -63,15 +77,17 @@ public sealed class PluginSuggestions
     }
 
     /// <summary>Gets the plugin to suggest for a file the user opened, or null, and counts it as suggested for the session.</summary>
-    public SuggestedPlugin? For(string? filePath)
+    public SuggestedPlugin? For(string? filePath) =>
+        filePath is not null && LanguagePlugins.FirstOrDefault(p => p.Matches(filePath)) is { } plugin ? Suggest(plugin) : null;
+
+    /// <summary>Gets the next plugin to suggest for the open folder, or null, and counts it as suggested for the session: Git when the folder is
+    /// a Git repository, then GitHub when the repository has a remote on github.com.</summary>
+    public SuggestedPlugin? ForFolder(string? folder)
     {
-        if (filePath is null || Plugins.FirstOrDefault(p => p.Matches(filePath)) is not { } plugin || suggested.Contains(plugin.PluginId))
-            return null;
-        if (Declined().Contains(plugin.PluginId) || !canInstall() || isInstalled(plugin.PluginId))
+        if (folder is null || !GitFolder.IsRepository(folder))
             return null;
 
-        suggested.Add(plugin.PluginId);
-        return plugin;
+        return Suggest(Git) ?? (GitFolder.HasGitHubRemote(folder) ? Suggest(GitHub) : null);
     }
 
     /// <summary>Opens the plugin's page in the plugin manager, where the user can install it.</summary>
@@ -88,6 +104,15 @@ public sealed class PluginSuggestions
         var declined = Declined();
         if (declined.Add(plugin.PluginId))
             settings.Set(HubSettings.DeclinedSuggestions, string.Join(';', declined.Order(StringComparer.Ordinal)));
+    }
+
+    private SuggestedPlugin? Suggest(SuggestedPlugin plugin)
+    {
+        if (suggested.Contains(plugin.PluginId) || Declined().Contains(plugin.PluginId) || !canInstall() || isInstalled(plugin.PluginId))
+            return null;
+
+        suggested.Add(plugin.PluginId);
+        return plugin;
     }
 
     private HashSet<string> Declined() =>

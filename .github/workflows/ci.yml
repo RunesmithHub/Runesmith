@@ -45,7 +45,6 @@ jobs:
         with:
           global-json-file: global.json
 
-      # The app's build also fetches the plugins bundled-plugins.json pins from the plugin hub; with -warnaserror, a failed fetch fails it.
       - name: Build
         run: dotnet build Runesmith.slnx -warnaserror
 

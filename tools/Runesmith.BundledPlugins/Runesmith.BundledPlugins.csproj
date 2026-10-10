@@ -1,7 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <Description>Fetches the official plugins Runesmith ships from the plugin hub, checks them against its signed index and unpacks them for the build.</Description>
-    <UsesHubProtocol>true</UsesHubProtocol>
-  </PropertyGroup>
-</Project>

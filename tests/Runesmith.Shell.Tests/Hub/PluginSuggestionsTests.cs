@@ -6,12 +6,15 @@ using Runesmith.Shell.Tests.Appearance;
 
 namespace Runesmith.Shell.Tests.Hub;
 
-public sealed class PluginSuggestionsTests
+public sealed class PluginSuggestionsTests : IDisposable
 {
+    private readonly string folder = Directory.CreateTempSubdirectory("runesmith-suggestions-").FullName;
     private readonly MemorySettings settings = new() { Values = { [HubSettings.DeclinedSuggestions] = "" } };
     private readonly HashSet<string> installed = new(StringComparer.Ordinal);
     private readonly List<string> shownPages = [];
     private bool canInstall = true;
+
+    public void Dispose() => TestFolders.Delete(folder);
 
     [Theory]
     [InlineData("/repo/src/Program.cs", "runesmith.csharp")]
@@ -79,9 +82,11 @@ public sealed class PluginSuggestionsTests
     [Fact]
     public void SaysWhatThePluginBringsAndNamesOnlyOfficialPlugins()
     {
-        Assert.Equal("Install the C# plugin for completion, problems and builds.", PluginSuggestions.Plugins[0].Message);
-        Assert.All(PluginSuggestions.Plugins, p => Assert.StartsWith("runesmith.", p.PluginId, StringComparison.Ordinal));
-        Assert.Equal(["runesmith.csharp", "runesmith.java"], PluginSuggestions.Plugins.Select(p => p.PluginId));
+        Assert.Equal("Install the C# plugin for completion, problems and builds.", PluginSuggestions.LanguagePlugins[0].Message);
+        Assert.All(PluginSuggestions.LanguagePlugins.Concat([PluginSuggestions.Git, PluginSuggestions.GitHub]), p => Assert.StartsWith("runesmith.", p.PluginId, StringComparison.Ordinal));
+        Assert.Equal(["runesmith.csharp", "runesmith.java"], PluginSuggestions.LanguagePlugins.Select(p => p.PluginId));
+        Assert.Equal("Install the Git plugin for commits, branches, diffs and the log.", PluginSuggestions.Git.Message);
+        Assert.Equal("Install the GitHub plugin for pull requests, reviews and checks.", PluginSuggestions.GitHub.Message);
     }
 
     [Fact]
@@ -104,6 +109,76 @@ public sealed class PluginSuggestionsTests
         Assert.Equal(["runesmith.csharp"], shownPages);
         Assert.Equal("runesmith.csharp", settings.Values[HubSettings.DeclinedSuggestions]);
     }, CancellationToken.None);
+
+    [Fact]
+    public void AFolderThatIsNoRepositoryGetsNoSuggestion()
+    {
+        Assert.Null(Create().ForFolder(folder));
+        Assert.Null(Create().ForFolder(null));
+    }
+
+    [Fact]
+    public void ARepositorySuggestsGitAndOneOnGitHubSuggestsGitHubAfterIt()
+    {
+        Repository("[remote \"origin\"]\n\turl = git@github.com:RunesmithHub/plugin-git.git\n");
+        var suggestions = Create();
+
+        Assert.Equal("runesmith.git", suggestions.ForFolder(folder)?.PluginId);
+        Assert.Equal("runesmith.github", suggestions.ForFolder(folder)?.PluginId);
+        Assert.Null(suggestions.ForFolder(folder));
+    }
+
+    [Fact]
+    public void ARepositoryWithoutAGitHubRemoteSuggestsOnlyGit()
+    {
+        Repository("[remote \"origin\"]\n\turl = https://gitlab.com/acme/shop.git\n");
+        var suggestions = Create();
+
+        Assert.Equal("runesmith.git", suggestions.ForFolder(folder)?.PluginId);
+        Assert.Null(suggestions.ForFolder(folder));
+    }
+
+    [Fact]
+    public void FolderSuggestionsFollowTheSameRulesAsLanguageOnes()
+    {
+        Repository("[remote \"origin\"]\n\turl = https://github.com/RunesmithHub/plugin-git\n");
+        installed.Add("runesmith.git");
+        settings.Values[HubSettings.DeclinedSuggestions] = "runesmith.github";
+
+        Assert.Null(Create().ForFolder(folder));
+
+        settings.Values[HubSettings.DeclinedSuggestions] = "";
+        canInstall = false;
+
+        Assert.Null(Create().ForFolder(folder));
+
+        canInstall = true;
+
+        Assert.Equal("runesmith.github", Create().ForFolder(folder)?.PluginId);
+    }
+
+    [Fact]
+    public Task InstallOnTheFolderLineOpensGitsPage() => HeadlessSession.Value.Dispatch(() =>
+    {
+        Repository("");
+        var suggestions = Create();
+        var git = suggestions.ForFolder(folder)!;
+
+        var bar = PluginSuggestionBar.Create(git, suggestions, () => { });
+        var window = new Window { Content = bar };
+        window.Show();
+        Assert.Contains(bar.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == git.Message);
+        Click(bar.GetVisualDescendants().OfType<Button>().Single(b => b.Content is TextBlock { Text: "Install" }));
+        window.Close();
+
+        Assert.Equal(["runesmith.git"], shownPages);
+    }, CancellationToken.None);
+
+    private void Repository(string config)
+    {
+        Directory.CreateDirectory(Path.Combine(folder, ".git"));
+        File.WriteAllText(Path.Combine(folder, ".git", "config"), config);
+    }
 
     private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 

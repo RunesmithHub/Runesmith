@@ -24,7 +24,7 @@ public sealed class InstallPlanModelTests : IDisposable
     [Fact]
     public async Task InstallingAnUnverifiedPluginWaitsForItsAcknowledgement()
     {
-        var model = await PlanAsync("lumen.todo", bundled: [Bundled("runesmith.git", "0.1.0", "process", "network")]);
+        var model = await PlanAsync("lumen.todo");
 
         Assert.Equal("Install Lumen Todo", model.Title);
         Assert.Equal("This changes 3 plugins.", model.Summary);
@@ -44,18 +44,18 @@ public sealed class InstallPlanModelTests : IDisposable
     [Fact]
     public async Task ThePlanSaysWhatChangesWhyAndWhatItMayDo()
     {
-        var model = await PlanAsync("lumen.todo", bundled: [Bundled("runesmith.git", "0.1.0", "process", "network")]);
+        var model = await PlanAsync("lumen.todo");
 
         var harbor = model.Rows.Single(r => r.Id == "harbor.issues");
         Assert.Equal((PluginTier.Verified, "1.3.2"), (harbor.Tier!.Value, harbor.Change));
         Assert.StartsWith("Install, needed by Lumen Todo · ", harbor.What, StringComparison.Ordinal);
         var git = model.Rows.Single(r => r.Id == "runesmith.git");
-        Assert.Equal("0.1.0 to 0.3.4", git.Change);
-        Assert.StartsWith("Update, Lumen Todo needs >=0.3.1 <0.4.0", git.What, StringComparison.Ordinal);
+        Assert.Equal("0.3.4", git.Change);
+        Assert.StartsWith("Install, needed by Lumen Todo", git.What, StringComparison.Ordinal);
 
-        Assert.Equal([("network", true, false), ("credentials", true, true), ("process", false, true)],
+        Assert.Equal([("process", true, true), ("network", true, false), ("credentials", true, true)],
             model.Capabilities.Select(c => (c.Id, c.IsNew, c.IsHighRisk)));
-        Assert.Equal("Harbor Issues", model.Capabilities[0].From);
+        Assert.Equal(["Git", "Harbor Issues", "Harbor Issues"], model.Capabilities.Select(c => c.From));
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public sealed class InstallPlanModelTests : IDisposable
         await client.RefreshAsync(Token);
         PluginInfo[] plugins =
         [
-            Plugin("runesmith.git", "Git", "0.1.0", PluginSource.Bundled),
+            Plugin("runesmith.git", "Git", "0.3.4", PluginSource.Hub),
             Plugin("acme.scratch", "Scratchpad", "0.0.1", PluginSource.Local),
             Plugin("acme.broken", "Broken", "1.0.0", PluginSource.Local) with { State = PluginState.Failed, Error = "The assembly could not be loaded." },
         ];
@@ -160,16 +160,16 @@ public sealed class InstallPlanModelTests : IDisposable
 
         Assert.Equal(["Broken", "Git", "Scratchpad"], rows.Select(r => r.Name));
         Assert.True(rows[0].IsProblem);
-        Assert.Equal((InstalledSource.Bundled, PluginTier.Official), (rows[1].Source, rows[1].Tier!.Value));
+        Assert.Equal((InstalledSource.Hub, PluginTier.Official), (rows[1].Source, rows[1].Tier!.Value));
         Assert.Equal(InstalledSource.Local, rows[2].Source);
         Assert.Null(rows[2].Tier);
     }
 
-    private async Task<InstallPlanModel> PlanAsync(string id, IReadOnlyList<PluginInfo>? bundled = null)
+    private async Task<InstallPlanModel> PlanAsync(string id)
     {
         var client = fixture.CreateClient();
         await client.RefreshAsync(Token);
-        var model = new PluginManagerModel(client, () => HubPreferences.Default, () => bundled ?? [], () => new HashSet<string>(), () => HubStartupReport.Empty, isSafeMode: false);
+        var model = new PluginManagerModel(client, () => HubPreferences.Default, () => [], () => new HashSet<string>(), () => HubStartupReport.Empty, isSafeMode: false);
         return model.Plan(client.Resolve(ResolutionRequest.Install(id), HubPreferences.Default).Plan!);
     }
 
@@ -179,12 +179,6 @@ public sealed class InstallPlanModelTests : IDisposable
         button.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyUpEvent, Key = key, Source = button });
         Dispatcher.UIThread.RunJobs();
     }
-
-    private static PluginInfo Bundled(string id, string version, params string[] capabilities) =>
-        Plugin(id, id, version, PluginSource.Bundled) with
-        {
-            Manifest = new PluginManifest(id, id, version) { SchemaVersion = 1, Capabilities = [.. capabilities.Select(c => new DeclaredCapability { Id = c, Reason = "For the tests." })] },
-        };
 
     private static PluginInfo Plugin(string id, string name, string version, PluginSource source) =>
         new(new PluginManifest(id, name, version) { SchemaVersion = 1, Capabilities = [] }, Path.Combine(Path.GetTempPath(), id), source);

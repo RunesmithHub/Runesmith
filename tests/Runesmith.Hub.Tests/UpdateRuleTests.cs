@@ -92,24 +92,6 @@ public sealed class UpdateRuleTests : IDisposable
         Assert.Equal(UpdateKind.Manual, (await FindAsync(state))["runesmith.git"].Kind);
     }
 
-    [Fact]
-    public async Task ANewerHubVersionOfABundledPluginIsOfferedToReplaceIt()
-    {
-        var view = await ViewAsync();
-        var catalog = new HubCatalog(view);
-        var bundled = new BundledPlugin("runesmith.csharp", "0.4.5", ["process", "network"]);
-
-        var update = Assert.Single(UpdateFinder.Find(catalog, Resolve(catalog, HubPreferences.Default), new HubState(), [bundled], HubPreferences.Default, HubFixture.Host));
-
-        Assert.True(update.IsBundled);
-        Assert.Equal("0.4.6", update.To.Version.ToString());
-        Assert.Equal(UpdateKind.Automatic, update.Kind);
-        Assert.Equal(OperationKind.Install, update.Result.Plan!.Find("runesmith.csharp")!.Kind);
-
-        var older = Assert.Single(UpdateFinder.Find(catalog, Resolve(catalog, HubPreferences.Default), new HubState(), [bundled with { Version = "0.1.0" }], HubPreferences.Default, HubFixture.Host));
-        Assert.Equal(UpdateKind.NeedsReview, older.Kind);
-    }
-
     private static HubState Installed(params (string Id, string Version, bool Requested)[] plugins) =>
         new() { Plugins = [.. plugins.Select(p => new InstalledHubPlugin(p.Id, p.Version, new string('0', 64), "official", p.Requested))] };
 
@@ -118,10 +100,7 @@ public sealed class UpdateRuleTests : IDisposable
 
     private static IReadOnlyList<UpdateCandidate> Find(HubCatalog catalog, HubState state, HubPreferences preferences) =>
         UpdateFinder.Find(catalog, request => new Resolver(catalog, new ResolutionSettings(HubFixture.Host) { AllowedTiers = preferences.AllowedTiers })
-            .Resolve([.. state.Plugins.Select(p => new InstalledPlugin(p.Id, SemanticVersion.Parse(p.Version), p.Requested))], request), state, [], preferences, HubFixture.Host);
-
-    private static Func<ResolutionRequest, ResolutionResult> Resolve(HubCatalog catalog, HubPreferences preferences) =>
-        request => new Resolver(catalog, new ResolutionSettings(HubFixture.Host) { AllowedTiers = preferences.AllowedTiers }).Resolve([], request);
+            .Resolve([.. state.Plugins.Select(p => new InstalledPlugin(p.Id, SemanticVersion.Parse(p.Version), p.Requested))], request), state, preferences, HubFixture.Host);
 
     private async Task<IndexView> ViewAsync()
     {

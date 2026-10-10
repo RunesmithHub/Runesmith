@@ -11,20 +11,17 @@ public enum PluginState
     /// <summary>The plugin could not be loaded; <see cref="PluginInfo.Error"/> says why.</summary>
     Failed,
 
-    /// <summary>Another copy of the plugin runs instead, such as a newer version from the hub in place of the one Runesmith ships.</summary>
+    /// <summary>Another copy of the plugin runs instead, such as a local copy in place of the one the hub installed.</summary>
     Replaced,
 
-    /// <summary>A copy in the user's plugins folder of a plugin Runesmith ships or the hub installed, which does not load until the user lets
-    /// local copies replace plugins; <see cref="PluginInfo.Error"/> says how.</summary>
+    /// <summary>A copy in the user's plugins folder of a plugin the hub installed, which does not load until the user lets local copies
+    /// replace plugins; <see cref="PluginInfo.Error"/> says how.</summary>
     Refused,
 }
 
 /// <summary>Where a plugin came from.</summary>
 public enum PluginSource
 {
-    /// <summary>It ships with Runesmith.</summary>
-    Bundled,
-
     /// <summary>The user put it in their plugins folder.</summary>
     Local,
 
@@ -36,10 +33,7 @@ public enum PluginSource
 /// <param name="Directory">The folder that holds the plugin's manifest.</param>
 public sealed record PluginInfo(PluginManifest Manifest, string Directory, PluginSource Source)
 {
-    /// <summary>Gets whether the plugin ships with Runesmith.</summary>
-    public bool IsBuiltIn => Source == PluginSource.Bundled;
-
-    /// <summary>Gets whether this is a copy in the user's plugins folder of a plugin Runesmith ships or the hub installed; such a copy keeps
+    /// <summary>Gets whether this is a copy in the user's plugins folder of a plugin the hub installed; such a copy keeps
     /// its secrets and storage apart from that plugin's.</summary>
     public bool IsLocalCopy { get; init; }
 

@@ -24,7 +24,7 @@ internal static class StartupSettings
     /// <summary>Gets whether Runesmith registers itself for runesmith:// links.</summary>
     public static bool RegisterLinks() => Read(HubSettings.RegisterLinks) is not { ValueKind: JsonValueKind.False };
 
-    /// <summary>Gets whether a local copy of a plugin Runesmith ships or the hub installed runs in its place; an open folder's settings can't
+    /// <summary>Gets whether a local copy of a plugin the hub installed runs in its place; an open folder's settings can't
     /// turn this on.</summary>
     public static bool AllowLocalOverrides(string? userSettings = null) => Read(CoreSettings.AllowLocalOverrides, userSettings) is { ValueKind: JsonValueKind.True };
 

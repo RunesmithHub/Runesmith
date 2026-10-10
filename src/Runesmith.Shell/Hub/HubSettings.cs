@@ -11,7 +11,7 @@ public sealed class HubSettings : ISettingContributor
 {
     public const string Category = "Plugins";
 
-    /// <summary>Whether Runesmith uses the hub; when it is off, only bundled and local plugins load.</summary>
+    /// <summary>Whether Runesmith uses the hub; when it is off, only the plugins in the user's plugins folder load.</summary>
     public const string Enabled = "plugins.hub.enabled";
 
     /// <summary>Which tiers may be installed: <c>all-with-warnings</c>, <c>official-and-verified</c> or <c>official-only</c>.</summary>
@@ -29,14 +29,14 @@ public sealed class HubSettings : ISettingContributor
     /// <summary>The ids of the plugins the user gets pre-releases of, separated by semicolons.</summary>
     public const string PreReleases = "plugins.hub.preReleases";
 
-    /// <summary>The ids of the official language plugins Runesmith no longer suggests, separated by semicolons.</summary>
+    /// <summary>The ids of the official plugins Runesmith no longer suggests, separated by semicolons.</summary>
     public const string DeclinedSuggestions = "plugins.hub.declinedSuggestions";
 
     public IEnumerable<SettingDefinition> Settings { get; } =
     [
         new(Enabled, "Use the plugin hub", Category, true)
         {
-            Description = "Turn this off to use only the plugins that come with Runesmith and the ones in your plugins folder. Takes effect when Runesmith starts again.",
+            Description = "Turn this off to use only the plugins in your plugins folder. Takes effect when Runesmith starts again.",
         },
         new(AllowedTiers, "Allowed plugins", Category, "all-with-warnings")
         {
@@ -55,7 +55,7 @@ public sealed class HubSettings : ISettingContributor
         new(PreReleases, "Pre-releases", Category, "") { Description = "The ids of the plugins you get pre-releases of, separated by semicolons." },
         new(DeclinedSuggestions, "Plugins not to suggest", Category, "")
         {
-            Description = "The ids of the language plugins Runesmith no longer suggests when you open their files, separated by semicolons.",
+            Description = "The ids of the official plugins Runesmith no longer suggests for the files and folders you open, separated by semicolons.",
         },
     ];
 

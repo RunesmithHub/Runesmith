@@ -44,9 +44,6 @@ public sealed record PluginPageModel
     /// <summary>Gets the version that runs now, or null when the plugin is not installed.</summary>
     public string? InstalledVersion { get; init; }
 
-    /// <summary>Gets whether the installed version is the one Runesmith ships.</summary>
-    public bool IsBundled { get; init; }
-
     /// <summary>Gets whether the hub installed it.</summary>
     public bool IsFromHub { get; init; }
 
@@ -73,7 +70,7 @@ public sealed record PluginPageModel
     /// <summary>Gets whether the selected version is the one that runs.</summary>
     public bool IsSelectedInstalled => IsInstalled && Version is not null && Version.Version.ToString() == InstalledVersion;
 
-    internal static PluginPageModel Create(HubClient client, PageTarget target, HubPreferences preferences, string? running, bool isBundled)
+    internal static PluginPageModel Create(HubClient client, PageTarget target, HubPreferences preferences, string? running)
     {
         var status = client.Status;
         var catalog = client.Catalog;
@@ -84,7 +81,7 @@ public sealed record PluginPageModel
             notices.Add(status.HasCatalog && catalog is not null
                 ? new PageNotice(PageNoticeKind.Warning, $"No plugin with the id {target.PluginId} is on the hub.", "Check the id, or search for the plugin in Browse.")
                 : new PageNotice(PageNoticeKind.Info, status.Describe()));
-            return new PluginPageModel { PluginId = target.PluginId, Notices = notices, InstalledVersion = running, IsBundled = isBundled };
+            return new PluginPageModel { PluginId = target.PluginId, Notices = notices, InstalledVersion = running };
         }
 
         var versions = record.Versions
@@ -160,7 +157,6 @@ public sealed record PluginPageModel
             Versions = versions,
             Notices = notices,
             InstalledVersion = running ?? hub?.Version,
-            IsBundled = isBundled && hub is null,
             IsFromHub = hub is not null,
             IsPending = state.IsPending(record.Id),
             CanInstall = canInstall,

@@ -13,7 +13,7 @@ namespace Runesmith.Hub.Updates;
 internal static class UpdateFinder
 {
     public static IReadOnlyList<UpdateCandidate> Find(
-        HubCatalog catalog, Func<ResolutionRequest, ResolutionResult> resolve, HubState state, IEnumerable<BundledPlugin> bundled, HubPreferences preferences, RunesmithHost host)
+        HubCatalog catalog, Func<ResolutionRequest, ResolutionResult> resolve, HubState state, HubPreferences preferences, RunesmithHost host)
     {
         var candidates = new List<UpdateCandidate>();
         foreach (var plugin in state.Plugins)
@@ -26,16 +26,7 @@ internal static class UpdateFinder
             if (target.Version <= installed)
                 continue;
 
-            candidates.Add(Classify(catalog, plugin.Id, installed, target, result, preferences, plugin.AutoUpdate, Capabilities(catalog, plugin.Id, installed), isBundled: false));
-        }
-
-        foreach (var plugin in bundled.Where(b => state.Find(b.Id) is null))
-        {
-            if (!SemanticVersion.TryParse(plugin.Version, out var installed) || Newest(catalog, plugin.Id, host, preferences) is not { } newest || newest.Version <= installed)
-                continue;
-
-            var result = resolve(ResolutionRequest.Install(plugin.Id, newest.Version));
-            candidates.Add(Classify(catalog, plugin.Id, installed, newest, result, preferences, true, plugin.Capabilities.ToHashSet(StringComparer.Ordinal), isBundled: true));
+            candidates.Add(Classify(catalog, plugin.Id, installed, target, result, preferences, plugin.AutoUpdate, Capabilities(catalog, plugin.Id, installed)));
         }
 
         return [.. candidates.OrderBy(c => c.Kind).ThenBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)];
@@ -49,7 +40,7 @@ internal static class UpdateFinder
 
     private static UpdateCandidate Classify(
         HubCatalog catalog, string id, SemanticVersion installed, VersionRecord target, ResolutionResult result, HubPreferences preferences, bool pluginAutoUpdate,
-        HashSet<string>? installedCapabilities, bool isBundled)
+        HashSet<string>? installedCapabilities)
     {
         var record = catalog.FindPlugin(id)!;
         var reasons = new List<string>();
@@ -77,7 +68,7 @@ internal static class UpdateFinder
         var kind = record.Tier == PluginTier.Unverified || !preferences.AutoUpdate || !pluginAutoUpdate ? UpdateKind.Manual
             : reasons.Count > 0 || !result.Succeeded ? UpdateKind.NeedsReview
             : UpdateKind.Automatic;
-        return new UpdateCandidate(id, record.Name, record.Tier, installed.ToString(), target, kind, result, reasons, added, isBundled);
+        return new UpdateCandidate(id, record.Name, record.Tier, installed.ToString(), target, kind, result, reasons, added);
     }
 
     private static List<string> NewCapabilities(HubCatalog catalog, PlanOperation operation)

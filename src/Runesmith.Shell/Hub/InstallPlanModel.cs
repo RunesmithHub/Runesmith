@@ -54,8 +54,7 @@ public sealed class InstallPlanModel
     private static readonly HashSet<string> HighRisk = new(StringComparer.Ordinal) { "native", "dynamic-code", "credentials", "process" };
 
     /// <param name="currentCapabilities">The capabilities a plugin has now, or null when it is not installed.</param>
-    /// <param name="bundledVersion">The version Runesmith ships of a plugin, or null.</param>
-    public InstallPlanModel(InstallPlan plan, HubClient client, Func<string, IReadOnlySet<string>?> currentCapabilities, Func<string, string?> bundledVersion)
+    public InstallPlanModel(InstallPlan plan, HubClient client, Func<string, IReadOnlySet<string>?> currentCapabilities)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(client);
@@ -67,16 +66,14 @@ public sealed class InstallPlanModel
         var warnings = new List<UnverifiedWarning>();
         foreach (var operation in changes)
         {
-            var bundled = operation.From is null && operation.Kind == OperationKind.Install ? bundledVersion(operation.PluginId) : null;
             var change = operation.Kind switch
             {
                 OperationKind.Remove => operation.From?.ToString() ?? "",
                 _ when operation.From is { } from => $"{from} to {operation.To}",
-                _ when bundled is not null => $"{bundled} to {operation.To}",
                 _ => operation.To?.ToString() ?? "",
             };
             var size = operation.Record?.Package is { } package ? $" · {Size(package.Length)}" : "";
-            rows.Add(new PlanRow(operation.PluginId, operation.Name, change, operation.Tier, What(operation, changes, bundled is not null) + size, operation.Kind)
+            rows.Add(new PlanRow(operation.PluginId, operation.Name, change, operation.Tier, What(operation, changes) + size, operation.Kind)
             {
                 Icon = catalog?.FindPlugin(operation.PluginId)?.Icon.Size64,
             });
@@ -108,7 +105,6 @@ public sealed class InstallPlanModel
             [{ Kind: OperationKind.Remove } only] => $"Remove {only.Name}",
             [{ Kind: OperationKind.Update } only] => $"Update {only.Name}",
             [{ Kind: OperationKind.Downgrade } only] => $"Change {only.Name} to {only.To}",
-            [var only] when bundledVersion(only.PluginId) is not null => $"Update {only.Name}",
             [var only] => $"Install {only.Name}",
             _ when changes.All(op => op.Kind == OperationKind.Update) => "Update plugins",
             _ => "Change plugins",
@@ -155,14 +151,13 @@ public sealed class InstallPlanModel
         _ => string.Create(CultureInfo.CurrentCulture, $"{bytes / 1024.0 / 1024.0:0.0} MB"),
     };
 
-    private static string What(PlanOperation operation, IReadOnlyList<PlanOperation> plan, bool replacesBundled)
+    private static string What(PlanOperation operation, IReadOnlyList<PlanOperation> plan)
     {
         var needing = plan.Where(other => other.Record?.Dependencies.Any(d => d.Id == operation.PluginId) == true).OrderBy(other => other.Reason != OperationReason.Requested).ToList();
         var need = needing.Count == 0 ? null : needing[0];
         var range = need?.Record?.Dependencies.First(d => d.Id == operation.PluginId).Range;
         return operation.Kind switch
         {
-            OperationKind.Install when replacesBundled => need is null ? "Update from the hub" : $"Update, {need.Name} needs {range}",
             OperationKind.Install => need is null || operation.Reason == OperationReason.Requested ? "Install" : $"Install, needed by {need.Name}",
             OperationKind.Update => need is null || operation.Reason == OperationReason.Requested ? "Update" : $"Update, {need.Name} needs {range}",
             OperationKind.Downgrade => need is null ? "Downgrade" : $"Downgrade, {need.Name} needs {range}",

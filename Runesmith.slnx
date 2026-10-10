@@ -13,9 +13,6 @@
     <Project Path="src/Runesmith.Shell/Runesmith.Shell.csproj" />
     <Project Path="src/Runesmith.App/Runesmith.App.csproj" />
   </Folder>
-  <Folder Name="/tools/">
-    <Project Path="tools/Runesmith.BundledPlugins/Runesmith.BundledPlugins.csproj" />
-  </Folder>
   <Folder Name="/templates/">
     <Project Path="templates/Runesmith.Templates/Runesmith.Templates.csproj" />
   </Folder>

@@ -130,7 +130,7 @@ internal static class HubVisuals
         _ => null,
     };
 
-    /// <summary>The badge of a local copy of a plugin Runesmith ships or the hub installed, or null for any other plugin.</summary>
+    /// <summary>The badge of a local copy of a plugin the hub installed, or null for any other plugin.</summary>
     public static Control? LocalCopyBadge(LocalCopyState? state)
     {
         if (state is not { } copy)
@@ -140,8 +140,8 @@ internal static class HubVisuals
             ? StateBadge("Replaces the installed plugin", "AlertTriangle", "WarningBrush")
             : StateBadge("Not loaded", "ban", "WarningBrush");
         ToolTip.SetTip(badge, copy == LocalCopyState.Replacing
-            ? "This copy from your plugins folder runs in place of the plugin that comes with Runesmith or from the hub, with its own secrets and storage."
-            : "A plugin that comes with Runesmith or from the hub has the same id, so this copy does not load.");
+            ? "This copy from your plugins folder runs in place of the plugin from the hub, with its own secrets and storage."
+            : "A plugin from the hub has the same id, so this copy does not load.");
         return badge;
     }
 

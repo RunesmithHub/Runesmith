@@ -7,7 +7,7 @@ using RunesmithHub.Protocol;
 namespace Runesmith.Shell.Services.Secrets;
 
 /// <summary>Keeps plugins' secrets in the system's secret store, or in a file only the user can read where there is none, each plugin's
-/// under keys that start with its id, and a local copy's of a plugin Runesmith ships or the hub installed under <c>local/</c> and its id.</summary>
+/// under keys that start with its id, and a local copy's of a plugin the hub installed under <c>local/</c> and its id.</summary>
 /// <remarks>Which store is used is decided on first use and written to the Secrets output channel. When the system's store fails later, such
 /// as when its service stops, the file takes over for the rest of the session.</remarks>
 [Export(typeof(ISecretStore))]
@@ -75,8 +75,8 @@ public sealed class SecretStore : ISecretStore
         }).ConfigureAwait(false);
     }
 
-    /// <summary>Checks that the caller may use the key and gets the key it is stored under: a local copy of a plugin Runesmith ships or the
-    /// hub installed keeps its secrets under <c>local/</c>, apart from that plugin's.</summary>
+    /// <summary>Checks that the caller may use the key and gets the key it is stored under: a local copy of a plugin the hub installed
+    /// keeps its secrets under <c>local/</c>, apart from that plugin's.</summary>
     private string StoredKey(string key)
     {
         if (caller() is not { } plugin)

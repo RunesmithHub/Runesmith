@@ -24,7 +24,7 @@ internal static class Program
     /// <summary>Gets how the last starts went, and whether this one offers safe mode.</summary>
     public static StartupGuard Guard { get; private set; } = null!;
 
-    /// <summary>Gets whether this start loads only the plugins that come with Runesmith.</summary>
+    /// <summary>Gets whether this start is in safe mode, which loads no plugins.</summary>
     public static bool IsSafeMode { get; private set; }
 
     /// <summary>Gets what the plugin hub decided before plugins loaded.</summary>
@@ -112,12 +112,9 @@ internal static class Program
 
         stopwatch.Restart();
         string[] hostAssemblies = ["Runesmith.Sdk", "Runesmith.Workspace", "Runesmith.Languages", "Runesmith.Editor", "Runesmith.Shell"];
-        var folders = new List<(string Path, PluginSource Source)> { (Path.Combine(AppContext.BaseDirectory, "plugins"), PluginSource.Bundled) };
-        if (!Arguments.ArePluginsDisabled && !IsSafeMode)
-        {
-            folders.Add((hub.Plugins, PluginSource.Hub));
-            folders.Add((RunesmithPaths.UserPlugins, PluginSource.Local));
-        }
+        (string Path, PluginSource Source)[] folders = Arguments.ArePluginsDisabled || IsSafeMode
+            ? []
+            : [(hub.Plugins, PluginSource.Hub), (RunesmithPaths.UserPlugins, PluginSource.Local)];
 
         var options = new CompositionOptions(
             [.. hostAssemblies.Select(name => System.Reflection.Assembly.Load(name))],
@@ -134,7 +131,7 @@ internal static class Program
             Console.Error.WriteLine($"Plugin {plugin.Manifest.Id} could not load: {plugin.Error}");
         foreach (var error in result.Errors)
             Console.Error.WriteLine($"Composition: {error}");
-        Guard.Loaded(result.Plugins.Where(p => p.State is (PluginState.Loaded or PluginState.Failed) && p.Source != PluginSource.Bundled)
+        Guard.Loaded(result.Plugins.Where(p => p.State is PluginState.Loaded or PluginState.Failed)
             .Select(p => new SuspectPlugin(p.Manifest.Id, p.Manifest.Name, p.Manifest.Version)));
         Timings.Add((result.IsFromCache ? "Compose the parts (from the cache)" : "Compose the parts", stopwatch.Elapsed));
         return result;

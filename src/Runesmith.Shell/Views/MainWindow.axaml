@@ -161,12 +161,15 @@
 
         <!-- The workbench, or the welcome screen while nothing is open -->
         <Panel x:Name="Body" Grid.Row="2">
-          <Panel x:Name="EditorArea">
-            <dock:DockHost x:Name="Workspace" />
-            <Border x:Name="EmptyEditor" Background="{DynamicResource Surface1Brush}" IsVisible="False">
-              <StackPanel x:Name="EmptyEditorHints" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
-          </Panel>
+          <DockPanel x:Name="EditorArea">
+            <ContentControl x:Name="FolderNotice" DockPanel.Dock="Top" IsVisible="False" />
+            <Panel>
+              <dock:DockHost x:Name="Workspace" />
+              <Border x:Name="EmptyEditor" Background="{DynamicResource Surface1Brush}" IsVisible="False">
+                <StackPanel x:Name="EmptyEditorHints" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+            </Panel>
+          </DockPanel>
           <ContentControl x:Name="WelcomeHost" IsVisible="False" />
         </Panel>
 

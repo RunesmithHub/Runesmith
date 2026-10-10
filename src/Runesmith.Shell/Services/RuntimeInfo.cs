@@ -19,7 +19,7 @@ public sealed class RuntimeInfo
     /// <summary>Gets the startup steps and how long each took, in order.</summary>
     public List<(string Step, TimeSpan Duration)> Timings { get; } = [];
 
-    /// <summary>Gets or sets whether Runesmith runs in safe mode, with only the plugins that come with it.</summary>
+    /// <summary>Gets or sets whether Runesmith runs in safe mode, which loads no plugins.</summary>
     public bool IsSafeMode { get; set; }
 
     /// <summary>Gets or sets what the plugin hub decided before plugins loaded.</summary>

@@ -262,10 +262,9 @@ public sealed class HubClient
             return NoticeBuilder.Build(catalog, state, changedFiles, host, preferences);
     }
 
-    /// <summary>Gets the available updates of hub plugins and of bundled plugins the hub has newer versions of.</summary>
-    public IReadOnlyList<UpdateCandidate> Updates(IEnumerable<BundledPlugin> bundled, HubPreferences preferences)
+    /// <summary>Gets the available updates of hub plugins.</summary>
+    public IReadOnlyList<UpdateCandidate> Updates(HubPreferences preferences)
     {
-        ArgumentNullException.ThrowIfNull(bundled);
         ArgumentNullException.ThrowIfNull(preferences);
         HubCatalog? current;
         HubState installed;
@@ -275,7 +274,7 @@ public sealed class HubClient
             installed = state;
         }
 
-        return current is null ? [] : UpdateFinder.Find(current, request => Resolve(request, preferences), installed, bundled, preferences, host);
+        return current is null ? [] : UpdateFinder.Find(current, request => Resolve(request, preferences), installed, preferences, host);
     }
 
     /// <summary>Searches the catalog.</summary>

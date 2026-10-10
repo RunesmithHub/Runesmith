@@ -34,7 +34,7 @@ public static class SafeModeDialog
 
         body.Children.Add(new TextBlock
         {
-            Text = "Runesmith started in safe mode, which loads only the plugins that come with it. Turn off the suspect plugin in the plugin manager, then restart normally.",
+            Text = "Runesmith started in safe mode, which loads no plugins. Turn off the suspect plugin in the plugin manager, then restart normally.",
             TextWrapping = TextWrapping.Wrap,
             Classes = { "secondary" },
             Margin = new Thickness(0, 6, 0, 0),

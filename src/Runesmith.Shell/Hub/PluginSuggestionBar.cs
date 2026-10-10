@@ -7,7 +7,7 @@ using HammerUI.Controls;
 
 namespace Runesmith.Shell.Hub;
 
-/// <summary>The line over an editor that suggests installing a language's official plugin.</summary>
+/// <summary>The line over an editor or the editor area that suggests installing an official plugin.</summary>
 internal static class PluginSuggestionBar
 {
     /// <param name="close">Removes the line.</param>

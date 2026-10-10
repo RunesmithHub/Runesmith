@@ -110,7 +110,7 @@ internal sealed class PluginPageView : StackPanel
         if (page.IsPending)
             actions.Children.Add(HubVisuals.StateBadge("Installed, restart to enable", "Check", "SuccessBrush"));
         else if (page.CanInstall && !page.IsSelectedInstalled)
-            actions.Children.Add(InstallButton(page.IsUpdate || page.IsBundled ? "Update" : page.IsInstalled ? $"Install {page.Version!.Version}" : "Install", opened, () => _ = hub.InstallAsync(page.PluginId, page.Version?.Version)));
+            actions.Children.Add(InstallButton(page.IsUpdate ? "Update" : page.IsInstalled ? $"Install {page.Version!.Version}" : "Install", opened, () => _ = hub.InstallAsync(page.PluginId, page.Version?.Version)));
         actions.Children.Add(ReportMenu.Create(ReportMenu.Subject(record.Id, page.InstalledVersion ?? page.Version?.Version.ToString() ?? "", record.Repository.Url, hub.Version),
             record.Name, owner.Notifications, owner.Output));
 
@@ -151,7 +151,7 @@ internal sealed class PluginPageView : StackPanel
     private Border Installed(PluginRecord record)
     {
         var state = hub.Client.State.Find(record.Id);
-        var where = page.IsBundled ? "comes with Runesmith" : page.IsFromHub ? "is installed from the hub" : "is in your plugins folder";
+        var where = page.IsFromHub ? "is installed from the hub" : "is in your plugins folder";
         var text = new TextBlock { Text = $"Version {page.InstalledVersion} {where}.", VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
         if (page.Problem is { } problem && !page.IsPending)
             text.Text += $" {problem}";

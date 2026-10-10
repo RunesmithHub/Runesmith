@@ -15,7 +15,7 @@ public sealed class CoreSettings : ISettingContributor
     private const string Window = "Window";
     private const string Plugins = "Plugins";
 
-    /// <summary>Whether a local copy of a plugin Runesmith ships or the hub installed runs in its place; read from the user's settings alone
+    /// <summary>Whether a local copy of a plugin the hub installed runs in its place; read from the user's settings alone
     /// when Runesmith starts.</summary>
     public const string AllowLocalOverrides = PluginDiscovery.AllowLocalOverridesSetting;
 
@@ -81,7 +81,7 @@ public sealed class CoreSettings : ISettingContributor
 
         new(AllowLocalOverrides, "Local copies replace plugins", Plugins, false)
         {
-            Description = "Let a plugin in your plugins folder run in place of the plugin with the same id that comes with Runesmith or from the hub, "
+            Description = "Let a plugin in your plugins folder run in place of the plugin with the same id from the hub, "
                 + "such as a build of it you work on. The local copy gets its own secrets and storage. Only your user settings can turn this on. "
                 + "Takes effect when Runesmith starts again.",
         },

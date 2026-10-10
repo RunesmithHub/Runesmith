@@ -9,7 +9,7 @@ using RunesmithHub.Protocol.Versioning;
 namespace Runesmith.Composition;
 
 /// <summary>A plugin's <c>plugin.json</c>: who the plugin is, which assemblies hold its code, what it needs and what it may do.</summary>
-/// <remarks>Installed and bundled plugins carry the packaged manifest, with <c>schemaVersion</c> 1, the assemblies in <c>lib/</c>, the API
+/// <remarks>Plugins installed from the hub carry the packaged manifest, with <c>schemaVersion</c> 1, the assemblies in <c>lib/</c>, the API
 /// range, dependencies and capabilities. A manifest without <c>schemaVersion</c> is the older format plugins under development may still
 /// use: it names one assembly and an API version, and declares no capabilities.</remarks>
 /// <param name="Id">A unique id, <c>publisher.name</c>, such as <c>runesmith.csharp</c>.</param>

@@ -92,7 +92,7 @@ public sealed class KillSwitchTests : IDisposable
         Assert.Equal("Copper Snippets is no longer maintained.", deprecated.Title);
         Assert.Empty(report.Withheld);
         Assert.Empty(report.Quarantined);
-        Assert.DoesNotContain(client.Updates([], HubPreferences.Default), u => u.PluginId == "pixel.icons");
+        Assert.DoesNotContain(client.Updates(HubPreferences.Default), u => u.PluginId == "pixel.icons");
     }
 
     [Fact]

@@ -1,7 +1,0 @@
-{
-  "index": "https://runesmithhub.github.io/registry/",
-  "plugins": [
-    { "id": "runesmith.git", "version": "0.1.0", "sha256": "aa827f7217dd83ce6b0f3633205e074138558c16443ee5f0c51ef69228bbfd81" },
-    { "id": "runesmith.github", "version": "0.1.0", "sha256": "a1f9b20db9cebaffaac5eea24db82a4037ccdb12466aeb2b7f00bd5e359f6f87" }
-  ]
-}

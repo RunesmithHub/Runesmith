@@ -18,30 +18,30 @@ public sealed class LocalCopyTests : IDisposable
     public void ARunningLocalCopySaysItReplacesTheInstalledPluginAndComesFirst()
     {
         var rows = Installed(
-            Plugin("runesmith.csharp", "C#", "0.1.0", PluginSource.Bundled),
-            Plugin("runesmith.git", "Git", "0.3.0", PluginSource.Bundled) with { State = PluginState.Replaced, Error = "Version 0.3.0 from your plugins folder runs instead." },
+            Plugin("runesmith.csharp", "C#", "0.1.0", PluginSource.Hub),
+            Plugin("runesmith.git", "Git", "0.3.0", PluginSource.Hub) with { State = PluginState.Replaced, Error = "Version 0.3.0 from your plugins folder runs instead." },
             Plugin("runesmith.git", "Git", "0.3.0", PluginSource.Local) with { IsLocalCopy = true });
 
         Assert.Equal(["Git", "C#"], rows.Select(r => r.Name));
         var row = rows[0];
         Assert.Equal((InstalledSource.Local, LocalCopyState.Replacing, true, true, false), (row.Source, row.LocalCopy, row.IsEnabled, row.CanToggle, row.IsProblem));
         Assert.Null(row.Tier);
-        Assert.Equal("Local copy, running in place of version 0.3.0 that comes with Runesmith. It has its own secrets and storage, so sign in to it again.", row.Note);
+        Assert.Equal("Local copy, running in place of version 0.3.0 from the hub. It has its own secrets and storage, so sign in to it again.", row.Note);
     }
 
     [Fact]
     public void ARefusedLocalCopySaysWhyAndCannotBeTurnedOn()
     {
         var rows = Installed(
-            Plugin("runesmith.git", "Git", "0.3.0", PluginSource.Bundled),
+            Plugin("runesmith.git", "Git", "0.3.0", PluginSource.Hub),
             Plugin("runesmith.git", "Git", "0.4.0", PluginSource.Local) with { IsLocalCopy = true, State = PluginState.Refused, Error = "Turn on plugins.allowLocalOverrides." });
 
         var refused = rows.Single(r => r.LocalCopy is not null);
         Assert.Equal((LocalCopyState.Refused, "Turn on plugins.allowLocalOverrides.", true, false, false), (refused.LocalCopy, refused.Note, refused.IsProblem, refused.IsEnabled, refused.CanToggle));
         var official = rows.Single(r => r.LocalCopy is null);
-        Assert.Equal((InstalledSource.Bundled, "Comes with Runesmith.", true), (official.Source, official.Note, official.IsEnabled));
+        Assert.Equal((InstalledSource.Hub, "From the hub.", true), (official.Source, official.Note, official.IsEnabled));
         Assert.Equal("0.3.0", Model(Plugin("runesmith.git", "Git", "0.4.0", PluginSource.Local) with { IsLocalCopy = true, State = PluginState.Refused },
-            Plugin("runesmith.git", "Git", "0.3.0", PluginSource.Bundled)).RunningVersion("runesmith.git"));
+            Plugin("runesmith.git", "Git", "0.3.0", PluginSource.Hub)).RunningVersion("runesmith.git"));
     }
 
     [Fact]
@@ -59,9 +59,9 @@ public sealed class LocalCopyTests : IDisposable
     {
         var notices = PluginManagerModel.LocalCopyNotices(
         [
-            Plugin("runesmith.git", "Git", "0.3.0", PluginSource.Bundled) with { State = PluginState.Replaced },
+            Plugin("runesmith.git", "Git", "0.3.0", PluginSource.Hub) with { State = PluginState.Replaced },
             Plugin("runesmith.git", "Git", "0.3.0", PluginSource.Local) with { IsLocalCopy = true },
-            Plugin("runesmith.java", "Java", "0.2.0", PluginSource.Bundled),
+            Plugin("runesmith.java", "Java", "0.2.0", PluginSource.Hub),
             Plugin("runesmith.java", "Java", "0.2.0", PluginSource.Local) with { IsLocalCopy = true, State = PluginState.Refused },
         ]);
 
