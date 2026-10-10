@@ -6,6 +6,7 @@ using Runesmith.Sdk.Workspace;
 namespace Runesmith.Workspace.Files;
 
 /// <summary>The open folder: its solutions, its files and the changes made to them on disk.</summary>
+[Export]
 [Export(typeof(IWorkspace))]
 [Shared]
 public sealed class Workspace : IWorkspace, IDisposable
@@ -35,6 +36,13 @@ public sealed class Workspace : IWorkspace, IDisposable
 
     /// <summary>Gets whether changes made on disk outside Runesmith are followed; they are not when the system has no file watches left.</summary>
     public bool IsWatching => _watcher?.IsWatching ?? false;
+
+    /// <summary>Raised on a background thread with each batch of changes the watcher saw in the open folder, before the file list takes them
+    /// in, and whether changes were lost. A folder that was deleted, renamed or moved in comes with each file the list knew inside it.</summary>
+    internal event Action<string, IReadOnlyList<FileChange>, bool>? ChangesObserved;
+
+    /// <summary>Whether a path inside the open folder is left out by <c>files.exclude</c>.</summary>
+    internal bool IsExcluded(string path) => _index?.IsExcluded(path) ?? false;
 
     public event EventHandler? Changed;
 
@@ -112,6 +120,9 @@ public sealed class Workspace : IWorkspace, IDisposable
         if (index != _index)
             return;
 
+        if (ChangesObserved is { } observed)
+            observed(root, overflowed ? [] : Expand(index, changes), overflowed);
+
         if (overflowed)
             index.Invalidate();
         else
@@ -124,6 +135,74 @@ public sealed class Workspace : IWorkspace, IDisposable
                 .Where(path => !index.IsExcluded(path)).Distinct(PathComparison.Comparer)];
         if (paths.Length > 0)
             UiThread.Run(() => _messageBus.Publish(new FilesChangedMessage(paths)));
+    }
+
+    /// <summary>Adds the files inside folders that were deleted, renamed or created, and, before a rename onto a file the list knew, that
+    /// file's deletion, which is how a save that writes a new file and renames it over the old one looks.</summary>
+    internal static List<FileChange> Expand(FileIndex index, IReadOnlyList<FileChange> changes)
+    {
+        var expanded = new List<FileChange>(changes.Count);
+        // The list knows the files as they were before the batch, so the batch's own moves are followed here.
+        var gone = new HashSet<string>(PathComparison.Comparer);
+        var added = new HashSet<string>(PathComparison.Comparer);
+        List<string> FilesUnder(string folder)
+        {
+            var prefix = folder + Path.DirectorySeparatorChar;
+            return [.. index.FilesUnder(folder).Where(file => !gone.Contains(file)).Concat(added.Where(file => file.StartsWith(prefix, PathComparison.Comparison)))];
+        }
+
+        void Remove(string path)
+        {
+            gone.Add(path);
+            added.Remove(path);
+        }
+
+        void Add(string path)
+        {
+            added.Add(path);
+            gone.Remove(path);
+        }
+
+        foreach (var change in changes)
+        {
+            switch (change.Kind)
+            {
+                case WatcherChangeTypes.Deleted:
+                    var deleted = FilesUnder(change.Path);
+                    expanded.Add(change);
+                    expanded.AddRange(deleted.Select(file => new FileChange(WatcherChangeTypes.Deleted, file)));
+                    Remove(change.Path);
+                    deleted.ForEach(Remove);
+                    break;
+                case WatcherChangeTypes.Renamed when change.OldPath is { } oldPath:
+                    if ((index.Contains(change.Path) && !gone.Contains(change.Path)) || added.Contains(change.Path))
+                        expanded.Add(new FileChange(WatcherChangeTypes.Deleted, change.Path));
+                    var moved = FilesUnder(oldPath);
+                    expanded.Add(change);
+                    expanded.AddRange(moved.Select(file => new FileChange(WatcherChangeTypes.Renamed, change.Path + file[oldPath.Length..], file)));
+                    Remove(oldPath);
+                    Add(change.Path);
+                    foreach (var file in moved)
+                    {
+                        Remove(file);
+                        Add(change.Path + file[oldPath.Length..]);
+                    }
+
+                    break;
+                case WatcherChangeTypes.Created:
+                    var created = index.ReadFilesUnder(change.Path);
+                    expanded.Add(change);
+                    expanded.AddRange(created.Select(file => new FileChange(WatcherChangeTypes.Created, file)));
+                    Add(change.Path);
+                    created.ForEach(Add);
+                    break;
+                default:
+                    expanded.Add(change);
+                    break;
+            }
+        }
+
+        return expanded;
     }
 
     private void OnSettingChanged(object? sender, SettingChangedEventArgs e)
