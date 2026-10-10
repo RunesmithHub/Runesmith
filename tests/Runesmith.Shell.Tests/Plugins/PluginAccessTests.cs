@@ -96,6 +96,46 @@ public sealed class PluginAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task ALocalCopyAndThePluginItReplacesCannotReadEachOthersSecrets()
+    {
+        var official = Secrets(TestCallers.Plugin("acme.todo", "credentials"));
+        var copy = Secrets(TestCallers.Plugin("acme.todo", "credentials") with { IsLocalCopy = true });
+
+        await official.SetAsync("acme.todo/token", "official", Token);
+        Assert.Null(await copy.GetAsync("acme.todo/token", Token));
+
+        await copy.SetAsync("acme.todo/token", "local", Token);
+        await copy.SetAsync("acme.todo/other", "local only", Token);
+        Assert.Equal("official", await official.GetAsync("acme.todo/token", Token));
+        Assert.Equal("local", await copy.GetAsync("acme.todo/token", Token));
+        Assert.Null(await official.GetAsync("acme.todo/other", Token));
+
+        await copy.DeleteAsync("acme.todo/token", Token);
+        Assert.Equal("official", await official.GetAsync("acme.todo/token", Token));
+        Assert.Equal("local only", await Secrets(null).GetAsync("local/acme.todo/other", Token));
+    }
+
+    [Fact]
+    public async Task ALocalCopyStillKeepsToItsOwnId()
+    {
+        var copy = Secrets(TestCallers.Plugin("acme.todo", "credentials") with { IsLocalCopy = true });
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => copy.GetAsync("local/acme.todo/token", Token));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => copy.GetAsync("acme.other/token", Token));
+    }
+
+    [Fact]
+    public void ALocalCopyHasAStorageFolderApartFromThePluginItReplaces()
+    {
+        var official = new PluginStorage(folder, () => TestCallers.Plugin("acme.todo")).GetFolder();
+        var copy = new PluginStorage(folder, () => TestCallers.Plugin("acme.todo") with { IsLocalCopy = true }).GetFolder();
+
+        Assert.Equal(Path.Combine(folder, "acme.todo"), official);
+        Assert.Equal(Path.Combine(folder, "local", "acme.todo"), copy);
+        Assert.False(copy.StartsWith(official + Path.DirectorySeparatorChar, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void RunesmithItselfHasNoPluginStorageFolder() =>
         Assert.Throws<InvalidOperationException>(() => new PluginStorage(folder, () => null).GetFolder());
 

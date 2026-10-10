@@ -6,11 +6,15 @@ using RunesmithHub.Protocol;
 
 namespace Runesmith.Shell.Services;
 
-/// <summary>Gives each plugin the folder <c>plugins/&lt;id&gt;</c> in Runesmith's data folder.</summary>
+/// <summary>Gives each plugin the folder <c>plugins/&lt;id&gt;</c> in Runesmith's data folder, and a local copy of a plugin Runesmith ships or
+/// the hub installed <c>plugins/local/&lt;id&gt;</c>, apart from that plugin's.</summary>
 [Export(typeof(IPluginStorage))]
 [Shared]
 public sealed class PluginStorage : IPluginStorage
 {
+    /// <summary>The folder local copies' storage folders are in; no plugin id can name it, as ids have a dot.</summary>
+    public const string LocalCopies = "local";
+
     private readonly string root;
     private readonly Func<PluginInfo?> caller;
 
@@ -31,7 +35,7 @@ public sealed class PluginStorage : IPluginStorage
         if (!PluginId.IsValid(plugin.Manifest.Id))
             throw new InvalidOperationException($"{plugin.Manifest.Id} is not a plugin id that can name a folder; ids look like publisher.name.");
 
-        var folder = Path.Combine(root, plugin.Manifest.Id);
+        var folder = plugin.IsLocalCopy ? Path.Combine(root, LocalCopies, plugin.Manifest.Id) : Path.Combine(root, plugin.Manifest.Id);
         Directory.CreateDirectory(folder);
         return folder;
     }
