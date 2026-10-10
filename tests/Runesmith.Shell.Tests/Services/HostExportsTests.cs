@@ -5,10 +5,12 @@ using Runesmith.Composition;
 using Runesmith.Sdk.Documents;
 using Runesmith.Sdk.Plugins;
 using Runesmith.Sdk.Shell;
+using Runesmith.Sdk.ToolWindows;
 using Runesmith.Shell.Appearance;
 using Runesmith.Shell.Diffs;
 using Runesmith.Shell.QuickInput;
 using Runesmith.Shell.Services;
+using Runesmith.Shell.TreeViews;
 
 namespace Runesmith.Shell.Tests.Services;
 
@@ -32,6 +34,7 @@ public sealed class HostExportsTests
             Assert.IsType<PluginStorage>(result.Exports.GetExportedValue<IPluginStorage>());
             Assert.IsType<ClipboardService>(result.Exports.GetExportedValue<IClipboard>());
             Assert.Same(result.Exports.GetExportedValue<QuickInputService>(), result.Exports.GetExportedValue<IQuickInputService>());
+            Assert.Same(result.Exports.GetExportedValue<TreeViewService>(), result.Exports.GetExportedValue<ITreeViewService>());
             var appearance = result.Exports.GetExportedValue<AppearanceCatalog>();
             Assert.Equal(["dark", "light", "runesmith-low-contrast-dark", "runesmith-low-contrast-light"], appearance.Themes.Select(e => e.Theme.Id));
             Assert.Equal(["runesmith-dark", "runesmith-light", "runesmith-low-contrast-dark", "runesmith-low-contrast-light"], appearance.Schemes.Select(e => e.Scheme.Id));

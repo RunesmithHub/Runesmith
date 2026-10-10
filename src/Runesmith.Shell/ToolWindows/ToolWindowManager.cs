@@ -6,6 +6,7 @@ using HammerUI.Controls;
 using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Shell.Session;
+using Runesmith.Shell.TreeViews;
 
 namespace Runesmith.Shell.ToolWindows;
 
@@ -34,7 +35,12 @@ public sealed class ToolWindowManager : IToolWindowManager, ICommandContributor
     private bool isSynced;
 
     [ImportingConstructor]
-    public ToolWindowManager([ImportMany] IEnumerable<IToolWindowProvider> providers)
+    public ToolWindowManager([ImportMany] IEnumerable<IToolWindowProvider> providers, TreeViewService trees)
+        : this(providers.Concat(trees.ToolWindows()))
+    {
+    }
+
+    internal ToolWindowManager(IEnumerable<IToolWindowProvider> providers)
     {
         this.providers = providers.GroupBy(p => p.Definition.Id).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
         layout = CreateLayout(SessionStore.LoadToolWindows());

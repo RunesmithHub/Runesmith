@@ -124,7 +124,7 @@ internal static class MenuBuilder
 
     /// <summary>Gets the items plugins added to a context menu whose commands can run on the target, each group after a separator, the first
     /// included.</summary>
-    public static List<Control> ContributedItems(CommandService commands, string contextMenu, ContextMenuTarget target)
+    public static List<Control> ContributedItems(CommandService commands, string contextMenu, object target)
     {
         var items = new List<Control>();
         var groups = commands.MenuItems.Where(i => i.Menu == contextMenu).GroupBy(i => i.Group).OrderBy(g => g.Key, StringComparer.Ordinal);
