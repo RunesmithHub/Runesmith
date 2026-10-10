@@ -88,7 +88,10 @@ public sealed class JdkApiTests
             Assert.Equal(first.TypeNames.Count(), second.TypeNames.Count());
             Assert.Equal(first.FindClass("java.util.HashMap")!.Methods.Count, second.FindClass("java.util.HashMap")!.Methods.Count);
             Assert.True(cached < cold, $"Loading from the cache took {cached.TotalMilliseconds} ms, the first load {cold.TotalMilliseconds} ms.");
+#if !DEBUG
+            // An absolute time is a performance goal, checked in Release builds like the others.
             Assert.True(cached < TimeSpan.FromMilliseconds(250), $"Loading from the cache took {cached.TotalMilliseconds} ms.");
+#endif
         }
         finally
         {
