@@ -64,6 +64,27 @@ public sealed class IntegrityTests : IDisposable
         Assert.Equal(File.GetLastWriteTimeUtc(file), recorded.Modified);
     }
 
+    [Fact]
+    public async Task IconsAreCachedOnlyWhenTheyMatchTheIndex()
+    {
+        using var changed = new HubFixture(HubFixture.CopyIndex());
+        var client = changed.CreateClient();
+        await client.RefreshAsync(Token);
+        var git = client.Catalog!.FindPlugin("runesmith.git")!.Icon;
+        var csharp = client.Catalog!.FindPlugin("runesmith.csharp")!.Icon;
+        var tampered = Path.Combine(changed.Index, "files", "runesmith.csharp", "icon-64.png");
+        var bytes = File.ReadAllBytes(tampered);
+        bytes[^1] ^= 1;
+        File.WriteAllBytes(tampered, bytes);
+
+        var cached = await client.GetIconAsync(git.Size64!, Token);
+
+        Assert.Equal(Path.Combine(changed.Paths.Icons, git.Size64!.Sha256 + ".png"), cached);
+        Assert.Equal(File.ReadAllBytes(Path.Combine(changed.Index, "files", "runesmith.git", "icon-64.png")), File.ReadAllBytes(cached!));
+        Assert.Null(await client.GetIconAsync(csharp.Size64!, Token));
+        Assert.False(File.Exists(Path.Combine(changed.Paths.Icons, csharp.Size64!.Sha256 + ".png")));
+    }
+
     private async Task<HubClient> InstallAsync(string id)
     {
         var client = fixture.CreateClient();

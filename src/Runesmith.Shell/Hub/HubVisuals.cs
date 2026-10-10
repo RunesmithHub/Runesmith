@@ -235,8 +235,8 @@ internal static class HubVisuals
     public static SymbolIcon Symbol(string name, double size, string brush) =>
         Themed(new SymbolIcon { Data = Icon(name), Size = size }, SymbolIcon.ForegroundProperty, brush);
 
-    /// <summary>A plugin's icon: the hub's image when it is cached or can be fetched, Runesmith's mark for official plugins, the icon in the
-    /// plugin's folder, or a tile with the name's first letter.</summary>
+    /// <summary>A plugin's icon: the icon in the plugin's folder, or the hub's image when it is cached or can be fetched and checked; until
+    /// then, or without one, Runesmith's mark for official plugins or a tile with the name's first letter.</summary>
     public static Control PluginIcon(HubClient client, string id, string name, PluginTier? tier, HostedImage? image, string? folder, double size)
     {
         var tile = new Border { Width = size, Height = size, CornerRadius = new CornerRadius(size >= 48 ? 12 : 8), ClipToBounds = true };
@@ -255,7 +255,6 @@ internal static class HubVisuals
         {
             tile.Background = new SolidColorBrush(Color.Parse("#0F1013"));
             tile.Child = new Logo(size * 0.72) { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            return tile;
         }
 
         if (folder is not null && LocalIcon(folder) is { } local && Load(local) is { } bitmap)
