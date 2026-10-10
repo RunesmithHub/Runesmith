@@ -127,8 +127,8 @@ A **.NET project** configuration has these settings:
 The **Build** step before a .NET project or tests configuration builds only that project, with `dotnet build` and the same configuration
 and framework, and its errors and warnings appear in the **Problems** panel as a folder build's do. A **.NET command** builds the folder.
 
-Debugging a .NET project will start the built assembly, `bin/<configuration>/<framework>/<assembly>.dll`, with `dotnet`; the .NET
-debugger is not part of Runesmith yet.
+Debugging a .NET project starts the built assembly, `bin/<configuration>/<framework>/<assembly>.dll`, under the `dotnet` debugger, which
+a [debug engine](/plugins/debug-engines) plugin provides; the C# plugin does not include one yet.
 
 ## SDKs
 

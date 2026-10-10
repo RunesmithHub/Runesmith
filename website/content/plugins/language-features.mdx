@@ -52,7 +52,7 @@ public sealed class TodoMarkers : IDecorationProvider
 
 | Decoration | What it shows |
 | --- | --- |
-| `GutterMarker(span, icon)` | An icon from HammerUI's icon set beside the line where the span starts, in a `Tone`. `CommandId` and `CommandArgument` make it clickable; `ShowsInOverviewRuler` also marks the line beside the vertical scroll bar. |
+| `GutterMarker(span, icon)` | An icon from HammerUI's icon set beside the line where the span starts, in a `Tone`. `IsFilled` fills it with its tone, as for a breakpoint. `CommandId` and `CommandArgument` make it clickable; `ShowsInOverviewRuler` also marks the line beside the vertical scroll bar. |
 | `InlayHint(offset, text)` | Faint text inside the line, such as `count:` or `: int`. `Side` says whether it belongs to the text after it (`Before`, the default) or before it (`After`), which decides where the caret at the offset is drawn. |
 | `CodeLens(span, text)` | A line of small text above the line where the span starts. `CommandId` and `CommandArgument` make it clickable. Several on one line are shown side by side. |
 | `TextHighlight(span)` | An `Underline` (`Solid`, `Dotted`, `Dashed` or `Wavy`, the default), a faint `Background`, or both, in a `Tone`. Its `ToolTip` shows in the hover. |

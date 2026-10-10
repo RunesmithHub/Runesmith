@@ -388,6 +388,25 @@ in the C# plugin is a complete example.
 To report problems outside a build, call `IDiagnosticService.Set` with your source's name, a file and its `Diagnostic`s; each call replaces
 what that source reported for the file.
 
+## Run configurations
+
+Export an `IRunConfigurationType` to add a kind of run configuration, such as ".NET project". `DetectAsync` finds the configurations a
+folder has without the user making them, `GetOptionsAsync` gives the settings the configurations dialog shows, `BuildAsync` builds what a
+configuration runs, and `PrepareAsync` turns a configuration into a `LaunchPlan`: the program, its arguments, working folder and
+environment. Runesmith starts the plan's program and shows its output in the **Run** panel.
+
+A kind whose `CanDebug` is true can be debugged: in debug mode, `PrepareAsync` gets `RunMode.Debug` and sets `LaunchPlan.Debug` to a
+`DebugLaunch` that names the debugger, such as `dotnet`, with its settings.
+
+## Debug engines
+
+Export an `IDebugAdapterProvider` to bring a debugger for a runtime. It names the debuggers it serves, says how to start or reach a debugger
+that speaks the Debug Adapter Protocol, and turns a `DebugLaunch` into the debugger's launch or attach request; Runesmith does the rest.
+Starting a debugger needs the `process` [capability](./index.mdx#capabilities). [Debug engines](./debug-engines.mdx) has an example.
+
+`CommandIds` has the debugger's commands, such as `ToggleBreakpoint`, `Continue`, `StepOver`, `StepInto`, `StepOut` and `StopDebugging`,
+for plugins that place them in menus.
+
 ## Documents and editors
 
 `IDocumentService` opens files as `IDocument`s, whose `Buffer` holds the text. Edit the text on the UI thread; snapshots of it can be read
