@@ -16,6 +16,10 @@ internal sealed class FakeEditorServices
 
     public FakeEditorFeatures Features { get; } = new();
 
+    public FakeNavigationFeatures Navigation { get; } = new();
+
+    public FakeSyntaxFeatures Syntax { get; } = new();
+
     public FakeWorkspaceEdits Edits { get; } = new();
 
     public FakeCommands Commands { get; } = new();
@@ -28,6 +32,8 @@ internal sealed class FakeEditorServices
         new NoDiagnostics(),
         new NoLanguages(),
         Features,
+        Navigation,
+        Syntax,
         new EditorKeyHooks(Hooks),
         new Lazy<IWorkspaceEditService>(() => Edits),
         new Lazy<ICommandService>(() => Commands));
@@ -205,4 +211,78 @@ internal sealed class ScriptedDecorations : IDecorationProvider
     }
 
     public void Raise() => Changed?.Invoke(this, new DecorationsChangedEventArgs(null));
+}
+
+internal sealed class FakeNavigationFeatures : INavigationFeatures
+{
+    public List<DocumentLocation> References { get; } = [];
+
+    public List<DocumentLocation> Implementations { get; } = [];
+
+    public Func<int, IReadOnlyList<DocumentHighlight>> Highlights { get; set; } = _ => [];
+
+    public int HighlightRequests { get; private set; }
+
+    public IReadOnlyList<DocumentSymbol>? Symbols { get; set; }
+
+    public event EventHandler<LanguageFeatureChangedEventArgs>? Changed;
+
+    public Task<IReadOnlyList<DocumentLocation>> GetReferencesAsync(IDocument document, TextSnapshot snapshot, int offset, bool includeDeclaration, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<DocumentLocation>>([.. References]);
+
+    public Task<IReadOnlyList<DocumentLocation>> GetImplementationsAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<DocumentLocation>>([.. Implementations]);
+
+    public Task<IReadOnlyList<DocumentHighlight>> GetDocumentHighlightsAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken)
+    {
+        HighlightRequests++;
+        return Task.FromResult(Highlights(offset));
+    }
+
+    public Task<IReadOnlyList<DocumentSymbol>?> GetDocumentSymbolsAsync(IDocument document, TextSnapshot snapshot, CancellationToken cancellationToken) => Task.FromResult(Symbols);
+
+    public Task<IReadOnlyList<WorkspaceSymbol>> GetWorkspaceSymbolsAsync(string query, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<WorkspaceSymbol>>([]);
+
+    public Task<IReadOnlyList<HierarchyItem>> PrepareCallHierarchyAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<HierarchyItem>>([]);
+
+    public Task<IReadOnlyList<HierarchyCall>> GetIncomingCallsAsync(HierarchyItem item, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<HierarchyCall>>([]);
+
+    public Task<IReadOnlyList<HierarchyCall>> GetOutgoingCallsAsync(HierarchyItem item, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<HierarchyCall>>([]);
+
+    public Task<IReadOnlyList<HierarchyItem>> PrepareTypeHierarchyAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<HierarchyItem>>([]);
+
+    public Task<IReadOnlyList<HierarchyItem>> GetSupertypesAsync(HierarchyItem item, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<HierarchyItem>>([]);
+
+    public Task<IReadOnlyList<HierarchyItem>> GetSubtypesAsync(HierarchyItem item, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<HierarchyItem>>([]);
+
+    public void Raise(string? path) => Changed?.Invoke(this, new LanguageFeatureChangedEventArgs(path));
+}
+
+internal sealed class FakeSyntaxFeatures : ISyntaxFeatures
+{
+    public Func<TextSnapshot, IReadOnlyList<FoldingRange>?> Folding { get; set; } = _ => null;
+
+    public Func<TextSnapshot, int, IReadOnlyList<TextSpan>?> SelectionRanges { get; set; } = (_, _) => null;
+
+    public int FoldingRequests { get; private set; }
+
+    public event EventHandler<LanguageFeatureChangedEventArgs>? Changed;
+
+    public Task<IReadOnlyList<FoldingRange>?> GetFoldingRangesAsync(IDocument document, TextSnapshot snapshot, CancellationToken cancellationToken)
+    {
+        FoldingRequests++;
+        return Task.FromResult(Folding(snapshot));
+    }
+
+    public Task<IReadOnlyList<TextSpan>?> GetSelectionRangesAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken) =>
+        Task.FromResult(SelectionRanges(snapshot, offset));
+
+    public bool HasSemanticTokens(IDocument document) => false;
+
+    public Task<IReadOnlyList<SemanticToken>?> GetSemanticTokensAsync(IDocument document, TextSnapshot snapshot, TextSpan? span, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<SemanticToken>?>(null);
+
+    public void Raise(string? path) => Changed?.Invoke(this, new LanguageFeatureChangedEventArgs(path));
 }

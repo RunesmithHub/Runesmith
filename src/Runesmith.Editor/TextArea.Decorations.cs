@@ -144,7 +144,7 @@ public sealed partial class TextArea
     {
         var lines = !options.ShowCodeLens || !decorations.HasCodeLenses
             ? NoLines
-            : [.. decorations.All<CodeLens>().Select(p => snapshot.GetLineFromPosition(Math.Min(p.Span.Start, snapshot.Length)).LineNumber).Distinct().Order()];
+            : [.. decorations.All<CodeLens>().Select(p => snapshot.GetLineFromPosition(Math.Min(p.Span.Start, snapshot.Length)).LineNumber).Where(line => !IsHiddenLine(line)).Distinct().Order()];
         if (lines.AsSpan().SequenceEqual(lensLines))
             return;
 
@@ -206,6 +206,9 @@ public sealed partial class TextArea
     // Handles a click on the light bulb, a gutter icon or a code lens; returns whether it did.
     private bool ClickDecoration(Point point)
     {
+        if (ClickFolding(point))
+            return true;
+
         if (lensLines.Length > 0 && LensAt(point) is { } lens)
         {
             if (lens.Decoration is CodeLens { CommandId: { } lensCommand } codeLens)
@@ -233,7 +236,8 @@ public sealed partial class TextArea
 
     /// <summary>Whether a point is over something in the gutter or a code lens that a click runs.</summary>
     private bool IsOverClickableDecoration(Point point) =>
-        lensLines.Length > 0 && LensAt(point) is { Decoration: CodeLens { CommandId: not null } }
+        IsOverFoldControl(point)
+        || lensLines.Length > 0 && LensAt(point) is { Decoration: CodeLens { CommandId: not null } }
         || GlyphLineAt(point) is { } line && (line == lightBulbLine || GlyphMarginClick is not null || MarkerOn(line) is { Decoration: GutterMarker { CommandId: not null } });
 
     private void DrawHighlightBackgrounds(DrawingContext context, TextSpan visible, double left)
@@ -279,7 +283,7 @@ public sealed partial class TextArea
         if (!decorations.HasInlayHints || !options.ShowInlayHints)
             return;
 
-        for (var number = first; number <= last; number++)
+        for (var number = first; number <= last; number = NextShownLine(number))
         {
             var visual = GetVisualLine(number);
             if (visual.Inlays.IsEmpty)
@@ -306,7 +310,7 @@ public sealed partial class TextArea
         {
             var line = snapshot.GetLineFromPosition(Math.Min(placed.Span.Start, snapshot.Length)).LineNumber;
             var marker = (GutterMarker)placed.Decoration;
-            if (line < first || line > last || line == lightBulbLine || !drawn.Add(line) || HammerUI.Icons.Find(marker.Icon) is not { } icon)
+            if (line < first || line > last || line == lightBulbLine || IsHiddenLine(line) || !drawn.Add(line) || HammerUI.Icons.Find(marker.Icon) is not { } icon)
                 continue;
 
             DrawIcon(context, icon, Paint.Tone(marker.Tone), GlyphRect(line), marker.IsFilled);
@@ -333,7 +337,7 @@ public sealed partial class TextArea
         foreach (var group in decorations.In<CodeLens>(visible).GroupBy(p => snapshot.GetLineFromPosition(Math.Min(p.Span.Start, snapshot.Length)).LineNumber))
         {
             var line = group.Key;
-            if (line < first || line > last + 1)
+            if (line < first || line > last + 1 || IsHiddenLine(line))
                 continue;
 
             var text = snapshot.GetLineText(line);

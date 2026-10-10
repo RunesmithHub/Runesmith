@@ -46,24 +46,25 @@ public sealed partial class TextArea
         ScrollChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Gets the number of rows the text takes: its lines and the blank rows of <see cref="Diff"/>.</summary>
-    public int RowCount => Snapshot.LineCount + (gapRowsThrough.Length == 0 ? 0 : gapRowsThrough[^1]);
+    /// <summary>Gets the number of rows the text takes: its lines and the blank rows of <see cref="Diff"/>, less the lines folding hides.</summary>
+    public int RowCount => Snapshot.LineCount + (gapRowsThrough.Length == 0 ? 0 : gapRowsThrough[^1]) - Folding.HiddenLineCount;
 
-    /// <summary>Gets the row a line is drawn in, counting blank rows above it.</summary>
+    /// <summary>Gets the row a line is drawn in, counting blank rows above it; a hidden line has the row of the next line shown.</summary>
     public int RowOf(int lineNumber)
     {
+        var hidden = Folding.HasHiddenLines ? Folding.HiddenBefore(lineNumber) : 0;
         if (gapLines.Length == 0)
-            return lineNumber;
+            return lineNumber - hidden;
 
         var index = UpperBound(gapLines, lineNumber);
-        return lineNumber + (index == 0 ? 0 : gapRowsThrough[index - 1]);
+        return lineNumber + (index == 0 ? 0 : gapRowsThrough[index - 1]) - hidden;
     }
 
-    /// <summary>Gets the line drawn in a row, or the line after the blank rows the row is in.</summary>
+    /// <summary>Gets the line drawn in a row, or the line after the blank rows the row is in; never a line folding hides.</summary>
     public int LineAtRow(int row)
     {
         var count = Snapshot.LineCount;
-        if (gapLines.Length == 0)
+        if (gapLines.Length == 0 && !Folding.HasHiddenLines)
             return Math.Clamp(row, 0, count - 1);
 
         int low = 0, high = count - 1;
@@ -76,7 +77,12 @@ public sealed partial class TextArea
                 high = middle - 1;
         }
 
-        return RowOf(low) < row && low < count - 1 ? low + 1 : low;
+        var line = RowOf(low) < row && low < count - 1 ? low + 1 : low;
+        if (!IsHiddenLine(line))
+            return line;
+
+        var next = Folding.NextVisible(line, count);
+        return next < count ? next : Folding.VisibleLineOf(line);
     }
 
     private static int UpperBound(int[] values, int value)
@@ -99,7 +105,6 @@ public sealed partial class TextArea
         if (diff.Lines.Count == 0)
             return;
 
-        var lineHeight = LineHeight;
         foreach (var range in diff.Lines)
         {
             var end = range.Start + range.Count - 1;
@@ -109,7 +114,7 @@ public sealed partial class TextArea
             var from = Math.Max(range.Start, first);
             var to = Math.Min(end, last);
             var top = LineTop(from);
-            context.FillRectangle(brushes.DiffLine(range.Kind), new Rect(left, top, right - left, LineTop(to) + lineHeight - top));
+            context.FillRectangle(brushes.DiffLine(range.Kind), new Rect(left, top, right - left, LineBottom(to) - top));
         }
     }
 

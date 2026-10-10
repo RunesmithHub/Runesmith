@@ -119,7 +119,8 @@ public sealed partial class TextArea
         if (change.IsDeletion)
             return new Rect(x, LineTop(change.NewStart) - 5, 7, 10);
 
-        return new Rect(x, LineTop(change.NewStart), MarkerWidth, change.NewLength * LineHeight);
+        var top = LineTop(change.NewStart);
+        return new Rect(x, top, MarkerWidth, LineBottom(change.NewStart + change.NewLength - 1) - top);
     }
 
     private DiffHunk? ChangeMarkerAt(Point point)

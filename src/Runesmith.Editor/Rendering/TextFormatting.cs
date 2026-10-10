@@ -49,10 +49,18 @@ internal sealed class TextFormatting
             return properties;
 
         var typeface = new Typeface(FontFamily, style.IsItalic ? FontStyle.Italic : FontStyle.Normal, style.IsBold ? FontWeight.Bold : FontWeight.Normal);
-        properties = Create(typeface, new ImmutableSolidColorBrush(style.Foreground), style.IsUnderline ? TextDecorations.Underline : null);
+        properties = Create(typeface, new ImmutableSolidColorBrush(style.Foreground), Decorations(style));
         styles[style] = properties;
         return properties;
     }
+
+    private static TextDecorationCollection? Decorations(SyntaxStyle style) => (style.IsUnderline, style.IsStrikethrough) switch
+    {
+        (true, true) => new TextDecorationCollection(TextDecorations.Underline.Concat(TextDecorations.Strikethrough)),
+        (true, false) => TextDecorations.Underline,
+        (false, true) => TextDecorations.Strikethrough,
+        _ => null,
+    };
 
     /// <summary>Formats a short piece of text in one color, such as a line number.</summary>
     public TextLine FormatPlain(string text, IBrush foreground) =>

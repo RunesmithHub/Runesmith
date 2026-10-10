@@ -44,7 +44,11 @@ public sealed partial class TextEditor
     public bool IsDecorated
     {
         get => decorationController.IsEnabled;
-        set => decorationController.IsEnabled = value;
+        set
+        {
+            decorationController.IsEnabled = value;
+            EnableNavigation(value);
+        }
     }
 
     /// <summary>Gets or sets how the caret is drawn.</summary>
@@ -130,6 +134,7 @@ public sealed partial class TextEditor
     private void InitializeFeatures(Grid grid)
     {
         decorationController = new DecorationController(Area, services.EditorFeatures);
+        InitializeNavigation();
         codeActions = new CodeActionController(Area, services, ShowMessage);
         rename = new RenameController(Area, services, ShowMessage);
         messagePopup = new EditorPopup(Area, above: false);
@@ -187,6 +192,7 @@ public sealed partial class TextEditor
     {
         Cancellation.Cancel(ref formatRequest);
         decorationController.Dispose();
+        DisposeNavigation();
         codeActions.Dispose();
         rename.Dispose();
         HideMessage();
