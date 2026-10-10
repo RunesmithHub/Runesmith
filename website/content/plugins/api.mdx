@@ -477,7 +477,9 @@ var saved = await secrets.GetAsync("acme.todo/token", cancellationToken);
 await secrets.DeleteAsync("acme.todo/token", cancellationToken);
 ```
 
-A store that cannot be read or written throws an `IOException`.
+A store that cannot be read or written throws an `IOException`. A local copy of a plugin that comes with Runesmith or from the hub, which
+runs only when the user turns on `plugins.allowLocalOverrides`, has its own secrets: it reads none the other plugin stored, so it signs
+in again.
 
 ## Links and files
 
@@ -494,7 +496,8 @@ folder change on disk.
 
 `RunesmithPaths` gives the folders Runesmith uses: `Config`, `Cache`, `UserSettings`, `UserPlugins`, `State` and `Logs`, and
 `WorkspaceSettings` for a folder's settings file. For a plugin's own files, import `IPluginStorage`: `GetFolder` returns a folder named
-after the plugin's id in Runesmith's data folder, and creates it.
+after the plugin's id in Runesmith's data folder, and creates it. A local copy of a plugin that comes with Runesmith or from the hub gets
+a folder of its own under `plugins/local`.
 
 ## Version control
 

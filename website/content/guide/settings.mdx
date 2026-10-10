@@ -115,7 +115,12 @@ opens the plugin manager, which lists every plugin Runesmith found, whether it l
 the change applies from the next start. **Open the plugins folder** shows the folder you install plugins in. Plugins that depend on a
 turned-off plugin do not load either.
 
-The switches write the setting `plugins.disabled`: the ids of the turned-off plugins, separated by semicolons, such as `"acme.todo"`.
+The category also holds these settings:
+
+| Setting | Key | Default | What it does |
+| --- | --- | --- | --- |
+| Turned off plugins | `plugins.disabled` | empty | The ids of the plugins Runesmith does not load, separated by semicolons. The plugin manager's switches write it. |
+| Local copies replace plugins | `plugins.allowLocalOverrides` | `false` | On: a plugin in your plugins folder with the id of a plugin that comes with Runesmith or from the hub runs in its place, with its own secrets and storage. Only your own settings count, never a folder's. Takes effect at the next start. |
 
 ## Related
 

@@ -98,9 +98,23 @@ plugin from the plugin's repository:
 dotnet build src/Runesmith.CSharp -t:InstallPlugin
 ```
 
-`InstallPlugin` writes the plugin into the user's plugins folder, under `RUNESMITH_HOME` when it is set. At the next start, a local copy
-with the same or a newer version runs instead of the bundled copy, as a newer copy from the hub does. The plugin manager's **Installed**
-tab shows which copy runs. Remove the local copy to go back to the bundled one.
+`InstallPlugin` writes the plugin into the user's plugins folder, under `RUNESMITH_HOME` when it is set. A local copy of a plugin that
+comes with Runesmith or from the hub does not load until you allow it; until then the plugin manager marks it **Not loaded** and says
+why. If you updated the plugin from the hub, uninstall that update from its page in the plugin manager first: `InstallPlugin` writes
+to the same folder, and Runesmith turns off a hub plugin whose files changed. To run the local copy:
+
+<Steps>
+
+1. Turn on **Local copies replace plugins** in **Settings**, under **Plugins**, or add `"plugins.allowLocalOverrides": true` to your
+   own `settings.json`. A folder's `.runesmith/settings.json` cannot turn it on.
+2. Restart Runesmith. The local copy runs in place of the bundled or hub copy, whatever its version.
+3. Sign in again where the plugin asks. The local copy has its own secrets and storage, so it never sees the bundled copy's sign-ins or
+   files, and they stay as they were.
+
+</Steps>
+
+While a local copy runs, Runesmith shows a notice at each start, and the plugin manager's **Installed** tab marks it **Replaces the
+installed plugin**. Remove the local copy, or turn the setting off, to go back to the bundled one.
 
 ## Test
 

@@ -15,8 +15,10 @@ who change it; plugin authors need only [Plugins](/plugins).
    folder, for a `plugin.json`. `PluginManifest` reads the packaged manifest (`schemaVersion` 1) with `RunesmithHub.Protocol`, or an older
    manifest without `schemaVersion`. Discovery checks the manifest: the required fields, a `runesmithApi` range this Runesmith supports,
    assemblies that exist inside the plugin's folder, an id no plugin before it took, and the user's `plugins.disabled` setting. Plugins the
-   hub installed (`CompositionOptions.HubPlugins`) load as hub plugins. A newer hub copy of a bundled plugin, or a local copy with the same
-   or a newer version, runs in its place while the bundled copy stays as the fallback. Plugins the hub withholds
+   hub installed (`CompositionOptions.HubPlugins`) load as hub plugins. A newer hub copy of a bundled plugin runs in its place while the
+   bundled copy stays as the fallback. A local copy of a bundled or hub plugin, one with the same id, is refused unless
+   `CompositionOptions.AllowLocalOverrides` is set, which the user's `plugins.allowLocalOverrides` decides; then it runs in place of
+   that plugin whatever its version, and `PluginInfo.IsLocalCopy` marks it. Plugins the hub withholds
    (`CompositionOptions.WithheldPlugins`), such as blocked ones and their dependents, stay off with the reason.
 2. **Order.** `PluginLoader` sorts the plugins so that each comes after the plugins it depends on. A plugin whose dependency is missing,
    turned off, failed, of a version outside the range, or part of a cycle fails with a reason that names the dependency.
@@ -39,8 +41,9 @@ the plugins that could not load to the standard error output and the shell lists
 
 `PluginCallers.Current` finds the plugin that called a service from the load context of the calling code: the nearest frame on the call
 stack outside the service's own assembly and .NET. The secret store, the launcher, the settings service and `IPluginStorage` use it to
-check capabilities and to keep each plugin's data under its own id. Runesmith's own code is never refused. Plugins with older manifests
-declare no capabilities and pass the capability checks, but keep to their own data like every plugin.
+check capabilities and to keep each plugin's data under its own id. A local copy keeps its secrets under `local/` and its id, and its
+storage in `plugins/local/<id>`, so it never reaches the data of the plugin it replaces. Runesmith's own code is never refused. Plugins
+with older manifests declare no capabilities and pass the capability checks, but keep to their own data like every plugin.
 
 ## The cache
 

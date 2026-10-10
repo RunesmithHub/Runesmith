@@ -47,9 +47,9 @@ To update one, set its `version` to a published version and its `sha256` to that
 record in the hub index (<https://runesmithhub.github.io/registry/>). The build checks both against the signed index and fails when they
 differ or the version is not published.
 
-To work on an official plugin, change it in its repository and run `dotnet build src/<Project> -t:InstallPlugin` there: a local copy with
-the same or a newer version runs instead of the bundled one. [Building and testing](website/content/developers/building.mdx#bundled-plugins)
-has the details.
+To work on an official plugin, change it in its repository, run `dotnet build src/<Project> -t:InstallPlugin` there and turn on
+`plugins.allowLocalOverrides` in your user settings: the local copy then runs instead of the bundled one, with its own secrets and storage.
+[Building and testing](website/content/developers/building.mdx#work-on-an-official-plugin) has the details.
 
 ## Making a change
 
