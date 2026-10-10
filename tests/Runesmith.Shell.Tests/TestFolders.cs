@@ -13,9 +13,9 @@ internal static class TestFolders
                     Directory.Delete(path, recursive: true);
                 return;
             }
-            catch (IOException) when (attempt < 20)
+            catch (IOException) when (attempt < 50)
             {
-                Thread.Sleep(100);
+                Thread.Sleep(200);
             }
         }
     }
