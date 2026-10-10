@@ -2,7 +2,8 @@ namespace Runesmith.Sdk.Languages;
 
 /// <summary>Describes a language server Runesmith starts for some languages, and what to tell the user when it is missing.</summary>
 /// <remarks>Export one with <c>[Export(typeof(LanguageServerDefinition))]</c>. Runesmith starts the server the first time a document of one of its
-/// languages opens in a folder, and gives its features to the editor: completion, hover, go to definition, signature help and diagnostics.</remarks>
+/// languages opens in a folder, and gives its features to the editor: completion, hover, go to definition, signature help, diagnostics, and the
+/// features its capabilities name, such as references, symbols, folding, semantic tokens and hierarchies.</remarks>
 /// <param name="Id">A unique id, such as <c>csharp-ls</c>; settings refer to it.</param>
 /// <param name="Name">The name shown in the status bar and the Output panel, such as "C# (csharp-ls)".</param>
 /// <param name="LanguageIds">The languages the server handles.</param>

@@ -196,6 +196,11 @@ A widget that throws is left out and the error goes to the **Plugins** output.
 | `ICompletionProvider`, `IHoverProvider`, `IDefinitionProvider`, `ISignatureHelpProvider` | Single language features of your own, without a language server or an analyzer. |
 | `ICodeActionProvider`, `IRenameProvider`, `IDocumentFormattingProvider`, `IRangeFormattingProvider` | Quick fixes and refactorings, rename and formatting. See [Editor extensions](./language-features.mdx). |
 | `IDecorationProvider` | Gutter icons, inlay hints, code lens and highlights. See [Decorations](./language-features.mdx#decorations). |
+| `IReferenceProvider`, `IImplementationProvider`, `IDocumentHighlightProvider` | Find References, Go to Implementation and the occurrences of the symbol under the caret. See [References and implementations](./language-features.mdx#references-and-implementations). |
+| `IDocumentSymbolProvider`, `IWorkspaceSymbolProvider` | A document's symbols for the Outline, the breadcrumbs and Go to Symbol, and symbols by name in the whole folder. See [Symbols](./language-features.mdx#symbols). |
+| `IFoldingRangeProvider`, `ISelectionRangeProvider` | The lines that fold, and the spans Expand Selection grows through. See [Folding](./language-features.mdx#folding) and [Selection ranges](./language-features.mdx#selection-ranges). |
+| `ISemanticTokensProvider` | Tokens classified by meaning, colored over the TextMate highlighting. See [Semantic tokens](./language-features.mdx#semantic-tokens). |
+| `ICallHierarchyProvider`, `ITypeHierarchyProvider` | Callers and callees of a function, base and derived types of a type. See [Call and type hierarchies](./language-features.mdx#call-and-type-hierarchies). |
 
 Definitions are exported from a property, as the C# plugin does:
 
@@ -611,6 +616,16 @@ New plugins start at `^0.1.1`. See [API versions](./index.mdx#api-versions) for 
 | `GutterMarker.IsFilled` | Gutter markers filled with their tone, such as a breakpoint's dot. |
 | `ColorScheme(id, name, json)` and `ColorScheme.Json` | A [syntax color scheme](./themes.mdx#syntax-color-schemes) given as JSON instead of a file. |
 | `RunesmithPaths.Hub` | The folder Runesmith manages for the plugin hub. |
+
+| Added in 0.1.2 | What it is |
+| --- | --- |
+| `IReferenceProvider`, `IImplementationProvider`, `IDocumentHighlightProvider`, `DocumentHighlight`, `DocumentHighlightKind` | [References, implementations and occurrence highlights](./language-features.mdx#references-and-implementations). |
+| `IDocumentSymbolProvider`, `DocumentSymbol`, `IWorkspaceSymbolProvider`, `WorkspaceSymbol`, `SymbolKind`, `LanguageFeatureChangedEventArgs` | [Symbols](./language-features.mdx#symbols). |
+| `IFoldingRangeProvider`, `FoldingRange`, `FoldingRangeKind`, `ISelectionRangeProvider` | [Folding](./language-features.mdx#folding) and [selection ranges](./language-features.mdx#selection-ranges). |
+| `ISemanticTokensProvider`, `SemanticToken`, `SemanticTokenTypes`, `SemanticTokenModifiers`, `SyntaxStyle.IsStrikethrough` | [Semantic tokens](./language-features.mdx#semantic-tokens). |
+| `ICallHierarchyProvider`, `ITypeHierarchyProvider`, `HierarchyItem`, `HierarchyCall` | [Call and type hierarchies](./language-features.mdx#call-and-type-hierarchies). |
+| `INavigationFeatures`, `ISyntaxFeatures` | The merged answers of the providers above. See [Use the merged answers](./language-features.mdx#use-the-merged-answers). |
+| `CommandIds.FindReferences`, `GoToImplementation`, `GoToSymbolInFile`, `GoToSymbolInWorkspace`, `ShowCallHierarchy`, `ShowTypeHierarchy`, `Fold`, `Unfold`, `FoldAll`, `UnfoldAll`, `ExpandSelection`, `ShrinkSelection` | The commands of these features. |
 
 ## Related
 

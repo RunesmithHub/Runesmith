@@ -4,7 +4,12 @@ using Runesmith.Sdk.Documents;
 namespace Runesmith.Sdk.Languages;
 
 /// <summary>How a token is drawn.</summary>
-public sealed record SyntaxStyle(Color Foreground, bool IsBold = false, bool IsItalic = false, bool IsUnderline = false);
+public sealed record SyntaxStyle(Color Foreground, bool IsBold = false, bool IsItalic = false, bool IsUnderline = false)
+{
+    /// <summary>Gets whether the token is struck through, such as a deprecated symbol.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public bool IsStrikethrough { get; init; }
+}
 
 /// <summary>A highlighted part of one line.</summary>
 /// <param name="Start">The first column of the token in its line.</param>
