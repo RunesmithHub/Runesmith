@@ -54,12 +54,13 @@ Runesmith ships with no plugins. The official ones, **Git**, **GitHub**, **C#**,
 When what you open needs an official plugin that is not installed, Runesmith suggests it. Opening a file of a language shows a line over
 the editor, such as **Install the C# plugin for completion, problems and builds.** Opening a folder that is a Git repository shows a line
 over the editor area that suggests the Git plugin, and once you close it, one for the GitHub plugin when the repository has a remote on
-github.com. Each plugin is suggested once each time Runesmith runs, and never while it is installed or the hub is turned off.
+github.com. A folder with a C# or Java project file at its top suggests that language's plugin the same way, after Git and GitHub. Each
+plugin is suggested once each time Runesmith runs, and never while it is installed or the hub is turned off.
 
 | Plugin | Suggested for |
 | --- | --- |
-| C#, `runesmith.csharp` | `.cs`, `.csproj`, `.sln`, `.slnx` and `.razor` files |
-| Java, `runesmith.java` | `.java`, `pom.xml`, `build.gradle` and `build.gradle.kts` files |
+| C#, `runesmith.csharp` | `.cs`, `.csproj`, `.sln`, `.slnx` and `.razor` files, and a folder with a `.sln`, `.slnx` or `.csproj` file at its top |
+| Java, `runesmith.java` | `.java`, `pom.xml`, `build.gradle` and `build.gradle.kts` files, and a folder with a `pom.xml`, `build.gradle` or `build.gradle.kts` file at its top |
 | Git, `runesmith.git` | A folder with a `.git` folder or file at its top |
 | GitHub, `runesmith.github` | A Git repository with a remote whose address is on `github.com`, read from its `.git/config` |
 

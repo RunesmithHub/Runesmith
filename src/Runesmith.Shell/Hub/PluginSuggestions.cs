@@ -15,6 +15,9 @@ public sealed record SuggestedPlugin(string PluginId, string Name, string Brings
     /// <summary>Gets the whole file names, such as <c>pom.xml</c>, that tell Runesmith to suggest it.</summary>
     public IReadOnlyList<string> FileNames { get; init; } = [];
 
+    /// <summary>Gets the patterns, such as <c>*.csproj</c>, of the files that tell Runesmith to suggest it for a folder that has one at its top.</summary>
+    public IReadOnlyList<string> FolderFiles { get; init; } = [];
+
     /// <summary>Gets what the suggestion says.</summary>
     public string Message => $"Install the {Name} plugin for {Brings}.";
 
@@ -27,9 +30,9 @@ public sealed record SuggestedPlugin(string PluginId, string Name, string Brings
     }
 }
 
-/// <summary>Suggests installing an official plugin that is not installed: a language's when the user opens one of its files, Git's when the
-/// open folder is a Git repository and GitHub's when it has a remote on github.com. Each is suggested once in a session, and never again once
-/// the user said not to.</summary>
+/// <summary>Suggests installing an official plugin that is not installed: a language's when the user opens one of its files or a folder with
+/// its project files at the top, Git's when the open folder is a Git repository and GitHub's when it has a remote on github.com. Each is
+/// suggested once in a session, and never again once the user said not to.</summary>
 [Export]
 [Shared]
 public sealed class PluginSuggestions
@@ -39,8 +42,17 @@ public sealed class PluginSuggestions
     /// <summary>The official language plugins Runesmith suggests for files.</summary>
     public static IReadOnlyList<SuggestedPlugin> LanguagePlugins { get; } =
     [
-        new("runesmith.csharp", "C#", LanguageFeatures) { Extensions = [".cs", ".csproj", ".sln", ".slnx", ".razor"] },
-        new("runesmith.java", "Java", LanguageFeatures) { Extensions = [".java"], FileNames = ["pom.xml", "build.gradle", "build.gradle.kts"] },
+        new("runesmith.csharp", "C#", LanguageFeatures)
+        {
+            Extensions = [".cs", ".csproj", ".sln", ".slnx", ".razor"],
+            FolderFiles = ["*.sln", "*.slnx", "*.csproj"],
+        },
+        new("runesmith.java", "Java", LanguageFeatures)
+        {
+            Extensions = [".java"],
+            FileNames = ["pom.xml", "build.gradle", "build.gradle.kts"],
+            FolderFiles = ["pom.xml", "build.gradle", "build.gradle.kts"],
+        },
     ];
 
     /// <summary>The Git plugin, suggested for a folder that is a Git repository.</summary>
@@ -81,13 +93,23 @@ public sealed class PluginSuggestions
         filePath is not null && LanguagePlugins.FirstOrDefault(p => p.Matches(filePath)) is { } plugin ? Suggest(plugin) : null;
 
     /// <summary>Gets the next plugin to suggest for the open folder, or null, and counts it as suggested for the session: Git when the folder is
-    /// a Git repository, then GitHub when the repository has a remote on github.com.</summary>
+    /// a Git repository, then GitHub when the repository has a remote on github.com, then the language plugins of the project files at its
+    /// top.</summary>
     public SuggestedPlugin? ForFolder(string? folder)
     {
-        if (folder is null || !GitFolder.IsRepository(folder))
+        if (folder is null)
             return null;
 
-        return Suggest(Git) ?? (GitFolder.HasGitHubRemote(folder) ? Suggest(GitHub) : null);
+        if (GitFolder.IsRepository(folder) && (Suggest(Git) ?? (GitFolder.HasGitHubRemote(folder) ? Suggest(GitHub) : null)) is { } git)
+            return git;
+
+        foreach (var plugin in LanguagePlugins)
+        {
+            if (HasFolderFile(folder, plugin) && Suggest(plugin) is { } language)
+                return language;
+        }
+
+        return null;
     }
 
     /// <summary>Opens the plugin's page in the plugin manager, where the user can install it.</summary>
@@ -118,4 +140,17 @@ public sealed class PluginSuggestions
     private HashSet<string> Declined() =>
         settings.Get<string>(HubSettings.DeclinedSuggestions).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    private static bool HasFolderFile(string folder, SuggestedPlugin plugin)
+    {
+        var options = new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive, MatchType = MatchType.Simple, IgnoreInaccessible = true };
+        try
+        {
+            return plugin.FolderFiles.Any(pattern => Directory.EnumerateFiles(folder, pattern, options).Any(plugin.Matches));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return false;
+        }
+    }
 }

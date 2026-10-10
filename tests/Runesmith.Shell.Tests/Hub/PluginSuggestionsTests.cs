@@ -111,10 +111,53 @@ public sealed class PluginSuggestionsTests : IDisposable
     }, CancellationToken.None);
 
     [Fact]
-    public void AFolderThatIsNoRepositoryGetsNoSuggestion()
+    public void AFolderThatIsNoRepositoryAndNoProjectGetsNoSuggestion()
     {
+        File.WriteAllText(Path.Combine(folder, "README.md"), "");
+        Directory.CreateDirectory(Path.Combine(folder, "src", "App"));
+        File.WriteAllText(Path.Combine(folder, "src", "App", "App.csproj"), "");
+        File.WriteAllText(Path.Combine(folder, "pom.xml.orig"), "");
+
         Assert.Null(Create().ForFolder(folder));
         Assert.Null(Create().ForFolder(null));
+    }
+
+    [Theory]
+    [InlineData("Shop.sln", "runesmith.csharp")]
+    [InlineData("Shop.SLNX", "runesmith.csharp")]
+    [InlineData("App.csproj", "runesmith.csharp")]
+    [InlineData("pom.xml", "runesmith.java")]
+    [InlineData("build.gradle", "runesmith.java")]
+    [InlineData("build.gradle.kts", "runesmith.java")]
+    public void AProjectFileAtTheTopSuggestsItsLanguage(string file, string expected)
+    {
+        File.WriteAllText(Path.Combine(folder, file), "");
+        var suggestions = Create();
+
+        Assert.Equal(expected, suggestions.ForFolder(folder)?.PluginId);
+        Assert.Null(suggestions.ForFolder(folder));
+        Assert.Null(suggestions.For(Path.Combine(folder, file)));
+    }
+
+    [Fact]
+    public void ARepositorySuggestsGitBeforeItsLanguagesAndFolderLanguagesFollowTheSameRules()
+    {
+        Repository("");
+        File.WriteAllText(Path.Combine(folder, "Shop.slnx"), "");
+        File.WriteAllText(Path.Combine(folder, "pom.xml"), "");
+        settings.Values[HubSettings.DeclinedSuggestions] = "runesmith.java";
+        var suggestions = Create();
+
+        Assert.Equal("runesmith.git", suggestions.ForFolder(folder)?.PluginId);
+        Assert.Equal("runesmith.csharp", suggestions.ForFolder(folder)?.PluginId);
+        Assert.Null(suggestions.ForFolder(folder));
+
+        installed.Add("runesmith.git");
+        installed.Add("runesmith.csharp");
+        settings.Values[HubSettings.DeclinedSuggestions] = "";
+        Assert.Equal("runesmith.java", Create().ForFolder(folder)?.PluginId);
+        canInstall = false;
+        Assert.Null(Create().ForFolder(folder));
     }
 
     [Fact]
