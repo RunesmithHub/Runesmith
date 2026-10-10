@@ -16,7 +16,7 @@ public sealed record PlanRow(string Id, string Name, string Change, PluginTier? 
 
 /// <summary>A capability a plugin in the plan has.</summary>
 /// <param name="From">The name of the plugin it comes from.</param>
-/// <param name="IsNew">Whether the plugin does not have it yet.</param>
+/// <param name="IsNew">Whether none of the installed plugins has it yet.</param>
 /// <param name="IsHighRisk">Whether it is one of the capabilities shown in the danger color: native code, dynamic code, credentials or starting
 /// programs.</param>
 public sealed record CapabilityRow(string Id, string Label, string Reason, string From, bool IsNew, bool IsHighRisk);
@@ -53,11 +53,12 @@ public sealed class InstallPlanModel
 {
     private static readonly HashSet<string> HighRisk = new(StringComparer.Ordinal) { "native", "dynamic-code", "credentials", "process" };
 
-    /// <param name="currentCapabilities">The capabilities a plugin has now, or null when it is not installed.</param>
-    public InstallPlanModel(InstallPlan plan, HubClient client, Func<string, IReadOnlySet<string>?> currentCapabilities)
+    /// <param name="heldCapabilities">The capabilities the installed plugins have between them.</param>
+    public InstallPlanModel(InstallPlan plan, HubClient client, IReadOnlySet<string> heldCapabilities)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(heldCapabilities);
         Plan = plan;
         var catalog = client.Catalog;
         var changes = plan.Changes.ToList();
@@ -81,9 +82,8 @@ public sealed class InstallPlanModel
             if (operation.Record is not { } record || operation.Kind == OperationKind.Remove)
                 continue;
 
-            var current = currentCapabilities(operation.PluginId);
             var own = record.Capabilities.Declared
-                .Select(c => new CapabilityRow(c.Id, client.CapabilityLabel(c.Id), c.Reason, operation.Name, current is null || !current.Contains(c.Id), HighRisk.Contains(c.Id)))
+                .Select(c => new CapabilityRow(c.Id, client.CapabilityLabel(c.Id), c.Reason, operation.Name, !heldCapabilities.Contains(c.Id), HighRisk.Contains(c.Id)))
                 .ToList();
             capabilities.AddRange(own);
             if (operation.Tier == PluginTier.Unverified)

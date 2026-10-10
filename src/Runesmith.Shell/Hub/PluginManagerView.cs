@@ -12,6 +12,7 @@ using Runesmith.Hub.Updates;
 using Runesmith.Sdk;
 using Runesmith.Shell.Pages;
 using Runesmith.Shell.Services;
+using Runesmith.Shell.Views;
 using RunesmithHub.Protocol.Index;
 
 namespace Runesmith.Shell.Hub;
@@ -194,6 +195,19 @@ internal sealed class PluginManagerView : DockPanel
             body.Children.Add(Notice(pluginNotice));
 
         var rows = model.Installed();
+        if (rows.Count == 0)
+        {
+            body.Children.Add(new EmptyState
+            {
+                Icon = HammerUI.Icons.Puzzle,
+                Title = "No plugins installed",
+                Hint = "Browse the plugin hub for languages, tools and themes, or open a folder and Runesmith suggests the plugins it needs.",
+                ActionText = "Browse plugins",
+                ActionCommand = new RelayCommand(() => model.ShowTab(PluginManagerTab.Browse)),
+                Margin = new Thickness(0, 24),
+            });
+        }
+
         var list = new StackPanel { Spacing = 8 };
         foreach (var row in rows)
             list.Children.Add(InstalledRow(row));

@@ -187,16 +187,24 @@ public sealed class PluginManagerModel
     public string? RunningVersion(string id) =>
         plugins().FirstOrDefault(p => p.Manifest.Id == id && IsRunningCopy(p))?.Manifest.Version;
 
-    /// <summary>Gets the capabilities a plugin has now, for marking the ones an install plan adds; null when it is not installed.</summary>
-    public IReadOnlySet<string>? CurrentCapabilities(string id)
+    /// <summary>Gets the capabilities the installed plugins have between them, for marking the ones an install plan adds.</summary>
+    public IReadOnlySet<string> HeldCapabilities()
     {
-        if (client.State.Find(id) is { } hub && client.Catalog is { } catalog && Moderation.Record(catalog, hub) is { } record)
-            return record.Capabilities.Declared.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
-        return plugins().FirstOrDefault(p => p.Manifest.Id == id && IsRunningCopy(p))?.Manifest.Capabilities?.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+        var held = new HashSet<string>(StringComparer.Ordinal);
+        var catalog = client.Catalog;
+        foreach (var hub in client.State.Plugins)
+        {
+            if (catalog is not null && Moderation.Record(catalog, hub) is { } record)
+                held.UnionWith(record.Capabilities.Declared.Select(c => c.Id));
+        }
+
+        foreach (var plugin in plugins().Where(IsRunningCopy))
+            held.UnionWith(plugin.Manifest.Capabilities?.Select(c => c.Id) ?? []);
+        return held;
     }
 
     /// <summary>Gets the model of an install plan's dialog.</summary>
-    public InstallPlanModel Plan(InstallPlan plan) => new(plan, client, CurrentCapabilities);
+    public InstallPlanModel Plan(InstallPlan plan) => new(plan, client, HeldCapabilities());
 
     /// <summary>Gets what a plugin's page shows.</summary>
     public PluginPageModel Describe(PageTarget target)

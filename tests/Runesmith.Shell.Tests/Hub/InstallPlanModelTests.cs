@@ -59,6 +59,31 @@ public sealed class InstallPlanModelTests : IDisposable
     }
 
     [Fact]
+    public async Task OnlyCapabilitiesNoInstalledPluginHasAreNew()
+    {
+        var web = Plugin("acme.web", "Web", "1.0.0", PluginSource.Local) with
+        {
+            Manifest = new PluginManifest("acme.web", "Web", "1.0.0") { SchemaVersion = 1, Capabilities = [new DeclaredCapability { Id = "network", Reason = "Fetches pages." }] },
+        };
+
+        var model = await PlanAsync("runesmith.github", web);
+
+        Assert.Equal([("credentials", true), ("network", false), ("process", true)], model.Capabilities.Select(c => (c.Id, c.IsNew)).OrderBy(c => c.Id));
+    }
+
+    [Fact]
+    public Task APluginWithoutCapabilitiesIsCalledThisPlugin() => HeadlessSession.Value.Dispatch(async () =>
+    {
+        var model = await PlanAsync("ember.themes");
+
+        var dialog = InstallDialogs.PlanDialog(model, fixture.CreateClient(), out _);
+
+        Assert.Contains(dialog.GetLogicalDescendants().OfType<TextBlock>(),
+            t => t.Text == "None declared: this plugin works only inside the editor, through what Runesmith offers plugins.");
+        return true;
+    }, CancellationToken.None);
+
+    [Fact]
     public async Task AVerifiedPluginNeedsNoAcknowledgementAndSaysWhenItWasReviewed()
     {
         var model = await PlanAsync("tide.formatter");
@@ -165,11 +190,11 @@ public sealed class InstallPlanModelTests : IDisposable
         Assert.Null(rows[2].Tier);
     }
 
-    private async Task<InstallPlanModel> PlanAsync(string id)
+    private async Task<InstallPlanModel> PlanAsync(string id, params PluginInfo[] installed)
     {
         var client = fixture.CreateClient();
         await client.RefreshAsync(Token);
-        var model = new PluginManagerModel(client, () => HubPreferences.Default, () => [], () => new HashSet<string>(), () => HubStartupReport.Empty, isSafeMode: false);
+        var model = new PluginManagerModel(client, () => HubPreferences.Default, () => installed, () => new HashSet<string>(), () => HubStartupReport.Empty, isSafeMode: false);
         return model.Plan(client.Resolve(ResolutionRequest.Install(id), HubPreferences.Default).Plan!);
     }
 

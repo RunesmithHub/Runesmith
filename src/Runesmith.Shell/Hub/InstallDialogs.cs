@@ -53,10 +53,11 @@ internal static class InstallDialogs
             foreach (var capability in model.Capabilities)
                 body.Children.Add(HubVisuals.Capability(capability, showFrom: model.Rows.Count > 1));
         }
-        else if (model.Rows.Any(r => r.Kind != OperationKind.Remove))
+        else if (model.Rows.Count(r => r.Kind != OperationKind.Remove) is > 0 and var added)
         {
+            var subject = added == 1 ? "this plugin works" : "these plugins work";
             body.Children.Add(new TextBlock { Text = "Capabilities", FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 14, 0, 2) });
-            body.Children.Add(new TextBlock { Text = "None declared: these plugins work only inside the editor, through what Runesmith offers plugins.", Classes = { "secondary" }, TextWrapping = TextWrapping.Wrap });
+            body.Children.Add(new TextBlock { Text = $"None declared: {subject} only inside the editor, through what Runesmith offers plugins.", Classes = { "secondary" }, TextWrapping = TextWrapping.Wrap });
         }
 
         var checkboxes = new List<CheckBox>();
