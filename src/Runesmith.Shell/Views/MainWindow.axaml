@@ -108,7 +108,7 @@
       <Grid RowDefinitions="Auto,Auto,*,Auto" Background="{DynamicResource Surface0Brush}">
         <!-- Main toolbar, the title bar where the platform allows -->
         <Border x:Name="TitleBar" Grid.Row="0" Classes="toolbar appbar" BorderThickness="0" Padding="4,0,0,0" Height="40">
-          <Panel>
+          <views:TitleBarPanel>
             <StackPanel x:Name="LeftTools" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Left" VerticalAlignment="Center">
               <Button x:Name="MainMenuButton" Classes="toolbar icon">
                 <ui:SymbolIcon Data="{x:Static ui:Icons.Menu}" Size="16" />
@@ -126,7 +126,7 @@
               </Button>
             </StackPanel>
 
-            <Button x:Name="SearchButton" Classes="search-field" Width="360" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Button x:Name="SearchButton" Classes="search-field" MaxWidth="360" ClipToBounds="True" VerticalAlignment="Center">
               <Grid ColumnDefinitions="Auto,*,Auto">
                 <ui:SymbolIcon Data="{x:Static ui:Icons.Search}" Size="16" Margin="0,0,8,0" />
                 <TextBlock x:Name="SearchLabel" Grid.Column="1" Text="Search everywhere" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
@@ -151,7 +151,7 @@
                 </Button>
               </StackPanel>
             </StackPanel>
-          </Panel>
+          </views:TitleBarPanel>
         </Border>
 
         <!-- The menus in a bar of their own, when the settings ask for it -->

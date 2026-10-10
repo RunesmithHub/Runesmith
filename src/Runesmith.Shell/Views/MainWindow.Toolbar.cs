@@ -38,6 +38,7 @@ public partial class MainWindow
         ToolTip.SetTip(SettingsButton, "Settings, plugins and themes");
 
         SearchButton.Click += (_, _) => _ = commands!.ExecuteAsync(CommandIds.SearchEverywhere);
+        SearchButton.SizeChanged += (_, e) => SearchKeys.IsVisible = e.NewSize.Width >= 280;
         UpdateSearchKeys();
     }
 
