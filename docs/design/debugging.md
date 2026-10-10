@@ -15,11 +15,12 @@ debugging model and UI in Runesmith, and one engine per runtime behind it.
 The core talks the Debug Adapter Protocol (DAP) internally: it is a well-specified, language-neutral model of sessions, breakpoints,
 threads, stack frames, scopes and variables, and engines that already speak it plug in without translation.
 
-- **`IDebugger`** (exported by plugins): an id (`dotnet`, `jdwp`), and `StartAsync(DebugLaunch, ...)` returning an `IDebugSession`.
-- **`IDebugSession`**: the DAP requests the UI needs (setBreakpoints, configurationDone, threads, stackTrace, scopes, variables,
-  continue, next, stepIn, stepOut, pause, evaluate, disconnect) and its events (stopped, continued, output, thread, exited, terminated).
-  An engine that speaks DAP over a process's standard streams is wrapped by a shared `DapProcessSession`; an engine written in C# implements
-  the interface directly.
+- **`IDebugAdapterProvider`** (exported by plugins): the debuggers it serves (`dotnet`, `jdwp`), how to start a debug adapter process or reach
+  one on a socket, and the launch or attach request for a `DebugLaunch`. Starting a process needs the `process` capability.
+- **`DebugSession`** (in the shell): the DAP requests the UI needs (setBreakpoints, configurationDone, threads, stackTrace, scopes,
+  variables, continue, next, stepIn, stepOut, pause, evaluate, terminate, disconnect) and its events (stopped, continued, output, thread,
+  breakpoint, exited, terminated), over `DebugAdapterClient` from `Runesmith.Dap`. An engine written in C#, such as JDWP, serves DAP from
+  a process or a socket of its own.
 - **Breakpoints** belong to the workspace, not a session: they are saved in the folder's state, move with edits (the editor's offset
   mapping), and are sent to every session that starts.
 
@@ -51,9 +52,10 @@ Attaching to a program already started with the agent uses the same engine.
 
 - **Gutter:** clicking the margin toggles a breakpoint; the context menu edits its condition, hit count or log message; a disabled or
   unverified breakpoint is drawn hollow.
-- **Debug tool window** (bottom area): one tab per session with Threads and frames on the left, Variables in the middle, Watches on the
-  right, and the program's console; frames from code without source are greyed.
-- **Toolbar:** while a session runs, the run widget shows Continue, Pause, Step over, Step into, Step out, Restart and Stop.
+- **Debug tool window** (bottom area): the current session's threads and frames on the left, Variables in the middle and Watches on the
+  right, with tabs for the debug console and the breakpoints; frames from code without source are greyed.
+- **Toolbar:** while a session runs, a debug toolbar beside the run widget shows Continue or Pause, Step over, Step into and Step out; the
+  run widget's Stop ends the session, and the Debug tool window's header has Restart and Stop too.
 - **Editor:** the current line is highlighted, and variable values of the current frame show at the end of their lines.
 
 ## Delivery

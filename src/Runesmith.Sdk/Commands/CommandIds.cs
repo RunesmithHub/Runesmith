@@ -57,6 +57,15 @@ public static class CommandIds
     public const string Stop = "run.stop";
     public const string EditConfigurations = "run.editConfigurations";
 
+    public const string ToggleBreakpoint = "debug.toggleBreakpoint";
+    public const string Continue = "debug.continue";
+    public const string Pause = "debug.pause";
+    public const string StepOver = "debug.stepOver";
+    public const string StepInto = "debug.stepInto";
+    public const string StepOut = "debug.stepOut";
+    public const string RestartDebugging = "debug.restart";
+    public const string StopDebugging = "debug.stop";
+
     public const string Sdks = "tools.sdks";
 
     public const string CloneRepository = "vcs.clone";

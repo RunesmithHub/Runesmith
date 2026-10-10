@@ -1,0 +1,106 @@
+---
+title: Debug engines
+description: Add a debugger for a runtime with IDebugAdapterProvider, which starts a Debug Adapter Protocol debugger for the run configurations that need it.
+---
+
+A debug engine brings a debugger for a runtime, such as .NET or Python, to Runesmith. Runesmith has the debugger's interface: breakpoints,
+stepping, the call stack, variables, watches and the debug console. It talks to debuggers through the
+[Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/), so an engine only says how to start one and what to send it.
+This page shows an engine, how run configurations ask for it, and what Runesmith does with it.
+
+## Write an engine
+
+Export an `IDebugAdapterProvider`. This one serves the `acme` debugger by starting `acme-dap` and launching the configuration's program:
+
+```csharp title="AcmeDebugEngine.cs"
+using System.Composition;
+using System.Text.Json.Nodes;
+using Runesmith.Sdk.Debugging;
+
+namespace AcmeDebugger;
+
+[Export(typeof(IDebugAdapterProvider))]
+public sealed class AcmeDebugEngine : IDebugAdapterProvider
+{
+    public IReadOnlyList<string> Debuggers => ["acme"];
+
+    public string Name => "Acme debugger";
+
+    public Task<DebugAdapterDescriptor> CreateAdapterAsync(DebugAdapterContext context, CancellationToken cancellationToken) =>
+        Task.FromResult<DebugAdapterDescriptor>(new DebugAdapterExecutable("acme-dap", ["--stdio"]));
+
+    public Task<DebugAdapterRequest> CreateRequestAsync(DebugAdapterContext context, CancellationToken cancellationToken)
+    {
+        var plan = context.Plan;
+        var arguments = new JsonObject
+        {
+            ["program"] = plan.Program,
+            ["args"] = new JsonArray([.. plan.Arguments.Select(argument => (JsonNode?)argument)]),
+            ["cwd"] = plan.WorkingDirectory,
+            ["env"] = new JsonObject(plan.Environment.Select(pair => KeyValuePair.Create(pair.Key, (JsonNode?)pair.Value))),
+        };
+        return Task.FromResult(new DebugAdapterRequest(DebugRequestKind.Launch, arguments));
+    }
+}
+```
+
+Starting a debugger starts a program, so the plugin declares the `process` [capability](./index.mdx#capabilities) in `plugin.json`, and
+`network` when it returns a `DebugAdapterServer`. Runesmith checks this before it starts or reaches the debugger, and refuses a plugin that
+did not declare it.
+
+```json title="plugin.json (part)"
+"capabilities": [
+  { "id": "process", "reason": "Starts acme-dap, which starts the program you debug." }
+]
+```
+
+The engine can download its debugger on first use in `CreateAdapterAsync`, into the folder `IPluginStorage.GetFolder` gives it, and report
+the download with `IBackgroundTasks`. Throw an `InvalidOperationException` with a message for the user when the debugger cannot start; the
+**Run** panel shows it.
+
+## Ask for an engine from a run configuration
+
+A [run configuration type](./api.mdx#run-configurations) asks for a debugger by name. Its `CanDebug` returns true, and in debug mode its
+`PrepareAsync` sets `LaunchPlan.Debug` to a `DebugLaunch` with the debugger's name and settings the engine understands:
+
+```csharp
+if (context.Mode == RunMode.Debug)
+{
+    var settings = new Dictionary<string, string> { ["program"] = programPath };
+    return new LaunchPlan("acme", [programPath], workingDirectory) { Debug = new DebugLaunch("acme", settings) };
+}
+```
+
+The engine and the configuration type can come from different plugins: the C# plugin's .NET project configurations ask for the `dotnet`
+debugger, with the settings `program`, `args` and `env` (one entry per line, `env` as `NAME=value`) and `cwd`.
+
+## Reference
+
+| Type | What it is |
+| --- | --- |
+| `IDebugAdapterProvider` | The engine. `Debuggers` lists the debugger names it serves, `Name` is shown to the user, `CreateAdapterAsync` says how to start or reach the debugger and `CreateRequestAsync` gives its launch or attach request. Both are called on a background thread. |
+| `DebugAdapterContext` | What the engine gets: the `LaunchPlan`, its `DebugLaunch` and the open folder. |
+| `DebugAdapterExecutable` | A debugger Runesmith starts and talks to over its standard input and output: `Command`, `Arguments`, `WorkingDirectory` (the open folder when null) and `Environment`. |
+| `DebugAdapterServer` | A debugger that listens on a socket: `Host` and `Port`. |
+| `DebugAdapterRequest` | `Kind` (`Launch` or `Attach`) and `Arguments`, the request's arguments as the debugger defines them. `AdapterId` is sent as `adapterID`; it is the debugger's name when null. |
+| `DebugLaunch` | What a run configuration asks for: the `Debugger` name and its `Settings`. |
+
+## What Runesmith does with the debugger
+
+Runesmith sends `initialize`, then the launch or attach request. Once the debugger sends `initialized`, it sets every breakpoint of the
+folder with `setBreakpoints`, turns on the exception filters the user chose or, until they choose, the ones the debugger marks as
+`default`, and sends `configurationDone`. While the program runs it follows `stopped`, `continued`, `output`, `breakpoint`, `exited` and
+`terminated`, asks for `threads`, `stackTrace`, `scopes` and `variables` as the user looks, and sends `evaluate` for watches (context
+`watch`) and the debug console (context `repl`). Stopping sends `terminate` when the debugger supports it, and `disconnect` otherwise, and
+ends the debugger's process a few seconds later if it is still running.
+
+Lines and columns count from 1 and paths are file paths. Requests from the debugger, such as `runInTerminal`, are refused, so the debugger
+starts the program itself and sends its output as `output` events. A debugger without `supportsLogPoints` still gets log points: Runesmith
+sets them as breakpoints, and when one is hit it writes the message and continues. The debugger's standard error goes to the **Debugger**
+channel of the **Output** panel.
+
+## Related
+
+- [Debugging](/guide/debugging), for users
+- [API overview](./api.mdx)
+- [Plugin manifest and capabilities](./index.mdx#capabilities)

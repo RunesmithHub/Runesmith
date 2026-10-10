@@ -25,7 +25,7 @@ panel opens with a tab for the run, and the task indicator in the status bar sho
 | --- | --- | --- |
 | Configuration | | The selected configuration. Its list groups the configurations by kind, puts the ones you ran last first, and ends with **Edit Configurations...**. |
 | **Run** | <Keys>Shift+F10</Keys> | Runs the selected configuration. With no configuration, it opens **Edit Configurations**. |
-| **Debug** | <Keys>Shift+F9</Keys> | Turned off: Runesmith has no debugger yet. Its tooltip says so. |
+| **Debug** | <Keys>Shift+F9</Keys> | Runs the selected configuration under a debugger; see [Debugging](./debugging.mdx). It is turned off when no installed plugin provides a debugger, and its tooltip says so. |
 | **Stop** | <Keys>Ctrl+F2</Keys> | Stops the selected configuration's run, or the last run that is still going. |
 | **Build** | <Keys>Ctrl+Shift+B</Keys> | Builds the selected configuration's project; see [Building](./building.mdx). |
 
@@ -125,6 +125,7 @@ The arrows move a step up or down, and the cross removes it.
 ## Related
 
 - [Building](./building.mdx)
+- [Debugging](./debugging.mdx)
 - [C# support](/plugins/csharp#run-configurations)
 - [Java support](/plugins/java#run-configurations)
 - [SDKs](./sdks.mdx)

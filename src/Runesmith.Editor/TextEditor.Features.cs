@@ -8,6 +8,7 @@ using Runesmith.Editor.CodeActions;
 using Runesmith.Editor.Decorations;
 using Runesmith.Editor.Editing;
 using Runesmith.Editor.Popups;
+using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.Documents;
 using Runesmith.Sdk.Languages;
 using Runesmith.Text;
@@ -142,12 +143,27 @@ public sealed partial class TextEditor
         grid.Children.Add(messagePopup);
 
         Area.DecorationCommandRequested += (_, command) => _ = services.Commands.Value.ExecuteAsync(command.CommandId, command.Argument);
+        Area.GlyphMarginClick = ClickGlyphMargin;
         Area.SelectionChanged += (_, _) =>
         {
             HideMessage();
             codeActions.OnCaretOrTextChanged();
         };
         AddHandler(TextInputEvent, OnHookTextInput, RoutingStrategies.Tunnel);
+    }
+
+    private bool ClickGlyphMargin(int line)
+    {
+        if (!IsDecorated || Document.FilePath is not { } path)
+            return false;
+
+        var target = new ContextMenuTarget(path) { Lines = (line + 1, line + 1) };
+        var commands = services.Commands.Value;
+        if (!commands.CanExecute(CommandIds.ToggleBreakpoint, target))
+            return false;
+
+        _ = commands.ExecuteAsync(CommandIds.ToggleBreakpoint, target);
+        return true;
     }
 
     // Plugins' keyboard hooks see typed text before the editor inserts it.

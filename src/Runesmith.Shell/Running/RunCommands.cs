@@ -20,13 +20,11 @@ public sealed class RunCommands(
     IWorkspace workspace,
     NotificationService notifications,
     Lazy<ICommandService> commands,
-    [Import(AllowDefault = true)] Lazy<ISdkService>? sdks) : ICommandContributor
+    [Import(AllowDefault = true)] Lazy<ISdkService>? sdks,
+    [Import(AllowDefault = true)] Lazy<Debugging.IRunDebugger>? debugger) : ICommandContributor
 {
     /// <summary>The name of the Run menu.</summary>
     public const string Menu = Menus.Run;
-
-    /// <summary>Why the Debug command is off while no debugger is installed.</summary>
-    public const string DebugUnavailable = "Debugging is not available yet.";
 
     public void Contribute(ICommandRegistry registry)
     {
@@ -36,8 +34,8 @@ public sealed class RunCommands(
             _ => RunSelectedAsync(),
             _ => workspace.RootPath is not null);
         registry.Add(
-            new CommandDefinition(CommandIds.Debug, "Debug", "Run") { Icon = "bug", KeyBinding = "Shift+F9", Description = DebugUnavailable },
-            _ => Task.CompletedTask,
+            new CommandDefinition(CommandIds.Debug, "Debug", "Run") { Icon = "bug", KeyBinding = "Shift+F9", Description = "Debug the selected run configuration." },
+            _ => DebugSelectedAsync(),
             _ => WhyCannotDebug(configurations.Selected) is null);
         registry.Add(
             new CommandDefinition(CommandIds.Stop, "Stop", "Run") { Icon = "stop", KeyBinding = "Ctrl+F2", Description = "Stop the selected configuration's run, or the last one that runs." },
@@ -59,13 +57,24 @@ public sealed class RunCommands(
     }
 
     /// <summary>Says why a configuration cannot be debugged now, or returns null when it can.</summary>
-    /// <remarks>No debugger exists yet, so every configuration gets a reason; one that its type cannot debug says so first.</remarks>
     public string? WhyCannotDebug(RunConfiguration? configuration)
     {
         if (configuration is null)
             return "Choose a run configuration first.";
 
-        return configurations.FindType(configuration.TypeId) is { CanDebug: false } type ? $"{type.Name} configurations cannot be debugged." : DebugUnavailable;
+        if (configurations.FindType(configuration.TypeId) is { CanDebug: false } type)
+            return $"{type.Name} configurations cannot be debugged.";
+
+        return debugger is null ? "No installed plugin provides a debugger." : debugger.Value.WhyCannotDebug;
+    }
+
+    /// <summary>Debugs the selected configuration, or opens the configurations dialog when there is none.</summary>
+    public async Task DebugSelectedAsync()
+    {
+        if (configurations.Selected is { } selected)
+            await runs.RunAsync(selected, RunMode.Debug);
+        else
+            await EditConfigurationsAsync();
     }
 
     /// <summary>Runs the selected configuration, or opens the configurations dialog when there is none.</summary>

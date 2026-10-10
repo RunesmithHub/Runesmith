@@ -1,0 +1,121 @@
+---
+title: Debugging
+description: Debug a run configuration, set breakpoints, conditions and log points, step through code, and read the call stack, variables and watches.
+---
+
+Debugging runs a [run configuration](./running.mdx) under a debugger, so you can pause the program at a line, step through it and look at
+its variables. Runesmith has one debugger interface for every language; the debugger itself comes from a plugin, a debug engine, for the
+runtime the configuration runs on. This page covers breakpoints, the controls, the **Debug** panel and what to check when debugging does
+not start.
+
+## Start debugging
+
+<Steps>
+
+1. Click beside a line number to add a breakpoint, or put the caret on the line and press <Keys>F9</Keys>. A red dot marks it.
+2. Select a run configuration in the run widget.
+3. Click **Debug** in the run widget, or press <Keys>Shift+F9</Keys>. With no session running, <Keys>F5</Keys> does the same.
+
+</Steps>
+
+Runesmith runs the configuration's [before-launch steps](./running.mdx#before-launch), such as its build, and starts the program under the
+debugger. The **Run** panel shows the program's output as for a normal run, and the **Debug** panel opens. When the program reaches a
+breakpoint, Runesmith opens the file at that line, marks the line with an arrow and a highlight, and shows the call stack and variables.
+
+**Debug** is turned off when the selected configuration's kind cannot be debugged, or when no installed plugin provides a debugger. Its
+tooltip says which.
+
+## Breakpoints
+
+| Do this | What happens |
+| --- | --- |
+| Click beside a line number, or press <Keys>F9</Keys> | Adds a breakpoint to the line, or removes the one it has. |
+| Right-click the line › **Edit Breakpoint...** | Sets a condition, a hit count or a log message, or turns the breakpoint off. |
+| Right-click the line › **Add Log Point...** | Adds a breakpoint that writes a message instead of stopping. |
+| Right-click the line › **Enable or Disable Breakpoint** | Turns the breakpoint off without removing it, or on again. |
+| **Run › Remove All Breakpoints** | Removes every breakpoint in the folder. |
+
+| Mark | Meaning |
+| --- | --- |
+| Red dot | A breakpoint that stops. |
+| Orange dot | A breakpoint with a condition or a hit count. |
+| Blue diamond | A log point. |
+| Grey ring | A breakpoint that is turned off. |
+| Ring in its color | The debugger has not set it yet, such as on a line without code. Its tooltip says why. |
+| Orange arrow and highlight | The line the paused program runs next. |
+
+A **condition** is an expression in the program's language, such as `count > 3`; the program stops only when it is true. A **hit count**,
+such as `5`, lets the line run that many times before it stops. A **log message** is written to the debug console each time the line runs,
+with expressions in braces filled in, such as `name is {name}`. With a debugger that has no log points of its own, Runesmith stops at the
+line, writes the message and continues by itself.
+
+Breakpoints belong to the folder: they are saved for the next time you open it and are sent to every session. When you edit the file, each
+breakpoint stays on its line of text. Changes during a session take effect at once.
+
+## Step through code
+
+While a session runs, the debug toolbar shows beside the run widget and the **Debug** panel's header has the same controls:
+
+| Control | Key | What it does |
+| --- | --- | --- |
+| **Continue** | <Keys>F5</Keys> | Runs until the next breakpoint or the end. |
+| **Pause** | | Pauses the running program where it is. |
+| **Step Over** | <Keys>F10</Keys> | Runs the current line and pauses at the next one, without stopping in the functions it calls. |
+| **Step Into** | <Keys>F11</Keys> | Pauses at the first line of the function the current line calls. |
+| **Step Out** | <Keys>Shift+F11</Keys> | Runs until the current function returns, and pauses in its caller. |
+| **Restart Debugging** | <Keys>Ctrl+Shift+F5</Keys> | Stops the program and debugs the configuration again. |
+| **Stop Debugging** | <Keys>Shift+F5</Keys> | Ends the program and the debugger. The run widget's **Stop** does the same. |
+
+The **Run** menu has these commands too. The status bar shows the session's state, such as **Paused at Program.cs:12**; click it to
+show or hide the **Debug** panel.
+
+## The Debug panel
+
+The **Debug** panel, <Keys>Ctrl+Shift+D</Keys>, has three tabs.
+
+### Variables
+
+The **Variables** tab shows three panes side by side:
+
+| Pane | What it shows |
+| --- | --- |
+| **Call Stack** | The program's threads, with the paused one selected, and its frames, innermost first. Click a frame to open its line and read its variables. Frames without source, such as the runtime's, are grey. |
+| **Variables** | The scopes of the selected frame, such as locals, and their variables with values and types. Expand a variable to see its fields or elements; they load when you expand them, and stay expanded from one pause to the next. |
+| **Watch** | Expressions you add, evaluated in the selected frame each time the program pauses. Click **+** to add one, double-click one to change it, and press <Keys>Delete</Keys> to remove it. |
+
+Right-click a variable for **Copy Value** and **Add to Watch**. **Run › Add Watch...** adds the editor's selected text as a watch, or
+asks for an expression. Watch expressions are saved with the folder.
+
+### Console
+
+The **Console** tab shows the program's output and the debugger's messages, such as log points. Type an expression in the line at the bottom
+and press <Keys>Enter</Keys> to evaluate it in the selected frame; <Keys>Up</Keys> and <Keys>Down</Keys> go through the expressions you
+typed before.
+
+### Breakpoints
+
+The **Breakpoints** tab lists every breakpoint in the folder with its file, line, condition and log message. Clear a box to turn one off,
+double-click one to open its line, and press <Keys>Delete</Keys> to remove it. The buttons at the top turn every breakpoint on or off and
+remove them all.
+
+When the debugger can stop on exceptions, **Stop on** lists the kinds it offers, such as unhandled exceptions. Your choices are saved with
+the folder.
+
+## Debuggers
+
+Each run configuration names the debugger it needs, such as the .NET debugger for a .NET project. A plugin that provides that debugger
+must be installed; the [plugin hub](./plugins.mdx) lists them. Starting a debugger starts a program, so its plugin declares the `process`
+capability.
+
+When debugging does not start, the **Run** panel says why, for example:
+
+| Message | What to do |
+| --- | --- |
+| No installed plugin provides the `dotnet` debugger | Install a plugin that provides it. |
+| *Debugger* could not start | The debugger is missing or failed to start, or its plugin does not declare the `process` capability; the rest of the message says which. The **Debugger** channel of the **Output** panel has the debugger's own log. |
+
+## Related
+
+- [Running](./running.mdx)
+- [Keyboard shortcuts](./keyboard-shortcuts.mdx)
+- [Write a debug engine](/plugins/debug-engines)

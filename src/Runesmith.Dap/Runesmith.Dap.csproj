@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>A Debug Adapter Protocol client: the base protocol over streams, the protocol types and a debug adapter's process.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Dap.Tests" />
+  </ItemGroup>
+</Project>

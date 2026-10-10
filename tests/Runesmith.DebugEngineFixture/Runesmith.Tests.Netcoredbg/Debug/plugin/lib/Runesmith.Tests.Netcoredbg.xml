@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Runesmith.Tests.Netcoredbg</name>
+    </assembly>
+    <members>
+        <member name="T:Runesmith.Tests.Dap.NetcoredbgEngine">
+            <summary>A debug engine for tests only: debugs the <c>dotnet</c> launches of the C# plugin with netcoredbg from the PATH.</summary>
+        </member>
+        <member name="M:Runesmith.Tests.Dap.NetcoredbgEngine.Find">
+            <summary>Gets the netcoredbg on the PATH, or null when there is none.</summary>
+        </member>
+    </members>
+</doc>

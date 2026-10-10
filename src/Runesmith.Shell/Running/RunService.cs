@@ -28,18 +28,20 @@ public sealed class RunService
     private readonly IDiagnosticService diagnostics;
     private readonly INotificationService notifications;
     private readonly IBackgroundTasks? tasks;
+    private readonly Func<Debugging.IRunDebugger?> debugger;
     private CancellationTokenSource? building;
 
     /// <summary>Creates the service.</summary>
     [ImportingConstructor]
     public RunService(IRunConfigurationService configurations, IBuildService build, IWorkspace workspace, Lazy<EditorService> editors,
-        IOutputService output, IDiagnosticService diagnostics, INotificationService notifications, [Import(AllowDefault = true)] IBackgroundTasks? tasks)
-        : this(configurations, build, workspace, () => editors.Value.SaveAllAsync(), output, diagnostics, notifications, tasks)
+        IOutputService output, IDiagnosticService diagnostics, INotificationService notifications, [Import(AllowDefault = true)] IBackgroundTasks? tasks,
+        [Import(AllowDefault = true)] Lazy<Debugging.IRunDebugger>? debugger)
+        : this(configurations, build, workspace, () => editors.Value.SaveAllAsync(), output, diagnostics, notifications, tasks, () => debugger?.Value)
     {
     }
 
     internal RunService(IRunConfigurationService configurations, IBuildService build, IWorkspace workspace, Func<Task> saveAll,
-        IOutputService output, IDiagnosticService diagnostics, INotificationService notifications, IBackgroundTasks? tasks)
+        IOutputService output, IDiagnosticService diagnostics, INotificationService notifications, IBackgroundTasks? tasks, Func<Debugging.IRunDebugger?>? debugger = null)
     {
         this.configurations = configurations;
         this.build = build;
@@ -49,6 +51,7 @@ public sealed class RunService
         this.diagnostics = diagnostics;
         this.notifications = notifications;
         this.tasks = tasks;
+        this.debugger = debugger ?? (() => null);
         build.StateChanged += (_, _) => StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -203,6 +206,22 @@ public sealed class RunService
             var plan = await Task.Run(() => type.PrepareAsync(configuration, new RunContext(root, session.Mode), token), token).ConfigureAwait(true);
             session.WorkingDirectory = plan.WorkingDirectory;
             console.AppendLine(CommandLine(Path.GetFileName(plan.Program), plan.Arguments), ConsoleSource.System);
+            if (session.Mode == RunMode.Debug && debugger() is { } engine)
+            {
+                var debugged = await engine.DebugAsync(session, plan, token).ConfigureAwait(true);
+                if (session.State == RunState.Running)
+                {
+                    console.AppendLine(session.WasStopped
+                        ? $"Stopped after {Seconds(session.Elapsed)} s."
+                        : debugged is { } code
+                            ? string.Create(CultureInfo.CurrentCulture, $"Process finished with exit code {code} in {Seconds(session.Elapsed)} s.")
+                            : $"Debugging ended after {Seconds(session.Elapsed)} s.", ConsoleSource.System);
+                }
+
+                session.Finish(debugged);
+                return;
+            }
+
             var process = RunProcess.Start(plan, console.Append);
             session.Started(process);
             var exitCode = await process.Exited.ConfigureAwait(true);
