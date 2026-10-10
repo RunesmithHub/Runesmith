@@ -59,6 +59,34 @@ public sealed record ServerCapabilities
     public ProviderOptions? CodeLensProvider { get; init; }
 
     public ExecuteCommandOptions? ExecuteCommandProvider { get; init; }
+
+    [JsonConverter(typeof(FlagOrOptionsConverter))]
+    public bool ImplementationProvider { get; init; }
+
+    [JsonConverter(typeof(FlagOrOptionsConverter))]
+    public bool DocumentHighlightProvider { get; init; }
+
+    [JsonConverter(typeof(FlagOrOptionsConverter))]
+    public bool DocumentSymbolProvider { get; init; }
+
+    [JsonConverter(typeof(FlagOrOptionsConverter))]
+    public bool WorkspaceSymbolProvider { get; init; }
+
+    [JsonConverter(typeof(FlagOrOptionsConverter))]
+    public bool FoldingRangeProvider { get; init; }
+
+    [JsonConverter(typeof(FlagOrOptionsConverter))]
+    public bool SelectionRangeProvider { get; init; }
+
+    [JsonConverter(typeof(FlagOrOptionsConverter))]
+    public bool CallHierarchyProvider { get; init; }
+
+    [JsonConverter(typeof(FlagOrOptionsConverter))]
+    public bool TypeHierarchyProvider { get; init; }
+
+    [JsonConverter(typeof(SemanticTokensOptionsConverter))]
+    public SemanticTokensOptions? SemanticTokensProvider { get; init; }
+
 }
 
 /// <summary>The commands a server runs with <c>workspace/executeCommand</c>.</summary>
@@ -89,6 +117,9 @@ internal static class ClientCapabilities
             ["executeCommand"] = new JsonObject { ["dynamicRegistration"] = false },
             ["inlayHint"] = new JsonObject { ["refreshSupport"] = true },
             ["codeLens"] = new JsonObject { ["refreshSupport"] = true },
+            ["symbol"] = new JsonObject { ["symbolKind"] = SymbolKinds() },
+            ["semanticTokens"] = new JsonObject { ["refreshSupport"] = true },
+            ["foldingRange"] = new JsonObject { ["refreshSupport"] = true },
         },
         ["textDocument"] = new JsonObject
         {
@@ -123,6 +154,29 @@ internal static class ClientCapabilities
             ["inlayHint"] = new JsonObject { ["resolveSupport"] = new JsonObject { ["properties"] = new JsonArray() } },
             ["codeLens"] = new JsonObject { ["dynamicRegistration"] = false },
             ["definition"] = new JsonObject { ["linkSupport"] = true },
+            ["references"] = new JsonObject { ["dynamicRegistration"] = false },
+            ["implementation"] = new JsonObject { ["linkSupport"] = true },
+            ["documentHighlight"] = new JsonObject { ["dynamicRegistration"] = false },
+            ["documentSymbol"] = new JsonObject { ["hierarchicalDocumentSymbolSupport"] = true, ["symbolKind"] = SymbolKinds(), ["tagSupport"] = new JsonObject { ["valueSet"] = new JsonArray(1) } },
+            ["foldingRange"] = new JsonObject
+            {
+                ["lineFoldingOnly"] = true,
+                ["foldingRangeKind"] = new JsonObject { ["valueSet"] = new JsonArray("comment", "imports", "region") },
+                ["foldingRange"] = new JsonObject { ["collapsedText"] = true },
+            },
+            ["selectionRange"] = new JsonObject { ["dynamicRegistration"] = false },
+            ["callHierarchy"] = new JsonObject { ["dynamicRegistration"] = false },
+            ["typeHierarchy"] = new JsonObject { ["dynamicRegistration"] = false },
+            ["semanticTokens"] = new JsonObject
+            {
+                ["requests"] = new JsonObject { ["range"] = true, ["full"] = true },
+                ["tokenTypes"] = new JsonArray([.. SemanticTokenTypes.Select(type => (JsonNode)type)]),
+                ["tokenModifiers"] = new JsonArray([.. SemanticTokenModifiers.Select(modifier => (JsonNode)modifier)]),
+                ["formats"] = new JsonArray("relative"),
+                ["overlappingTokenSupport"] = false,
+                ["multilineTokenSupport"] = false,
+                ["augmentsSyntaxTokens"] = true,
+            },
             ["signatureHelp"] = new JsonObject
             {
                 ["signatureInformation"] = new JsonObject
@@ -138,4 +192,17 @@ internal static class ClientCapabilities
         ["window"] = new JsonObject { ["workDoneProgress"] = true, ["showMessage"] = new JsonObject() },
         ["general"] = new JsonObject { ["positionEncodings"] = new JsonArray("utf-16") },
     };
+
+    /// <summary>The semantic token types the client colors, the protocol's standard set.</summary>
+    public static IReadOnlyList<string> SemanticTokenTypes { get; } =
+    [
+        "namespace", "type", "class", "enum", "interface", "struct", "typeParameter", "parameter", "variable", "property", "enumMember", "event",
+        "function", "method", "macro", "keyword", "modifier", "comment", "string", "number", "regexp", "operator", "decorator", "label",
+    ];
+
+    /// <summary>The semantic token modifiers the client understands, the protocol's standard set, in the order of their bits.</summary>
+    public static IReadOnlyList<string> SemanticTokenModifiers { get; } =
+        ["declaration", "definition", "readonly", "static", "deprecated", "abstract", "async", "modification", "documentation", "defaultLibrary"];
+
+    private static JsonObject SymbolKinds() => new() { ["valueSet"] = new JsonArray([.. Enumerable.Range(1, 26).Select(kind => (JsonNode)kind)]) };
 }
