@@ -31,7 +31,7 @@ public sealed record TreeItem(string Label)
     /// <summary>Gets a short text after the label, dimmed, such as a count or a path.</summary>
     public string? Description { get; init; }
 
-    /// <summary>Gets the text shown when the pointer rests on the row; by default the label and the description.</summary>
+    /// <summary>Gets the text shown when the pointer rests on the row, or null for none.</summary>
     public string? ToolTip { get; init; }
 
     /// <summary>Gets the name of the row's icon, such as <c>git-branch</c>; see HammerUI's <c>Icons.Find</c>.</summary>

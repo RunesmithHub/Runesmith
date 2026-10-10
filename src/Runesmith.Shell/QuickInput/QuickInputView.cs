@@ -55,6 +55,7 @@ internal sealed class QuickInputView : UserControl
     private readonly TextBlock asker;
     private readonly Button ok;
     private readonly Border card;
+    private readonly Panel body;
     private PickModel? pick;
     private InputModel? input;
     private Action<QuickInputOutcome>? done;
@@ -105,6 +106,7 @@ internal sealed class QuickInputView : UserControl
             Classes = { "sidebar" },
             Margin = new Thickness(6),
             MaxHeight = 420,
+            VerticalAlignment = VerticalAlignment.Top,
             Background = Brushes.Transparent,
             ItemTemplate = new FuncDataTemplate<PickRow?>((row, _) => row is null ? new Panel() : Row(row)),
         };
@@ -157,7 +159,8 @@ internal sealed class QuickInputView : UserControl
         DockPanel.SetDock(topLine, Dock.Top);
         DockPanel.SetDock(footer, Dock.Bottom);
         DockPanel.SetDock(bottomLine, Dock.Bottom);
-        var body = new Panel { Children = { results, nothing, message } };
+        body = new Panel { Children = { results, nothing, message } };
+        body.SizeChanged += (_, e) => body.MinHeight = Math.Max(body.MinHeight, e.NewSize.Height);
         layout.Children.AddRange([titleBar, header, topLine, footer, bottomLine, new Panel { Children = { body, busy } }]);
         card = PaletteChrome.Card(layout);
         Content = card;
@@ -184,6 +187,7 @@ internal sealed class QuickInputView : UserControl
         model.PickedChanged += OnPickedChanged;
         ShowFrame(frame);
 
+        searchIcon.Data = Icons.Search;
         searchIcon.IsVisible = !model.CanPickMany;
         all.IsVisible = model.CanPickMany;
         ok.IsVisible = model.CanPickMany;
@@ -211,7 +215,8 @@ internal sealed class QuickInputView : UserControl
         model.Changed += OnInputChanged;
         ShowFrame(frame);
 
-        searchIcon.IsVisible = false;
+        searchIcon.Data = model.Options.IsPassword ? Icons.Lock : Icons.PenLine;
+        searchIcon.IsVisible = true;
         all.IsVisible = false;
         ok.IsVisible = false;
         results.IsVisible = false;
@@ -279,6 +284,7 @@ internal sealed class QuickInputView : UserControl
 
     private void ShowFrame(QuickInputFrame frame)
     {
+        body.MinHeight = 0;
         isWaiting = false;
         card.Opacity = 1;
         query.IsReadOnly = false;
@@ -479,8 +485,10 @@ internal sealed class QuickInputView : UserControl
         isSyncing = false;
         busy.IsVisible = model.IsBusy;
         var isEmpty = !model.Rows.Any(r => !r.IsSeparator);
-        nothing.IsVisible = isEmpty && !model.IsBusy;
-        nothingText.Text = model.Error is { } problem ? $"The list could not be loaded: {problem}" : model.Options.EmptyText ?? "Nothing matches";
+        nothing.IsVisible = isEmpty;
+        nothingText.Text = model.Error is { } problem ? $"The list could not be loaded: {problem}"
+            : model.IsBusy ? "Searching…"
+            : model.Options.EmptyText ?? "Nothing matches";
         SyncAll();
     }
 

@@ -257,11 +257,9 @@ internal sealed class TreeViewControl : DockPanel, IToolWindowHeader
 
     private static Button Action(Geometry? icon, string tip, Action action)
     {
-        var button = new Button
-        {
-            Classes = { "icon", "small" },
-            Content = icon is null ? new TextBlock { Text = tip, Classes = { "caption" } } : new SymbolIcon { Data = icon, Size = 16 },
-        };
+        var button = icon is null
+            ? new Button { Classes = { "small" }, Content = tip }
+            : new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = icon, Size = 16 } };
         ToolTip.SetTip(button, tip);
         AutomationProperties.SetName(button, tip);
         button.Click += (_, _) => action();
@@ -494,7 +492,7 @@ internal sealed class TreeViewControl : DockPanel, IToolWindowHeader
                 });
             }
 
-            ToolTip.SetTip(row, item.ToolTip ?? (item.Description is null ? null : $"{item.Label}  {item.Description}"));
+            ToolTip.SetTip(row, item.ToolTip);
             return row;
         }
 
