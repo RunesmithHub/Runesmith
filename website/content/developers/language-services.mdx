@@ -141,19 +141,36 @@ dotnet run --project benchmarks/Runesmith.Benchmarks --configuration Release -- 
 
 ## The typing benchmark
 
-`benchmarks/Runesmith.TypingBenchmark` is a plugin that types into the running editor and records what every meter measured meanwhile. It
-waits until the C# analyzer has warmed up, types sixteen lines of C# into a method of `src/Runesmith.Editor/TextArea.cs` at 70 ms per key,
-about 140 words a minute, without accepting suggestions, then writes its results and exits. Nothing is saved.
+`benchmarks/Runesmith.TypingBenchmark` is a plugin that drives the running editor and records what every meter measured meanwhile. It needs
+no language plugin: it writes a C# file of 10,008 lines, which Runesmith highlights with its own grammar, and gives that file semantic
+tokens and occurrence highlights of its own, as a language server would. Then it:
 
-Run it in the development shell, which has `xvfb-run`, with the number of runs:
+1. Opens the file and measures what it added to memory.
+2. Folds a method in every tenth class and the body of one class, so lines are hidden.
+3. Types sixteen lines of C# into a method in the middle of the file at 70 ms per key, about 140 words a minute, without accepting
+   suggestions.
+4. Puts the caret on a name used 1,000 times, so its occurrences are highlighted, and scrolls down two wheel notches a frame for 400
+   frames.
+
+Then it writes its results and exits. Nothing is saved. Run it in the development shell, which has `xvfb-run`, with the number of runs:
 
 ```bash
 nix develop -c benchmarks/Runesmith.TypingBenchmark/run.sh 5
 ```
 
 The script publishes Runesmith in Release as a release does, builds the benchmark plugin into a temporary `RUNESMITH_HOME`, and runs
-Runesmith on the repository in a virtual display once per run. It prints `summary.md`: per measurement, the median over the runs of each
-percentile, and the range of the p95 values, which shows how much the runs disagree. A second argument names the folder for the results.
+Runesmith on a folder that holds the file in a virtual display once per run, with the plugin hub turned off. It prints `summary.md`: per
+measurement, the median over the runs of each percentile, and the range of the p95 values, which shows how much the runs disagree. A second
+argument names the folder for the results. Each measurement is named after its phase:
+
+| Measurement | What it measures |
+| --- | --- |
+| `typing: runesmith.editor.input_to_render` | From a key press to the end of drawing its result, in milliseconds. |
+| `typing: runesmith.editor.edit` | Applying one edit, with everything that follows the change, in milliseconds. |
+| `scrolling: benchmark.scroll.frame_interval` | The time between two frames while scrolling; 16.7 ms is 60 frames a second. |
+| `scrolling: runesmith.editor.render` | Drawing the editor in one frame, in milliseconds. |
+| `open: memory.managed`, `open: memory.working_set` | What opening the file added to the managed heap after a full collection, and to the working set, in MB. |
+| `typing: process.allocated` | The memory allocated while typing, in MB, with the collections it took in `process.gc.*`. |
 
 ## Related
 

@@ -9,11 +9,10 @@ internal static class RunReport
 {
     private const string RunPattern = "run-*.tsv";
 
-    public static void Write(string folder, IReadOnlyList<MetricSummary> metrics, ProcessSnapshot process)
+    public static void Write(string folder, IEnumerable<MetricSummary> metrics)
     {
         Directory.CreateDirectory(folder);
-        var lines = metrics.Concat(process.ToSummaries()).Select(metric => metric.ToLine());
-        File.WriteAllLines(Path.Combine(folder, $"run-{DateTime.Now:yyyyMMdd-HHmmss-fff}.tsv"), lines);
+        File.WriteAllLines(Path.Combine(folder, $"run-{DateTime.Now:yyyyMMdd-HHmmss-fff}.tsv"), metrics.Select(metric => metric.ToLine()));
         WriteSummary(folder);
     }
 
@@ -34,7 +33,7 @@ internal static class RunReport
             var values = runs.Where(run => run.ContainsKey(name)).Select(run => run[name]).ToList();
             var p95 = values.Select(value => value.P95).Order().ToList();
             text.AppendLine(CultureInfo.InvariantCulture,
-                $"| {name} | {Median(values.Select(v => (double)v.Count)):0} | {Median(values.Select(v => v.P50)):0.0} | {Median(p95):0.0} | {Median(values.Select(v => v.P99)):0.0} | {Median(values.Select(v => v.Max)):0.0} | {p95[0]:0.0} to {p95[^1]:0.0} |");
+                $"| {name} | {Median(values.Select(v => (double)v.Count)):0} | {Median(values.Select(v => v.P50)):0.00} | {Median(p95):0.00} | {Median(values.Select(v => v.P99)):0.00} | {Median(values.Select(v => v.Max)):0.00} | {p95[0]:0.00} to {p95[^1]:0.00} |");
         }
 
         File.WriteAllText(Path.Combine(folder, "summary.md"), text.ToString());

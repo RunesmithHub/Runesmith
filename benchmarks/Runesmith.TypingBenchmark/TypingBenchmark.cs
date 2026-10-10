@@ -1,32 +1,43 @@
 using System.Composition;
 using System.Diagnostics;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
+using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.Documents;
 using Runesmith.Sdk.Plugins;
 using Runesmith.Text;
 
 namespace Runesmith.TypingBenchmark;
 
-/// <summary>Once the language's analyzer has loaded and warmed up the folder's projects, types sixteen lines into a method at about 140 words a minute, writes what
-/// the editor and the language services measured meanwhile to the folder <c>RUNESMITH_TYPING_BENCHMARK</c> names, and exits.</summary>
-/// <remarks><c>RUNESMITH_TYPING_BENCHMARK_FILE</c> names the file and the line to type after, as <c>path:line</c>, and
-/// <c>RUNESMITH_TYPING_BENCHMARK_LANGUAGE</c> the language, <c>csharp</c> (the default) or <c>java</c>. Nothing is saved.</remarks>
+/// <summary>Opens a generated C# file of 10,000 lines, measures the memory it takes, types sixteen lines into a method in its middle at about
+/// 140 words a minute, scrolls through it with the mouse wheel, writes what the editor measured meanwhile to the folder
+/// <c>RUNESMITH_TYPING_BENCHMARK</c> names, and exits. It needs no language plugin: Runesmith highlights C# with its own grammar.</summary>
+/// <remarks><c>RUNESMITH_TYPING_BENCHMARK_FILE</c> names the file, which is written when it does not exist. Before typing, a method of every
+/// tenth class and the body of one class are folded, so lines are hidden, and <see cref="SampleLanguage"/> gives the file semantic tokens
+/// and occurrence highlights; while scrolling, the occurrences of a name used 1,000 times are highlighted. Nothing is saved.</remarks>
 [Export(typeof(IPlugin))]
 [method: ImportingConstructor]
-public sealed class TypingBenchmark(IEditorService editors) : IPlugin
+public sealed class TypingBenchmark(IEditorService editors, ICommandService commands) : IPlugin
 {
     private const string OutputVariable = "RUNESMITH_TYPING_BENCHMARK";
     private const string FileVariable = "RUNESMITH_TYPING_BENCHMARK_FILE";
-    private const string LanguageVariable = "RUNESMITH_TYPING_BENCHMARK_LANGUAGE";
-    private const string ReadyInstrument = "runesmith.language.request";
+
+    // By its id rather than CommandIds.Fold, so the benchmark also builds against plugin APIs from before folding, which fold nothing.
+    private const string FoldCommand = "editor.fold";
+
+    private const string FrameInterval = "benchmark.scroll.frame_interval (ms)";
+    private const int ScrollFrames = 400;
+    private const int WheelNotchesPerFrame = 2;
 
     private static readonly TimeSpan KeyInterval = TimeSpan.FromMilliseconds(70);
-    private static readonly TimeSpan ReadyTimeout = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan WindowTimeout = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan Settle = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan OpenSettle = TimeSpan.FromSeconds(6);
+    private static readonly Pointer Wheel = new(Pointer.GetNextFreeId(), PointerType.Mouse, isPrimary: true);
 
-    private static readonly Scenario CSharp = new("Load C# projects",
+    private static readonly string[] Lines =
     [
         "var probe = Snapshot.GetLineFromPosition(selection.Caret);",
         "if (probe.Length > 0 && Document.IsModified)",
@@ -44,48 +55,36 @@ public sealed class TypingBenchmark(IEditorService editors) : IPlugin
         "ScrollToCaret();",
         "var number = Snapshot.GetLineFromPosition(value.Caret).LineNumber;",
         "System.Diagnostics.Debug.Assert(number >= 0, builder.ToString());",
-    ]);
-
-    private static readonly Scenario Java = new("Load Java projects",
-    [
-        "var probe = new ArrayList<String>();",
-        "probe.add(String.valueOf(probe.size()));",
-        "var words = List.of(\"alpha\", \"beta\", \"gamma\");",
-        "var longest = words.stream().max(Comparator.comparingInt(String::length)).orElse(\"\");",
-        "var builder = new StringBuilder(longest);",
-        "builder.append(words.size()).append(':');",
-        "for (var word : words)",
-        "System.out.println(word.toUpperCase(Locale.ROOT));",
-        "var count = words.stream().filter(word -> Character.isUpperCase(word.charAt(0))).count();",
-        "var lookup = new HashMap<String, Integer>();",
-        "lookup.put(builder.toString(), (int) count);",
-        "if (lookup.containsKey(longest) && count > 0)",
-        "probe.clear();",
-        "var text = String.join(\",\", words).strip();",
-        "var number = text.length() + probe.size();",
-        "Objects.requireNonNull(builder.toString(), text);",
-    ]);
+    ];
 
     private readonly MetricRecorder recorder = new();
 
-    // Runesmith opens the folder only after every plugin has started, so the session runs after this returns.
+    /// <summary>Gets whether a document is the benchmark's sample file.</summary>
+    internal static bool IsSample(IDocument document) => SamplePath is { } path && string.Equals(document.FilePath, path, StringComparison.Ordinal);
+
+    private static string? SamplePath => Environment.GetEnvironmentVariable(FileVariable) is { Length: > 0 } path ? Path.GetFullPath(path) : null;
+
+    // Runesmith opens the folder only after every plugin has started, so the file exists by then and the session runs after this returns.
     public Task InitializeAsync(CancellationToken cancellationToken)
     {
-        if (Environment.GetEnvironmentVariable(OutputVariable) is { Length: > 0 } output
-            && Environment.GetEnvironmentVariable(FileVariable) is { Length: > 0 } target)
+        if (Environment.GetEnvironmentVariable(OutputVariable) is { Length: > 0 } output && SamplePath is { } path)
         {
-            _ = RunAndExitAsync(output, target, cancellationToken);
+            if (!File.Exists(path))
+                File.WriteAllText(path, SampleFile.Create());
+            _ = RunAndExitAsync(output, path, cancellationToken);
         }
 
         return Task.CompletedTask;
     }
 
-    private async Task RunAndExitAsync(string output, string target, CancellationToken cancellationToken)
+    public void Dispose() => recorder.Dispose();
+
+    private async Task RunAndExitAsync(string output, string path, CancellationToken cancellationToken)
     {
         var exitCode = 0;
         try
         {
-            await RunAsync(output, target, cancellationToken);
+            await RunAsync(output, path, cancellationToken);
         }
         catch (Exception exception)
         {
@@ -96,30 +95,75 @@ public sealed class TypingBenchmark(IEditorService editors) : IPlugin
         Environment.Exit(exitCode);
     }
 
-    public void Dispose() => recorder.Dispose();
-
-    private async Task RunAsync(string output, string target, CancellationToken cancellationToken)
+    private async Task RunAsync(string output, string path, CancellationToken cancellationToken)
     {
-        var separator = target.LastIndexOf(':');
-        var path = target[..separator];
-        var line = int.Parse(target[(separator + 1)..], System.Globalization.CultureInfo.InvariantCulture);
-        var scenario = Environment.GetEnvironmentVariable(LanguageVariable) == "java" ? Java : CSharp;
-
-        await recorder.WaitForAsync(ReadyInstrument, scenario.ReadyRequest).WaitAsync(ReadyTimeout, cancellationToken);
-        var editor = await editors.OpenAsync(path, new TextPosition(line - 1, 0))
-            ?? throw new InvalidOperationException($"Could not open {path}.");
+        var results = new List<MetricSummary>();
+        await WaitForWindowAsync(cancellationToken);
         await Task.Delay(Settle, cancellationToken);
 
+        var empty = MemorySnapshot.Take();
+        var editor = await editors.OpenAsync(path, new TextPosition(SampleFile.TypingLine, 0)) ?? throw new InvalidOperationException($"Could not open {path}.");
+        await Task.Delay(OpenSettle, cancellationToken);
+        results.AddRange(MemorySnapshot.Take().ToSummaries("open", empty));
+
+        await FoldAsync(editor);
+        editor.CaretOffset = LineStart(editor, SampleFile.TypingLine);
         editor.Focus();
         var input = FocusedElement() ?? throw new InvalidOperationException("The editor did not take the keyboard focus.");
-        var before = ProcessSnapshot.Take();
-        Console.WriteLine("Typing started");
-        recorder.Start();
+        await Task.Delay(Settle, cancellationToken);
 
+        Console.WriteLine("Typing started");
+        var before = ProcessSnapshot.Take();
+        recorder.Start("typing");
+        await TypeAsync(input, cancellationToken);
+        await Task.Delay(Settle, cancellationToken);
+        recorder.Stop();
+        results.AddRange((ProcessSnapshot.Take() - before).ToSummaries("typing"));
+
+        Console.WriteLine("Scrolling started");
+        Press(input, Key.Escape);
+        editor.CaretOffset = LineStart(editor, SampleFile.LineOf(1, "    private int count;")) + "    private int ".Length;
+        editor.ScrollTo(0);
+        await Task.Delay(Settle, cancellationToken);
+        before = ProcessSnapshot.Take();
+        recorder.Start("scrolling");
+        await ScrollAsync(input);
+        recorder.Stop();
+        results.AddRange((ProcessSnapshot.Take() - before).ToSummaries("scrolling"));
+        results.AddRange(MemorySnapshot.Take().ToSummaries("end", empty));
+
+        RunReport.Write(output, recorder.Summarize().Concat(results));
+    }
+
+    private static async Task WaitForWindowAsync(CancellationToken cancellationToken)
+    {
+        var deadline = Stopwatch.GetTimestamp() + (long)(WindowTimeout.TotalSeconds * Stopwatch.Frequency);
+        while ((Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is not { IsVisible: true })
+        {
+            if (Stopwatch.GetTimestamp() > deadline)
+                throw new TimeoutException("The main window did not show.");
+            await Task.Delay(100, cancellationToken);
+        }
+    }
+
+    // Folds Describe in every tenth class and the body of class 5.
+    private async Task FoldAsync(IEditorView editor)
+    {
+        var lines = Enumerable.Range(1, SampleFile.ClassCount / 10).Select(n => SampleFile.LineOf(n * 10, "        var builder"))
+            .Append(SampleFile.LineOf(5, "    private int count;"));
+        foreach (var line in lines)
+        {
+            editor.CaretOffset = LineStart(editor, line);
+            await commands.ExecuteAsync(FoldCommand);
+        }
+    }
+
+    private static async Task TypeAsync(InputElement input, CancellationToken cancellationToken)
+    {
         Press(input, Key.End);
         Press(input, Key.Enter);
         var next = Stopwatch.GetTimestamp();
-        foreach (var text in scenario.Lines)
+        foreach (var text in Lines)
         {
             foreach (var character in text)
             {
@@ -134,11 +178,38 @@ public sealed class TypingBenchmark(IEditorService editors) : IPlugin
             await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
             next = Stopwatch.GetTimestamp();
         }
-
-        await Task.Delay(Settle, cancellationToken);
-        recorder.Stop();
-        RunReport.Write(output, recorder.Summarize(), ProcessSnapshot.Take() - before);
     }
+
+    // Scrolls down two wheel notches each frame, as a fast flick does, and records how far apart the frames come.
+    private Task ScrollAsync(InputElement input)
+    {
+        var top = TopLevel.GetTopLevel(input) ?? throw new InvalidOperationException("The editor is not in a window.");
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var frames = 0;
+        var last = 0L;
+
+        void OnFrame(TimeSpan time)
+        {
+            var now = Stopwatch.GetTimestamp();
+            if (last != 0)
+                recorder.Record(FrameInterval, Stopwatch.GetElapsedTime(last, now).TotalMilliseconds);
+            last = now;
+            if (frames++ == ScrollFrames)
+            {
+                done.TrySetResult();
+                return;
+            }
+
+            input.RaiseEvent(new PointerWheelEventArgs(input, Wheel, top, new Point(200, 200), 0, PointerPointProperties.None, KeyModifiers.None,
+                new Vector(0, -WheelNotchesPerFrame)));
+            top.RequestAnimationFrame(OnFrame);
+        }
+
+        top.RequestAnimationFrame(OnFrame);
+        return done.Task;
+    }
+
+    private static int LineStart(IEditorView editor, int line) => editor.Document.Buffer.Current.GetLine(line).Start;
 
     private static async Task WaitUntilAsync(long timestamp, CancellationToken cancellationToken)
     {
@@ -155,7 +226,4 @@ public sealed class TypingBenchmark(IEditorService editors) : IPlugin
 
     private static InputElement? FocusedElement() =>
         (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow?.FocusManager?.GetFocusedElement() as InputElement;
-
-    /// <summary>What to type, and the analyzer request whose end means the folder is loaded.</summary>
-    private sealed record Scenario(string ReadyRequest, string[] Lines);
 }

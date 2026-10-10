@@ -4,6 +4,6 @@
   "version": "0.1.0",
   "apiVersion": "0.1",
   "assembly": "Runesmith.TypingBenchmark.dll",
-  "description": "Types into the editor on a fixed schedule and reports how fast Runesmith responded. Does nothing unless RUNESMITH_TYPING_BENCHMARK is set.",
+  "description": "Opens a generated C# file of 10,000 lines, types into it and scrolls through it, and reports how fast Runesmith responded and the memory the file took. Does nothing unless RUNESMITH_TYPING_BENCHMARK is set.",
   "author": "Runesmith"
 }
