@@ -16,6 +16,6 @@
   </ItemGroup>
   <!-- The in-process debug adapter the client's tests and the debugger's tests talk to. -->
   <ItemGroup>
-    <Compile Include="..\Shared\Dap\*.cs" LinkBase="Shared" />
+    <Compile Include="..\Shared\Dap\FakeDebugAdapter.cs" LinkBase="Shared" />
   </ItemGroup>
 </Project>

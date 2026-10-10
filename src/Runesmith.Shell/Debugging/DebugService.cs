@@ -219,7 +219,7 @@ public sealed class DebugService : IRunDebugger
         }
     }
 
-    private static async Task<(DebugAdapterClient, Func<ValueTask>)> StartAdapterAsync(DebugAdapterDescriptor adapter, string rootPath, Action<string> log,
+    internal static async Task<(DebugAdapterClient, Func<ValueTask>)> StartAdapterAsync(DebugAdapterDescriptor adapter, string rootPath, Action<string> log,
         CancellationToken cancellationToken)
     {
         DebugAdapterProcess process;
