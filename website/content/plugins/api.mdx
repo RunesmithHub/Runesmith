@@ -734,9 +734,9 @@ public sealed class AcmeCredentials(AcmeHost host) : IGitCredentialSource
 ## API versions
 
 The SDK package's version is the plugin API version, `RunesmithApi.Version`. Before 1.0, additions come in patch versions: a plugin built
-for `^0.1.0` loads in a Runesmith with API 0.1.1, and a plugin that uses anything added in 0.1.1 declares `"runesmithApi": "^0.1.1"` and
-references `Runesmith.Sdk` 0.1.1, so an older Runesmith lists it as needing a newer API instead of failing when it calls a member it lacks.
-New plugins start at `^0.1.1`. See [API versions](./index.mdx#api-versions) for how Runesmith checks the range.
+for `^0.1.0` loads in a Runesmith with API 0.1.2, and a plugin that uses anything added in 0.1.2 declares `"runesmithApi": "^0.1.2"` and
+references `Runesmith.Sdk` 0.1.2, so an older Runesmith lists it as needing a newer API instead of failing when it calls a member it lacks.
+New plugins start at `^0.1.2`. See [API versions](./index.mdx#api-versions) for how Runesmith checks the range.
 
 | Added in 0.1.1 | What it is |
 | --- | --- |
@@ -748,7 +748,7 @@ New plugins start at `^0.1.1`. See [API versions](./index.mdx#api-versions) for 
 | `ColorScheme(id, name, json)` and `ColorScheme.Json` | A [syntax color scheme](./themes.mdx#syntax-color-schemes) given as JSON instead of a file. |
 | `RunesmithPaths.Hub` | The folder Runesmith manages for the plugin hub. |
 
-The members marked "Added in plugin API 0.1.2" in the SDK's documentation come with the next API version; a plugin that uses them declares
+API 0.1.2 adds the members marked "Added in plugin API 0.1.2" in the SDK's documentation; a plugin that uses them declares
 `"runesmithApi": "^0.1.2"`.
 
 | Added in 0.1.2 | What it is |

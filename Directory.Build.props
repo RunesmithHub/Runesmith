@@ -18,7 +18,7 @@
     <!-- Releases set RunesmithVersion from the tag, as an environment variable. -->
     <RunesmithVersion Condition="'$(RunesmithVersion)' == ''">0.1.0</RunesmithVersion>
     <!-- The version of the packages plugins build against, equal to RunesmithApi.Version; an sdk/v* tag must match it. -->
-    <RunesmithSdkVersion Condition="'$(RunesmithSdkVersion)' == ''">0.1.1</RunesmithSdkVersion>
+    <RunesmithSdkVersion Condition="'$(RunesmithSdkVersion)' == ''">0.1.2</RunesmithSdkVersion>
     <Version>$(RunesmithVersion)</Version>
     <Version Condition="'$(IsPackable)' == 'true'">$(RunesmithSdkVersion)</Version>
     <!-- The HammerUI and hub checkouts beside this one, used instead of their packages while they exist. -->

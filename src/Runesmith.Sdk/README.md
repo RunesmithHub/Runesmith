@@ -15,7 +15,7 @@ dotnet new runesmith-plugin --name MyPlugin --id publisher.myplugin
 Reference the package without copying it next to the plugin, because Runesmith supplies it:
 
 ```xml
-<PackageReference Include="Runesmith.Sdk" Version="0.1.1" ExcludeAssets="runtime" />
+<PackageReference Include="Runesmith.Sdk" Version="0.1.2" ExcludeAssets="runtime" />
 ```
 
 The package's build targets add `InstallPlugin`: `dotnet build <implementation project> -t:InstallPlugin` lays the plugin out as Runesmith

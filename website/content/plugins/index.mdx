@@ -74,7 +74,7 @@ You write `plugin.json` at the root of the plugin, next to the two projects:
   "authors": ["Acme"],
   "license": "MIT",
   "repository": "https://github.com/acme/todo-highlighter",
-  "runesmithApi": "^0.1.1",
+  "runesmithApi": "^0.1.2",
   "projects": {
     "contracts": "Acme.Todo.Contracts/Acme.Todo.Contracts.csproj",
     "implementation": "Acme.Todo/Acme.Todo.csproj"
@@ -159,14 +159,14 @@ could not load, the plugin does not load either, and the reason names the depend
 
 ## API versions
 
-The plugin API follows semantic versioning. `RunesmithApi.Version` in the SDK is the version this Runesmith provides, `0.1.1`, and
+The plugin API follows semantic versioning. `RunesmithApi.Version` in the SDK is the version this Runesmith provides, `0.1.2`, and
 `RunesmithApi.OldestSupported` the oldest version plugins can be built for, `0.1.0`. Runesmith loads a plugin when:
 
 - `RunesmithApi.Version` is inside the plugin's `runesmithApi` range, and
 - the lowest version of that range, the API the plugin was built against, is at least `RunesmithApi.OldestSupported`.
 
-`^0.1.0` loads in every Runesmith with an API from 0.1.0 up to, not including, 0.2.0, and `^0.1.1` in those from 0.1.1. Before 1.0,
-additions to the API come in patch versions, so a plugin that uses one declares the version that added it; new plugins start at `^0.1.1`.
+`^0.1.0` loads in every Runesmith with an API from 0.1.0 up to, not including, 0.2.0, and `^0.1.2` in those from 0.1.2. Before 1.0,
+additions to the API come in patch versions, so a plugin that uses one declares the version that added it; new plugins start at `^0.1.2`.
 The [API overview](./api.mdx#api-versions) lists what each version added. A plugin that cannot load is listed with the reason, and the rest
 of Runesmith works as usual.
 

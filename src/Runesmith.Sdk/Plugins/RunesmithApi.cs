@@ -7,7 +7,7 @@ namespace Runesmith.Sdk.Plugins;
 public static class RunesmithApi
 {
     /// <summary>The version of this API.</summary>
-    public static Version Version { get; } = new(0, 1, 1);
+    public static Version Version { get; } = new(0, 1, 2);
 
     /// <summary>The oldest API version plugins can be built against and still run: the start of <see cref="Version"/>'s compatibility
     /// line.</summary>
