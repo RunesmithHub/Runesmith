@@ -45,6 +45,7 @@ public sealed class NetcoredbgTests : IAsyncDisposable
         var source = Path.Combine(root, "Program.cs");
         var breakpoints = Breakpoints(root, state);
         breakpoints.Toggle(source, 1);
+        breakpoints.Set(new LineBreakpoint(source, 3) { LogMessage = "count is {count}, total is {total}" });
         var debug = new DebugService([new Lazy<IDebugAdapterProvider>(() => new NetcoredbgEngine())], breakpoints, new FakeWorkspace(root), _ => null, _ => { }, _ => { },
             DebugService.StartAdapterAsync);
         var console = new ConsoleBuffer();
@@ -77,6 +78,7 @@ public sealed class NetcoredbgTests : IAsyncDisposable
         await session.ContinueAsync();
         Assert.Equal(0, await session.Completion.WaitAsync(TimeSpan.FromSeconds(30), Token));
         Assert.Contains("total is 7", session.Console.GetText(), StringComparison.Ordinal);
+        Assert.Contains("count is 3, total is 7", session.Console.GetText(), StringComparison.Ordinal);
     }
 
     private async Task<string> BuildAsync()

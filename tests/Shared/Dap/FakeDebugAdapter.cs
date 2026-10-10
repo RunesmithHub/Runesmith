@@ -116,6 +116,9 @@ internal sealed class FakeDebugAdapter : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (lifetime.IsCancellationRequested)
+            return;
+
         await lifetime.CancelAsync();
         toClient.Dispose();
         toAdapter.Dispose();

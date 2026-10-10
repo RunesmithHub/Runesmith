@@ -27,7 +27,7 @@ public enum DebugState
 /// stop it, over a debug adapter.</summary>
 /// <remarks>Its members can be called from any thread, and none blocks. The adapter's events are handled one at a time in order, off the UI
 /// thread, and <see cref="StateChanged"/> is raised from there; a step's answer reaches the call stack without waiting for anything else.</remarks>
-public sealed class DebugSession
+public sealed partial class DebugSession
 {
     private const int FrameLimit = 200;
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(3);
@@ -40,6 +40,7 @@ public sealed class DebugSession
     private readonly Lock gate = new();
     private readonly HashSet<string> sentFiles = new(PathKey.Comparer);
     private readonly Dictionary<int, LineBreakpoint> adapterIds = [];
+    private readonly List<LineBreakpoint> emulatedLogPoints = [];
     private IReadOnlyList<DapThread> threads = [];
     private IReadOnlyList<StackFrame> frames = [];
     private StackFrame? currentFrame;
@@ -48,6 +49,7 @@ public sealed class DebugSession
     private int epoch;
     private int ended;
     private bool configured;
+    private bool clientStarted;
 
     internal DebugSession(string name, string debuggerName, DebugAdapterClient client, BreakpointService breakpoints, Func<ValueTask> release)
     {
@@ -115,6 +117,7 @@ public sealed class DebugSession
     public async Task StartAsync(DebugAdapterRequest request, string adapterId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        clientStarted = true;
         client.Start();
         await client.InitializeAsync(new InitializeArguments(adapterId)
         {
@@ -178,9 +181,12 @@ public sealed class DebugSession
         using var timeout = new CancellationTokenSource(StopTimeout);
         try
         {
-            if (!client.IsClosed && !await client.TerminateAsync(timeout.Token).ConfigureAwait(false))
-                await client.DisconnectAsync(new DisconnectArguments { TerminateDebuggee = true }, timeout.Token).ConfigureAwait(false);
-            await completion.Task.WaitAsync(timeout.Token).ConfigureAwait(false);
+            if (clientStarted && !client.IsClosed)
+            {
+                if (!await client.TerminateAsync(timeout.Token).ConfigureAwait(false))
+                    await client.DisconnectAsync(new DisconnectArguments { TerminateDebuggee = true }, timeout.Token).ConfigureAwait(false);
+                await completion.Task.WaitAsync(timeout.Token).ConfigureAwait(false);
+            }
         }
         catch (Exception exception) when (exception is DebugAdapterException or IOException or OperationCanceledException or TimeoutException)
         {
@@ -272,16 +278,15 @@ public sealed class DebugSession
 
     private async Task SendBreakpointsAsync(string path, CancellationToken cancellationToken)
     {
-        var capabilities = Capabilities;
-        var all = breakpoints.In(path);
-        var sent = all.Where(b => b.IsEnabled && (!b.IsLogPoint || capabilities.SupportsLogPoints)).ToList();
+        var emulateLogPoints = !Capabilities.SupportsLogPoints;
+        var sent = breakpoints.In(path).Where(b => b.IsEnabled).ToList();
         var found = await client.SetBreakpointsAsync(new SetBreakpointsArguments(new Source { Path = path, Name = Path.GetFileName(path) },
         [
             .. sent.Select(b => new SourceBreakpoint(b.Line + 1)
             {
                 Condition = string.IsNullOrWhiteSpace(b.Condition) ? null : b.Condition,
                 HitCondition = string.IsNullOrWhiteSpace(b.HitCondition) ? null : b.HitCondition,
-                LogMessage = b.IsLogPoint ? b.LogMessage : null,
+                LogMessage = b.IsLogPoint && !emulateLogPoints ? b.LogMessage : null,
             }),
         ]), cancellationToken).ConfigureAwait(false);
 
@@ -291,17 +296,18 @@ public sealed class DebugSession
             sentFiles.Add(path);
             foreach (var stale in adapterIds.Where(p => PathKey.Equals(p.Value.Path, path)).Select(p => p.Key).ToList())
                 adapterIds.Remove(stale);
+            emulatedLogPoints.RemoveAll(b => PathKey.Equals(b.Path, path));
             for (var i = 0; i < sent.Count; i++)
             {
                 var answer = i < found.Count ? found[i] : null;
                 statuses[sent[i]] = new BreakpointStatus(answer?.Verified ?? false, answer?.Message);
                 if (answer?.Id is { } id)
                     adapterIds[id] = sent[i];
+                if (emulateLogPoints && sent[i].IsLogPoint)
+                    emulatedLogPoints.Add(sent[i]);
             }
         }
 
-        foreach (var logPoint in all.Where(b => b.IsEnabled && b.IsLogPoint && !capabilities.SupportsLogPoints))
-            statuses[logPoint] = new BreakpointStatus(false, $"{DebuggerName} does not support log points.");
         breakpoints.SetStatuses(statuses);
     }
 
@@ -344,6 +350,13 @@ public sealed class DebugSession
         var all = await TryAsync("threads", () => client.ThreadsAsync()).ConfigureAwait(false) ?? threads;
         var id = e.ThreadId ?? threadId ?? FirstThread(all);
         var stack = id is { } stopped ? await TryAsync("stackTrace", () => client.StackTraceAsync(new StackTraceArguments(stopped) { Levels = FrameLimit })).ConfigureAwait(false) : null;
+        if (id is { } thread && stack is { StackFrames: [var top, ..] } && LogPointAt(e, top) is { } logPoint)
+        {
+            Console.AppendLine(await FormatLogMessageAsync(logPoint.LogMessage!, top.Id).ConfigureAwait(false), ConsoleSource.System);
+            await TryAsync("continue", () => client.ContinueAsync(thread)).ConfigureAwait(false);
+            return;
+        }
+
         lock (gate)
         {
             if (current != epoch || State == DebugState.Ended)
@@ -361,6 +374,49 @@ public sealed class DebugSession
             Console.AppendLine(text, ConsoleSource.Error);
         RaiseStateChanged();
     }
+
+    // A debugger without log points stops at them as at breakpoints; the session writes their message and goes on.
+    private LineBreakpoint? LogPointAt(StoppedEvent e, StackFrame top)
+    {
+        if (e.Reason != "breakpoint")
+            return null;
+
+        lock (gate)
+        {
+            if (emulatedLogPoints.Count == 0)
+                return null;
+            if (e.HitBreakpointIds is { Count: > 0 } hit)
+                return hit.Select(adapterIds.GetValueOrDefault).FirstOrDefault(b => b is not null && emulatedLogPoints.Contains(b));
+            return emulatedLogPoints.FirstOrDefault(b => b.Line + 1 == top.Line && PathKey.Equals(b.Path, top.Source?.Path));
+        }
+    }
+
+    /// <summary>Fills a log message's <c>{expression}</c> parts with their values in a frame.</summary>
+    internal async Task<string> FormatLogMessageAsync(string message, int frameId)
+    {
+        var text = new System.Text.StringBuilder();
+        var last = 0;
+        foreach (System.Text.RegularExpressions.Match match in LogExpression().Matches(message))
+        {
+            text.Append(message, last, match.Index - last);
+            var expression = match.Groups[1].Value;
+            try
+            {
+                text.Append((await client.EvaluateAsync(new EvaluateArguments(expression) { FrameId = frameId, Context = "watch" }).ConfigureAwait(false)).Result);
+            }
+            catch (Exception exception) when (exception is DebugAdapterException or IOException)
+            {
+                text.Append('{').Append(exception.Message).Append('}');
+            }
+
+            last = match.Index + match.Length;
+        }
+
+        return text.Append(message, last, message.Length - last).ToString();
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"\{([^{}]+)\}")]
+    private static partial System.Text.RegularExpressions.Regex LogExpression();
 
     private Task OnContinued(ContinuedEvent e)
     {

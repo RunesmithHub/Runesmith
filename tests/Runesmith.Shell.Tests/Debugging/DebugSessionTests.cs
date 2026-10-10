@@ -153,14 +153,36 @@ public sealed class DebugSessionTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task LogPointsAreKeptBackFromADebuggerWithoutThem()
+    public async Task ADebuggerWithoutLogPointsStopsAtThemAndTheSessionLogsAndGoesOn()
     {
-        breakpoints.Set(new LineBreakpoint(program.ProgramPath, 7) { LogMessage = "count is {count}" });
+        breakpoints.Set(new LineBreakpoint(program.ProgramPath, 4) { LogMessage = "double is {count * 2}, {missing}" });
 
         await StartAsync();
+        var sent = program.Adapter.Arguments("setBreakpoints")!["breakpoints"]![0]!;
+        Assert.Equal(5, sent["line"]!.GetValue<int>());
+        Assert.Null(sent["logMessage"]);
+        Assert.True(breakpoints.StatusOf(breakpoints.Find(program.ProgramPath, 4)!)!.Verified);
 
-        Assert.Empty(program.Adapter.Arguments("setBreakpoints")!["breakpoints"]!.AsArray());
-        Assert.Contains("does not support log points", breakpoints.StatusOf(breakpoints.Find(program.ProgramPath, 7)!)!.Message, StringComparison.Ordinal);
+        await program.StopAtBreakpointAsync();
+        await program.Adapter.WaitForAsync("continue");
+
+        await WaitAsync(() => session.Console.GetText().Contains("double is", StringComparison.Ordinal));
+        Assert.Contains("double is 6, {The name is not in scope}", session.Console.GetText(), StringComparison.Ordinal);
+        Assert.Equal(DebugState.Running, session.State);
+        Assert.Null(session.CurrentFrame);
+    }
+
+    [Fact]
+    public async Task ADebuggerWithLogPointsGetsTheMessage()
+    {
+        await using var withLogPoints = new ScriptedProgram(program.ProgramPath, """{ "supportsConfigurationDoneRequest": true, "supportsLogPoints": true }""");
+        var other = new DebugSession("App", "Fake debugger", withLogPoints.Client, breakpoints, withLogPoints.ReleaseAsync);
+        breakpoints.Set(new LineBreakpoint(program.ProgramPath, 4) { LogMessage = "count is {count}" });
+
+        await other.StartAsync(new DebugAdapterRequest(DebugRequestKind.Launch, new JsonObject()), "fake", Token);
+
+        Assert.Equal("count is {count}", withLogPoints.Adapter.Arguments("setBreakpoints")!["breakpoints"]![0]!["logMessage"]!.GetValue<string>());
+        await other.StopAsync();
     }
 
     [Fact]
