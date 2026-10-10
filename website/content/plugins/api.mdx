@@ -31,10 +31,12 @@ Runesmith creates a part the first time something needs it. Services can be impo
 | `IEditorService` | Opens documents in editors, and gives the active editor. |
 | `ICustomEditorService` | Lists the editors that can open a file and opens it in one of them. |
 | `IWorkspace` | The open folder, its solutions and its files. |
+| `IWorkspaceFiles` | Reports files of the open folder, or another folder, that change on disk. |
+| `IWorkspaceSearch` | Searches the open folder like the **Search** panel, and finds files by glob. |
 | `ILanguageRegistry` | Every language, and the language of a file. |
 | `ILanguageFeatures` | Completion, hover, definitions and signature help, merged from every provider. |
 | `IEditorFeatures` | Code actions, rename, formatting and decoration providers, merged from every provider. |
-| `IWorkspaceEditService` | Applies a workspace edit to one or more files, each as one undo step. |
+| `IWorkspaceEditService` | Applies a workspace edit to one or more files and creates, renames and deletes files with it, as one undo step. |
 | `IDiagnosticService` | The problems every source reports. |
 | `ISettingsService` | Reads and changes settings. |
 | `IStatusBar` | Adds items to the status bar. |
@@ -510,11 +512,50 @@ in again.
 Import `ILauncher` to hand things to the system: `OpenUrl` opens an `http` or `https` address in the default browser, and `Reveal` shows a
 file or folder in the file manager. A plugin needs the `process` [capability](./index.mdx#capabilities) to use it.
 
+## Files and search
+
+Import `IWorkspaceFiles` to follow files that change on disk, `IWorkspaceSearch` to search the open folder, and `IWorkspaceEditService` to
+create, rename and delete files with text changes as one undo step. [Files and search](./workspace.mdx) covers all three. This command
+searches the folder and lists the matches in an output channel:
+
+```csharp
+[Export(typeof(ICommandContributor))]
+[method: ImportingConstructor]
+public sealed class OrderSearch(IWorkspaceSearch search, IOutputService output) : ICommandContributor
+{
+    public void Contribute(ICommandRegistry registry) =>
+        registry.Add(new CommandDefinition("acme.orders.find", "Find Orders", "Orders"), async _ =>
+        {
+            var channel = output.GetChannel("Orders");
+            var query = new WorkspaceSearchQuery("order") { Options = TextSearchOptions.WholeWord, Include = ["*.cs"] };
+            await foreach (var file in search.SearchAsync(query))
+            {
+                foreach (var match in file.Matches)
+                    channel.AppendLine($"{file.FilePath}:{match.Line + 1}: {match.LineText.Trim()}");
+            }
+
+            channel.Show();
+        });
+}
+```
+
+And this edit renames a file and changes a reference to it in another file; **Edit › Undo Workspace Edit** takes back both:
+
+```csharp
+var edit = new WorkspaceEdit([new DocumentEdit(customer, [new TextChange(new TextSpan(start, 12), "Billing.Order")])])
+{
+    FileOperations = [new RenameFileOperation(Path.Combine(root, "Models", "Order.cs"), Path.Combine(root, "Billing", "Order.cs"))],
+};
+await edits.ApplyAsync(edit, new WorkspaceEditOptions { Label = "Move Order.cs to Billing" });
+```
+
+Watching or changing files outside the open folder needs the `filesystem` [capability](./index.mdx#capabilities); searching never does.
+
 ## Messages
 
 `IMessageBus` passes messages, which are any class such as a record. Runesmith publishes `WorkspaceOpenedMessage` when a folder opens or
 closes, `ThemeChangedMessage` when the color theme, the accent or the syntax colors change and `FilesChangedMessage` when files of the open
-folder change on disk.
+folder change on disk, and after a workspace edit creates, renames or deletes files.
 
 ## Folders
 
@@ -612,9 +653,22 @@ New plugins start at `^0.1.1`. See [API versions](./index.mdx#api-versions) for 
 | `ColorScheme(id, name, json)` and `ColorScheme.Json` | A [syntax color scheme](./themes.mdx#syntax-color-schemes) given as JSON instead of a file. |
 | `RunesmithPaths.Hub` | The folder Runesmith manages for the plugin hub. |
 
+The members marked "Added in plugin API 0.1.2" in the SDK's documentation come with the next API version; a plugin that uses them declares
+`"runesmithApi": "^0.1.2"`.
+
+| Added in 0.1.2 | What it is |
+| --- | --- |
+| `IWorkspaceFiles`, `IFileWatcher`, `FileWatchOptions`, `FileChangeEvent`, `FileChangeKind` | [Watch files](./workspace.mdx#watch-files). |
+| `IWorkspaceSearch`, `WorkspaceSearchQuery`, `WorkspaceSearchResult`, `WorkspaceSearchMatch` | [Search the folder](./workspace.mdx#search-the-folder). |
+| `WorkspaceEdit.FileOperations`, `FileOperation`, `CreateFileOperation`, `RenameFileOperation`, `DeleteFileOperation` | [Create, rename and delete files](./workspace.mdx#create-rename-and-delete-files). |
+| `IWorkspaceEditService.ApplyAsync(edit, options)`, `CanUndo`, `CanRedo`, `UndoAsync`, `RedoAsync`, `WorkspaceEditOptions`, `WorkspaceEditConfirmation` | Applying, undoing and redoing workspace edits as one step. |
+| `IFileOperationParticipant` | [Take part in file operations](./workspace.mdx#take-part-in-file-operations). |
+| `CommandIds.UndoWorkspaceEdit`, `RedoWorkspaceEdit` | The workspace undo commands. |
+
 ## Related
 
 - [Create a plugin](./create-a-plugin.mdx)
+- [Files and search](./workspace.mdx): file watchers, search and file operations.
 - [Editor extensions](./language-features.mdx): decorations, code actions, rename, formatting and keyboard hooks.
 - [Custom editors](./custom-editors.mdx) and [Web views](./web-views.mdx)
 - [C# support](./csharp.mdx), a complete plugin.
