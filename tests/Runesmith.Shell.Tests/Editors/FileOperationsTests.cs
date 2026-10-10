@@ -71,8 +71,9 @@ public sealed class FileOperationsTests : IDisposable
         Assert.Equal("class C\n{\n}\n", documents.Find(created)!.Buffer.Current.GetText());
         Assert.Equal("class A { Renamed o; }", documents.Find(other)!.Buffer.Current.GetText());
         Assert.False(File.Exists(gone));
-        Assert.True(File.Exists(Path.Combine(Trash, "files", "Gone.txt")));
-        Assert.Contains($"Path={gone}", File.ReadAllText(Path.Combine(Trash, "info", "Gone.txt.trashinfo")), StringComparison.Ordinal);
+        Assert.Equal("bye", File.ReadAllText(Trashed("Gone.txt")));
+        if (SystemTrash.UsesFreedesktopTrash)
+            Assert.Equal(gone, TrashedFrom("Gone.txt"));
         Assert.Contains(renamed, Assert.Single(changed).Paths);
         Assert.Contains("3 file operations", notifications.Notified);
         Assert.True(service.CanUndo);
@@ -89,6 +90,7 @@ public sealed class FileOperationsTests : IDisposable
         Assert.False(Directory.Exists(Path.Combine(root, "Models")));
         Assert.Equal("class A { Old o; }", documents.Find(other)!.Buffer.Current.GetText());
         Assert.Equal("bye", File.ReadAllText(gone));
+        Assert.False(File.Exists(Trashed("Gone.txt")));
         Assert.False(File.Exists(Path.Combine(Trash, "info", "Gone.txt.trashinfo")));
         Assert.True(service.CanRedo);
 
@@ -376,26 +378,28 @@ public sealed class FileOperationsTests : IDisposable
         service.Dispose();
 
         Assert.Empty(Directory.EnumerateFiles(Stash, "*", SearchOption.AllDirectories));
-        Assert.False(Directory.Exists(Path.Combine(Trash, "files")) && Directory.EnumerateFiles(Path.Combine(Trash, "files")).Any());
+        Assert.False(Directory.Exists(Trash) && Directory.EnumerateFiles(Trash, "*", SearchOption.AllDirectories).Any());
     });
 
     [Fact]
     public void TheDesktopTrashRecordsWhereEachFileCameFromAndPicksFreeNames()
     {
+        Assert.SkipUnless(SystemTrash.UsesFreedesktopTrash, "Runesmith uses the freedesktop trash only on Linux and the BSDs.");
         var trash = new FreedesktopTrash(Trash);
-        var first = Write("Same.txt", "1");
+        var first = Write("Same name.txt", "1");
 
         var one = trash.TryMoveToTrash(first);
-        Write("Same.txt", "2");
+        Write("Same name.txt", "2");
         var two = trash.TryMoveToTrash(first);
 
-        Assert.Equal(Path.Combine(Trash, "files", "Same.txt"), one);
-        Assert.Equal(Path.Combine(Trash, "files", "Same.2.txt"), two);
-        Assert.Contains($"Path={first}", File.ReadAllText(Path.Combine(Trash, "info", "Same.2.txt.trashinfo")), StringComparison.Ordinal);
+        Assert.Equal(Path.Combine(Trash, "files", "Same name.txt"), one);
+        Assert.Equal(Path.Combine(Trash, "files", "Same name.2.txt"), two);
+        Assert.Contains("Same%20name.txt", File.ReadAllText(Path.Combine(Trash, "info", "Same name.2.txt.trashinfo")), StringComparison.Ordinal);
+        Assert.Equal(first, TrashedFrom("Same name.2.txt"));
 
         trash.Restore(two!, first);
         Assert.Equal("2", File.ReadAllText(first));
-        Assert.False(File.Exists(Path.Combine(Trash, "info", "Same.2.txt.trashinfo")));
+        Assert.False(File.Exists(Path.Combine(Trash, "info", "Same name.2.txt.trashinfo")));
     }
 
     private WorkspaceEditService Create(TimeSpan? budget = null)
@@ -404,10 +408,20 @@ public sealed class FileOperationsTests : IDisposable
         editors = new OpeningEditors(documents);
         return new WorkspaceEditService(documents, new Lazy<IEditorService>(() => editors), notifications, new FakeWorkspace(root), messages,
             [.. participants.Select(p => new Lazy<IFileOperationParticipant>(() => p))], documents, () => caller, log.Add,
-            new Lazy<FileStash>(() => new FileStash(Stash, new FreedesktopTrash(Trash))))
+            new Lazy<FileStash>(() => new FileStash(Stash, SystemTrash.UsesFreedesktopTrash ? new FreedesktopTrash(Trash) : new FolderTrash(Trash))))
         {
             ParticipantBudget = budget ?? TimeSpan.FromSeconds(5),
         };
+    }
+
+    // Where the tests' trash keeps a deleted file: the freedesktop trash where the system uses it, and a plain folder in place of the others.
+    private string Trashed(string name) => SystemTrash.UsesFreedesktopTrash ? Path.Combine(Trash, "files", name) : Path.Combine(Trash, name);
+
+    // Reads where a file in the freedesktop trash came from, which its note percent-encodes.
+    private string TrashedFrom(string name)
+    {
+        var note = File.ReadAllLines(Path.Combine(Trash, "info", name + ".trashinfo"));
+        return Uri.UnescapeDataString(note.Single(line => line.StartsWith("Path=", StringComparison.Ordinal))["Path=".Length..]);
     }
 
     private string Write(string relative, string text)
