@@ -59,6 +59,6 @@
       "uuid": "11.1.1"
     },
     "postcss-selector-parser": "7.1.6",
-    "katex": "0.18.11"
+    "katex": "0.19.0"
   }
 }
