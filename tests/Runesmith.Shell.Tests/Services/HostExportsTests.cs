@@ -5,14 +5,14 @@ using Runesmith.Composition;
 using Runesmith.Sdk.Documents;
 using Runesmith.Sdk.Plugins;
 using Runesmith.Sdk.Shell;
-using Runesmith.Sdk.ToolWindows;
 using Runesmith.Sdk.Terminals;
+using Runesmith.Sdk.ToolWindows;
 using Runesmith.Shell.Appearance;
 using Runesmith.Shell.Diffs;
 using Runesmith.Shell.QuickInput;
 using Runesmith.Shell.Services;
-using Runesmith.Shell.TreeViews;
 using Runesmith.Shell.Terminal;
+using Runesmith.Shell.TreeViews;
 
 namespace Runesmith.Shell.Tests.Services;
 
