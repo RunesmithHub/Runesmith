@@ -656,6 +656,8 @@ public sealed class EditorService : IEditorService
         CompletionOnType = settings.Get<bool>(SettingKeys.CompletionOnType),
         ShowInlayHints = settings.Get<bool>(SettingKeys.InlayHints),
         ShowCodeLens = settings.Get<bool>(SettingKeys.CodeLens),
+        Folding = settings.Get<bool>(SettingKeys.Folding),
+        HighlightOccurrences = settings.Get<bool>(SettingKeys.OccurrenceHighlight),
     };
 
     private TextEditor CreateEditor(IDocument document)

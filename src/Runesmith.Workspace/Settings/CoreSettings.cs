@@ -55,6 +55,15 @@ public sealed class CoreSettings : ISettingContributor
         new(SettingKeys.FormatOnSave, "Format on save", Editor, false) { Description = "Format a file with the formatter of its language each time you save it." },
         new(SettingKeys.InlayHints, "Inlay hints", Editor, true) { Description = "Show hints inside lines, such as parameter names and inferred types, where the language offers them." },
         new(SettingKeys.CodeLens, "Code lens", Editor, true) { Description = "Show lines of information and actions above code, such as reference counts, where the language offers them." },
+        new(SettingKeys.Folding, "Folding", Editor, true) { Description = "Show fold markers in the gutter, so blocks of code can fold. Turning it off unfolds everything." },
+        new(SettingKeys.OccurrenceHighlight, "Highlight occurrences", Editor, true)
+        {
+            Description = "Highlight the other uses of the symbol under the caret a moment after the caret stops, where the language offers them.",
+        },
+        new(SettingKeys.SemanticHighlighting, "Semantic highlighting", Editor, true)
+        {
+            Description = "Color names by what they mean, such as parameters and types, where the language offers it. When it is off, only the grammar colors the text.",
+        },
         new(SettingKeys.DisabledKeyHooks, "Plugins without keyboard hooks", Editor, "")
         {
             Description = "The ids of plugins, separated by commas, whose keyboard hooks are turned off, so they no longer see the keys you press in the editor.",

@@ -135,6 +135,39 @@ public sealed class FoldingTests
     });
 
     [Fact]
+    public Task TurningFoldingOffUnfoldsEverythingAndHidesTheMarkersUntilItIsTurnedOnAgain() => Run(async () =>
+    {
+        var fakes = new FakeEditorServices();
+        fakes.Syntax.Folding = _ => [new FoldingRange(1, 6), new FoldingRange(3, 5)];
+        using var editor = new TextEditor(new FileTestDocument(FilePath, Code), fakes.Create());
+        var window = Show(editor);
+        await WaitAsync(() => editor.Area.Folding.Regions.Count == 2);
+        var area = editor.Area;
+        var gutterWidth = area.GutterWidth;
+        editor.FoldAll();
+        Assert.True(area.Folding.HasHiddenLines);
+
+        editor.Options = editor.Options with { Folding = false };
+        Assert.Empty(area.Folding.Regions);
+        Assert.False(area.Folding.HasHiddenLines);
+        Assert.False(area.ShowsFolding);
+        Assert.Equal(gutterWidth - TextArea.FoldMarginWidth, area.GutterWidth);
+        Assert.False(editor.Fold());
+        var requests = fakes.Syntax.FoldingRequests;
+        area.InsertText("// more\n");
+        await Task.Delay(FoldingController.RefreshDelay * 2, TestContext.Current.CancellationToken);
+        Assert.Equal(requests, fakes.Syntax.FoldingRequests);
+        Assert.Empty(area.Folding.Regions);
+
+        editor.Options = editor.Options with { Folding = true };
+        await WaitAsync(() => area.Folding.Regions.Count == 2);
+        Assert.True(area.ShowsFolding);
+        Assert.False(area.Folding.HasHiddenLines);
+        Assert.Equal(gutterWidth, area.GutterWidth);
+        window.Close();
+    });
+
+    [Fact]
     public Task EditorsWithoutDecorationsDoNotFold() => Run(async () =>
     {
         var fakes = new FakeEditorServices();

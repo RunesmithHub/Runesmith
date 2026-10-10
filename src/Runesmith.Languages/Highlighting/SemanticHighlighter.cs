@@ -33,6 +33,7 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
     private CancellationTokenSource? request;
     private int visibleFirst;
     private int visibleLast = 100;
+    private bool isEnabled = true;
     private bool disposed;
 
     public SemanticHighlighter(ISyntaxHighlighter inner, IDocument document, ISyntaxFeatures features, Func<SemanticTokenStyles?> styles,
@@ -58,6 +59,21 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
     }
 
     public event EventHandler<HighlightingChangedEventArgs>? Changed;
+
+    /// <summary>Gets or sets whether semantic tokens are drawn; turning it off leaves the TextMate colors alone, and turning it on asks for the
+    /// tokens again.</summary>
+    public bool IsEnabled
+    {
+        get => isEnabled;
+        set
+        {
+            if (isEnabled == value)
+                return;
+
+            isEnabled = value;
+            Restyle();
+        }
+    }
 
     /// <summary>Gets the semantic tokens of a line, for tests.</summary>
     internal IReadOnlyList<OverlayToken> OverlayOf(int lineNumber) => (uint)lineNumber < (uint)lines.Count ? lines[lineNumber] : [];
@@ -170,7 +186,7 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
 
         request?.Cancel();
         request?.Dispose();
-        if (!features.HasSemanticTokens(document) || styles() is not { } current)
+        if (!isEnabled || !features.HasSemanticTokens(document) || styles() is not { } current)
         {
             request = null;
             Apply(null, (0, int.MaxValue));
@@ -298,7 +314,8 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
             Reset();
 
         timer.Stop();
-        timer.Start();
+        if (isEnabled)
+            timer.Start();
     }
 
     private static OverlayToken[] Shift(OverlayToken[] tokens, int start, int end, int delta)

@@ -47,7 +47,7 @@ public sealed partial class TextEditor
         set
         {
             decorationController.IsEnabled = value;
-            EnableNavigation(value);
+            UpdateNavigation();
         }
     }
 

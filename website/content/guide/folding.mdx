@@ -34,6 +34,12 @@ The language decides what folds: blocks of code, comments of several lines, runs
 `#region`. A region can show its own text in place of the placeholder. Without a language that says, a line folds the lines after it that
 are indented deeper. The [Editor extensions](/plugins/language-features#folding) page shows how a plugin adds folding.
 
+## Turn folding off
+
+Turn off **Folding** (`editor.folding`) in [Settings](./settings.mdx#editor) to stop folding: every folded block unfolds, the chevrons
+leave the gutter and the commands fold nothing. The change applies at once to every open editor. Turn it on again and the chevrons come
+back, with every block unfolded.
+
 ## Related
 
 - [The editor](./editor.mdx)

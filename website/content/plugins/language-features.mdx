@@ -209,7 +209,8 @@ public sealed class IniImplementations : IImplementationProvider
 
 Export an `IDocumentHighlightProvider` to highlight the other occurrences of the symbol under the caret. The editor asks a moment after the
 caret stops on a word and draws each `DocumentHighlight` with a faint background: a `Write` in the information color, a `Read` or `Text`
-in a neutral one. The first provider that answers is used; return null for documents that are not yours.
+in a neutral one. The first provider that answers is used; return null for documents that are not yours. Users turn the highlights off
+with `editor.occurrenceHighlight`, and the editor then stops asking.
 
 ```csharp title="IniHighlights.cs"
 [Export(typeof(IDocumentHighlightProvider))]
@@ -311,7 +312,8 @@ public sealed class IniWorkspaceSymbols(IWorkspace workspace) : IWorkspaceSymbol
 Export an `IFoldingRangeProvider` to say which lines fold. A `FoldingRange(StartLine, EndLine)` keeps its first line visible and hides the
 lines after it up to and including `EndLine`; the folded line ends in `CollapsedText`, or an ellipsis. `Kind` is `Block` (the default),
 `Comment`, `Imports` or `Region`. The first provider that answers is used; without one, the editor folds by indentation. Folded ranges stay
-folded while the user types and when the provider answers again, matched by their first line.
+folded while the user types and when the provider answers again, matched by their first line. Users turn folding off with `editor.folding`,
+and the editor then stops asking.
 
 ```csharp title="IniFolding.cs"
 [Export(typeof(IFoldingRangeProvider))]
@@ -350,7 +352,8 @@ Export an `ISemanticTokensProvider` to classify tokens by what they mean, such a
 over the TextMate highlighting. Each `SemanticToken` has a span within one line, a type from `SemanticTokenTypes` and
 `SemanticTokenModifiers`. The first provider that answers is used. Runesmith asks for the tokens of the whole document when it opens and a
 moment after typing stops; for a long document it first asks for the lines on screen with the overload that takes a span, which by default
-filters the whole document's tokens. Until the answer comes, the tokens it has move with the edits, so colors do not flicker.
+filters the whole document's tokens. Until the answer comes, the tokens it has move with the edits, so colors do not flicker. Users turn
+semantic colors off with `editor.semanticHighlighting`, and Runesmith then stops asking.
 
 ```csharp title="IniSemanticTokens.cs"
 [Export(typeof(ISemanticTokensProvider))]

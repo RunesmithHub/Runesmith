@@ -102,7 +102,11 @@ public sealed partial class TextEditor : UserControl, IEditorView, IDisposable
     public EditorOptions Options
     {
         get => Area.Options;
-        set => Area.Options = value;
+        set
+        {
+            Area.Options = value;
+            UpdateNavigation();
+        }
     }
 
     public int CaretOffset

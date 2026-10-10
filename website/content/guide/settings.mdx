@@ -74,6 +74,9 @@ saves the file. When a file is not valid JSON, Runesmith uses the other scopes a
 | Format on save | `editor.formatOnSave` | `false` | Formats a file with its language's formatter each time you save it. See [Format](./language-features.mdx#format). |
 | Inlay hints | `editor.inlayHints` | `true` | Shows hints inside lines, such as parameter names and inferred types, where the language offers them. |
 | Code lens | `editor.codeLens` | `true` | Shows lines of information and commands above code, such as reference counts, where the language offers them. |
+| Folding | `editor.folding` | `true` | Shows fold markers in the gutter, so blocks of code fold. Turning it off unfolds everything and hides the markers. See [Folding](./folding.mdx). |
+| Highlight occurrences | `editor.occurrenceHighlight` | `true` | Highlights the other uses of the symbol under the caret a moment after the caret stops, where the language offers them. See [Highlighted occurrences](./references.mdx#highlighted-occurrences). |
+| Semantic highlighting | `editor.semanticHighlighting` | `true` | Colors names by what they mean, such as parameters and types, where the language offers it. When it is off, only the grammar colors the text. See [Highlighting](./language-features.mdx#highlighting). |
 | Plugins without keyboard hooks | `editor.disabledKeyHooks` | empty | The ids of plugins, separated by commas, whose keyboard hooks are turned off, so they no longer see the keys you press in the editor. |
 | Breadcrumbs | `editor.breadcrumbs` | `true` | Shows the file's path under the tabs. When it is off, the status bar shows it. |
 

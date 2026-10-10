@@ -4,6 +4,7 @@ using Runesmith.Languages.Highlighting;
 using Runesmith.Languages.Tests.Analyzers;
 using Runesmith.Sdk.Documents;
 using Runesmith.Sdk.Languages;
+using Runesmith.Sdk.Settings;
 using Runesmith.Text;
 
 namespace Runesmith.Languages.Tests.Highlighting;
@@ -86,6 +87,43 @@ public sealed class SemanticHighlightingTests
         Assert.Equal(1, highlighter.OverlayOf(1)[0].Start);
         return true;
     }, TestContext.Current.CancellationToken);
+
+    [Fact]
+    public Task TheSettingTurnsTheTokensOfOpenDocumentsOffAndOnAgain() => HeadlessSession.Value.Dispatch(async () =>
+    {
+        var grammars = new TextMateGrammars([]);
+        var settings = new TestSettings();
+        settings.Set(SettingKeys.SemanticHighlighting, true);
+        var features = new Tokens(snapshot => [new SemanticToken(new TextSpan(snapshot.GetText().IndexOf("shape", StringComparison.Ordinal), 5), SemanticTokenTypes.Variable)]);
+        using var provider = new TextMateHighlighterProvider(grammars, new LanguageRegistry([], grammars), new SyntaxColors(grammars), new Lazy<ISyntaxFeatures>(() => features), settings);
+        var document = new TestDocument("/work/A.fake", "A.fake", "let shape = 1");
+        var highlighter = Assert.IsType<SemanticHighlighter>(provider.Create(document));
+        await WaitAsync(() => highlighter.OverlayOf(0).Count > 0);
+
+        settings.Set(SettingKeys.SemanticHighlighting, false);
+        Assert.False(highlighter.IsEnabled);
+        Assert.Empty(highlighter.OverlayOf(0));
+        Assert.Empty(highlighter.GetTokens(0));
+        var requests = features.Requests;
+        document.Buffer.Insert(0, " ");
+        await PumpAsync(SemanticHighlighter.RefreshDelay * 2);
+        Assert.Equal(requests, features.Requests);
+
+        settings.Set(SettingKeys.SemanticHighlighting, true);
+        await WaitAsync(() => highlighter.OverlayOf(0).Count > 0);
+        Assert.Equal(5, highlighter.OverlayOf(0)[0].Start);
+        return true;
+    }, TestContext.Current.CancellationToken);
+
+    private static async Task PumpAsync(TimeSpan time)
+    {
+        var until = DateTime.UtcNow + time;
+        while (DateTime.UtcNow < until)
+        {
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(10);
+        }
+    }
 
     private static async Task WaitAsync(Func<bool> condition)
     {

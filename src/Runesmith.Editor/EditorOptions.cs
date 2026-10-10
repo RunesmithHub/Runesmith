@@ -43,6 +43,12 @@ public sealed record EditorOptions
     /// <summary>Gets whether code lenses are drawn above lines.</summary>
     public bool ShowCodeLens { get; init; } = true;
 
+    /// <summary>Gets whether the gutter shows fold markers and blocks fold; turning it off unfolds everything.</summary>
+    public bool Folding { get; init; } = true;
+
+    /// <summary>Gets whether the occurrences of the symbol under the caret are highlighted.</summary>
+    public bool HighlightOccurrences { get; init; } = true;
+
     /// <summary>Gets the text one indentation level inserts.</summary>
     public string IndentUnit => InsertSpaces ? new string(' ', TabSize) : "\t";
 }

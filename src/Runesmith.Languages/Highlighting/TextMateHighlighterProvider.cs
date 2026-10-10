@@ -3,11 +3,12 @@ using System.Composition;
 using Runesmith.Sdk.Appearance;
 using Runesmith.Sdk.Documents;
 using Runesmith.Sdk.Languages;
+using Runesmith.Sdk.Settings;
 
 namespace Runesmith.Languages.Highlighting;
 
-/// <summary>Creates TextMate highlighters with the semantic tokens of the language's providers over them, and restyles every open one when
-/// the syntax color scheme changes.</summary>
+/// <summary>Creates TextMate highlighters with the semantic tokens of the language's providers over them, unless the
+/// <see cref="SettingKeys.SemanticHighlighting"/> setting turns those off, and restyles every open one when the syntax color scheme changes.</summary>
 /// <remarks>A highlighter follows its document's language, so it is created for every document, including plain text, which it leaves
 /// unhighlighted.</remarks>
 [Export(typeof(ISyntaxHighlighterProvider))]
@@ -20,17 +21,21 @@ public sealed class TextMateHighlighterProvider : ISyntaxHighlighterProvider, ID
     private readonly ConcurrentDictionary<ThemedRegistry, SemanticTokenStyles> semanticStyles = new();
     private readonly SyntaxColors colors;
     private readonly Lazy<ISyntaxFeatures>? features;
+    private readonly ISettingsService? settings;
 
     [ImportingConstructor]
     public TextMateHighlighterProvider(TextMateGrammars grammars, ILanguageRegistry registry, SyntaxColors colors,
-        [Import(AllowDefault = true)] Lazy<ISyntaxFeatures>? features = null)
+        [Import(AllowDefault = true)] Lazy<ISyntaxFeatures>? features = null, [Import(AllowDefault = true)] ISettingsService? settings = null)
     {
         ArgumentNullException.ThrowIfNull(colors);
         Grammars = grammars;
         Registry = registry;
         this.colors = colors;
         this.features = features;
+        this.settings = settings;
         colors.Changed += OnSchemeChanged;
+        if (settings is not null)
+            settings.Changed += OnSettingChanged;
     }
 
     internal TextMateGrammars Grammars { get; }
@@ -47,7 +52,7 @@ public sealed class TextMateHighlighterProvider : ISyntaxHighlighterProvider, ID
         if (features is null)
             return highlighter;
 
-        var semantic = new SemanticHighlighter(highlighter, document, features.Value, SemanticStyles, Remove);
+        var semantic = new SemanticHighlighter(highlighter, document, features.Value, SemanticStyles, Remove) { IsEnabled = IsSemanticHighlightingOn };
         semanticHighlighters[semantic] = 0;
         return semantic;
     }
@@ -55,6 +60,8 @@ public sealed class TextMateHighlighterProvider : ISyntaxHighlighterProvider, ID
     public void Dispose()
     {
         colors.Changed -= OnSchemeChanged;
+        if (settings is not null)
+            settings.Changed -= OnSettingChanged;
         foreach (var highlighter in semanticHighlighters.Keys)
             highlighter.Dispose();
         foreach (var highlighter in highlighters.Keys)
@@ -79,6 +86,18 @@ public sealed class TextMateHighlighterProvider : ISyntaxHighlighterProvider, ID
         {
             return null;
         }
+    }
+
+    private bool IsSemanticHighlightingOn => settings?.Get<bool>(SettingKeys.SemanticHighlighting) ?? true;
+
+    private void OnSettingChanged(object? sender, SettingChangedEventArgs e)
+    {
+        if (e.Key != SettingKeys.SemanticHighlighting)
+            return;
+
+        var on = IsSemanticHighlightingOn;
+        foreach (var highlighter in semanticHighlighters.Keys)
+            highlighter.IsEnabled = on;
     }
 
     private void OnSchemeChanged(object? sender, EventArgs e)

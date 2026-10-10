@@ -24,6 +24,18 @@ public static class SettingKeys
     public const string CodeLens = "editor.codeLens";
     public const string DisabledKeyHooks = "editor.disabledKeyHooks";
 
+    /// <summary>Whether the gutter shows fold markers and blocks fold; off unfolds everything.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public const string Folding = "editor.folding";
+
+    /// <summary>Whether the occurrences of the symbol under the caret are highlighted.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public const string OccurrenceHighlight = "editor.occurrenceHighlight";
+
+    /// <summary>Whether semantic tokens color the text over its TextMate highlighting; off leaves the TextMate colors alone.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public const string SemanticHighlighting = "editor.semanticHighlighting";
+
     public const string AutoSave = "files.autoSave";
     public const string TrimTrailingWhitespace = "files.trimTrailingWhitespace";
     public const string InsertFinalNewline = "files.insertFinalNewline";
