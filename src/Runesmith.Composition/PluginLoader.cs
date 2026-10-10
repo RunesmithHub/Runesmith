@@ -19,7 +19,7 @@ internal sealed class PluginLoader
         for (var i = 0; i < plugins.Count; i++)
         {
             var plugin = plugins[i];
-            if (plugin.State == PluginState.Replaced)
+            if (plugin.State is PluginState.Replaced or PluginState.Refused)
                 continue;
 
             byId.TryAdd(plugin.Manifest.Id, i);

@@ -124,6 +124,7 @@ internal static class Program
             DisabledPlugins = StartupSettings.DisabledPlugins(),
             HubPlugins = HubReport.HubPlugins,
             WithheldPlugins = HubReport.Withheld,
+            AllowLocalOverrides = StartupSettings.AllowLocalOverrides(),
         };
         var result = await RunesmithComposition.CreateAsync(options);
         foreach (var plugin in result.Plugins.Where(p => p.State == PluginState.Failed))

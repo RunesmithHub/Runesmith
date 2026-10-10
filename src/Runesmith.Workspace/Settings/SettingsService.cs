@@ -13,7 +13,8 @@ namespace Runesmith.Workspace.Settings;
 /// <summary>Settings from the defaults, the user's <c>settings.json</c> and the open folder's <c>.runesmith/settings.json</c>, in that order of
 /// strength.</summary>
 /// <remarks>Both files are read again when they change on disk. A value of the wrong type, or outside a setting's choices, is ignored. A plugin
-/// changes only its own settings: those whose keys start with its id and a dot, and those it contributes.</remarks>
+/// changes only its own settings: those whose keys start with its id and a dot, and those it contributes. The settings in
+/// <see cref="CoreSettings.UserOnly"/> count only in the user's file.</remarks>
 [Export(typeof(ISettingsService))]
 [Export(typeof(SettingsService))]
 [Shared]
@@ -94,7 +95,7 @@ public sealed class SettingsService : ISettingsService, IDisposable
             return definition.DefaultValue;
 
         lock (_gate)
-            return File(scope) is { } file && file.Values.TryGetPropertyValue(key, out var node) ? ToValue(node, definition) : null;
+            return FileFor(key, scope) is { } file && file.Values.TryGetPropertyValue(key, out var node) ? ToValue(node, definition) : null;
     }
 
     public SettingScope GetEffectiveScope(string key)
@@ -104,7 +105,7 @@ public sealed class SettingsService : ISettingsService, IDisposable
         {
             foreach (var scope in (ReadOnlySpan<SettingScope>)[SettingScope.Workspace, SettingScope.User])
             {
-                if (File(scope) is { } file && file.Values.TryGetPropertyValue(key, out var node) && ToValue(node, definition) is not null)
+                if (FileFor(key, scope) is { } file && file.Values.TryGetPropertyValue(key, out var node) && ToValue(node, definition) is not null)
                     return scope;
             }
         }
@@ -149,6 +150,8 @@ public sealed class SettingsService : ISettingsService, IDisposable
     {
         if (scope == SettingScope.Default)
             throw new InvalidOperationException("Default values cannot be changed.");
+        if (scope == SettingScope.Workspace && CoreSettings.UserOnly.Contains(key))
+            throw new InvalidOperationException($"{key} counts only in the user's settings, not in a folder's.");
 
         bool changed;
         lock (_gate)
@@ -181,6 +184,8 @@ public sealed class SettingsService : ISettingsService, IDisposable
             file.Values[key] = value?.DeepClone();
     }
 
+    private SettingsFile? FileFor(string key, SettingScope scope) => scope == SettingScope.Workspace && CoreSettings.UserOnly.Contains(key) ? null : File(scope);
+
     private SettingsFile? File(SettingScope scope) => scope switch
     {
         SettingScope.User => _user,
@@ -195,7 +200,7 @@ public sealed class SettingsService : ISettingsService, IDisposable
     {
         lock (_gate)
         {
-            foreach (var file in (ReadOnlySpan<SettingsFile?>)[_workspace, _user])
+            foreach (var file in (ReadOnlySpan<SettingsFile?>)[FileFor(definition.Key, SettingScope.Workspace), _user])
             {
                 if (file is not null && file.Values.TryGetPropertyValue(definition.Key, out var node) && ToValue(node, definition) is { } value)
                     return value;

@@ -2,6 +2,7 @@ using System.Text.Json;
 using Runesmith.Sdk;
 using Runesmith.Shell.Hub;
 using Runesmith.Shell.Services;
+using Runesmith.Workspace.Settings;
 
 namespace Runesmith.App;
 
@@ -23,16 +24,21 @@ internal static class StartupSettings
     /// <summary>Gets whether Runesmith registers itself for runesmith:// links.</summary>
     public static bool RegisterLinks() => Read(HubSettings.RegisterLinks) is not { ValueKind: JsonValueKind.False };
 
+    /// <summary>Gets whether a local copy of a plugin Runesmith ships or the hub installed runs in its place; an open folder's settings can't
+    /// turn this on.</summary>
+    public static bool AllowLocalOverrides(string? userSettings = null) => Read(CoreSettings.AllowLocalOverrides, userSettings) is { ValueKind: JsonValueKind.True };
+
     private static string? ReadString(string key) => Read(key) is { ValueKind: JsonValueKind.String } value ? value.GetString() : null;
 
-    private static JsonElement? Read(string key)
+    private static JsonElement? Read(string key, string? path = null)
     {
         try
         {
-            if (!File.Exists(RunesmithPaths.UserSettings))
+            path ??= RunesmithPaths.UserSettings;
+            if (!File.Exists(path))
                 return null;
 
-            using var document = JsonDocument.Parse(File.ReadAllText(RunesmithPaths.UserSettings), new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
+            using var document = JsonDocument.Parse(File.ReadAllText(path), new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
             if (document.RootElement.ValueKind == JsonValueKind.Object && document.RootElement.TryGetProperty(key, out var value))
                 return value.Clone();
         }

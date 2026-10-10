@@ -14,19 +14,23 @@ public static class PluginDiscovery
     /// <summary>Gets the oldest plugin API version this Runesmith runs plugins for.</summary>
     public static SemanticVersion OldestSupportedApiVersion { get; } = ToSemanticVersion(RunesmithApi.OldestSupported);
 
+    /// <summary>The setting that lets a local copy of a plugin Runesmith ships or the hub installed run in its place.</summary>
+    public const string AllowLocalOverridesSetting = "plugins.allowLocalOverrides";
+
     /// <summary>Finds the plugins in the given folders; earlier folders come first, and a plugin found again later is reported as a
-    /// duplicate, except that a newer copy the hub installed, or a local copy at least as new, replaces the one Runesmith ships.</summary>
+    /// duplicate, except that a newer copy the hub installed replaces the one Runesmith ships, and a local copy of a plugin Runesmith ships or
+    /// the hub installed replaces it when <paramref name="allowLocalOverrides"/> is set and is refused otherwise.</summary>
     /// <param name="disabledIds">The ids of plugins the user turned off.</param>
     /// <param name="hubIds">The ids of the plugins in a local folder that the plugin hub installed.</param>
     /// <param name="withheld">The plugins Runesmith keeps from loading, with why.</param>
+    /// <param name="allowLocalOverrides">Whether a local copy runs in place of the plugin Runesmith ships or the hub installed, whatever its version.</param>
     public static IReadOnlyList<PluginInfo> Discover(
         IEnumerable<(string Path, PluginSource Source)> folders, IReadOnlySet<string> disabledIds, IReadOnlySet<string>? hubIds = null,
-        IReadOnlyDictionary<string, string>? withheld = null)
+        IReadOnlyDictionary<string, string>? withheld = null, bool allowLocalOverrides = false)
     {
         ArgumentNullException.ThrowIfNull(folders);
         ArgumentNullException.ThrowIfNull(disabledIds);
-        var plugins = new List<PluginInfo>();
-        var seen = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var found = new List<(PluginInfo Plugin, string? Error)>();
         foreach (var (folder, folderSource) in folders)
         {
             if (!Directory.Exists(folder))
@@ -39,54 +43,86 @@ public static class PluginDiscovery
                     continue;
 
                 var source = folderSource == PluginSource.Local && hubIds?.Contains(Path.GetFileName(directory)) == true ? PluginSource.Hub : folderSource;
-                PluginInfo plugin;
                 try
                 {
-                    plugin = Validate(new PluginInfo(PluginManifest.Read(manifestPath), directory, source), disabledIds, withheld);
+                    found.Add((new PluginInfo(PluginManifest.Read(manifestPath), directory, source), null));
                 }
                 catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException)
                 {
                     var name = Path.GetFileName(directory);
-                    plugin = new PluginInfo(new PluginManifest(name, name, "?"), directory, source).Fail(exception.Message);
+                    found.Add((new PluginInfo(new PluginManifest(name, name, "?"), directory, source), exception.Message));
                 }
+            }
+        }
 
-                if (seen.TryGetValue(plugin.Manifest.Id, out var earlier))
+        var official = found.Where(f => f.Plugin.Source != PluginSource.Local).Select(f => f.Plugin.Manifest.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var candidates = found
+            .Select(f =>
+            {
+                var plugin = f.Plugin with { IsLocalCopy = f.Plugin.Source == PluginSource.Local && official.Contains(f.Plugin.Manifest.Id) };
+                return f.Error is { } error ? plugin.Fail(error) : Validate(plugin, disabledIds, plugin.IsLocalCopy ? null : withheld);
+            })
+            .OrderBy(plugin => plugin.IsLocalCopy)
+            .ToList();
+
+        var plugins = new List<PluginInfo>();
+        var seen = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var candidate in candidates)
+        {
+            var plugin = candidate;
+            if (seen.TryGetValue(plugin.Manifest.Id, out var earlier))
+            {
+                var running = plugins[earlier];
+                if (plugin.IsLocalCopy && !allowLocalOverrides)
                 {
-                    if (ReplacesBundled(plugin, plugins[earlier]))
-                    {
-                        plugins[earlier] = plugins[earlier] with { State = PluginState.Replaced, Error = $"Version {plugin.Manifest.Version} {Origin(plugin)} runs instead." };
-                        seen[plugin.Manifest.Id] = plugins.Count;
-                    }
-                    else if (plugin.Source is PluginSource.Hub or PluginSource.Local && plugins[earlier].Source == PluginSource.Bundled)
-                    {
-                        var instead = $"Runesmith ships version {plugins[earlier].Manifest.Version}, which runs instead.";
-                        plugin = plugin with { State = PluginState.Replaced, Error = plugin.Error is { } error ? $"Version {plugin.Manifest.Version} {Origin(plugin)} could not load: {error} {instead}" : instead };
-                    }
-                    else
-                    {
-                        plugin = plugin.Fail($"Another plugin with the id {plugin.Manifest.Id} was loaded first.");
-                    }
+                    plugin = plugin with { State = PluginState.Refused, Error = Refusal(running) };
+                }
+                else if (plugin.IsLocalCopy && !running.IsLocalCopy && plugin.State != PluginState.Failed)
+                {
+                    plugins[earlier] = running with { State = PluginState.Replaced, Error = $"Version {plugin.Manifest.Version} from your plugins folder runs instead." };
+                    seen[plugin.Manifest.Id] = plugins.Count;
+                }
+                else if (plugin.IsLocalCopy && !running.IsLocalCopy)
+                {
+                    plugin = plugin with { State = PluginState.Replaced, Error = $"Version {plugin.Manifest.Version} from your plugins folder could not load: {plugin.Error} {Instead(running)}" };
+                }
+                else if (ReplacesBundled(plugin, running))
+                {
+                    plugins[earlier] = running with { State = PluginState.Replaced, Error = $"Version {plugin.Manifest.Version} from the hub runs instead." };
+                    seen[plugin.Manifest.Id] = plugins.Count;
+                }
+                else if (plugin.Source == PluginSource.Hub && running.Source == PluginSource.Bundled)
+                {
+                    plugin = plugin with { State = PluginState.Replaced, Error = plugin.Error is { } error ? $"Version {plugin.Manifest.Version} from the hub could not load: {error} {Instead(running)}" : Instead(running) };
                 }
                 else
                 {
-                    seen[plugin.Manifest.Id] = plugins.Count;
+                    plugin = plugin.Fail($"Another plugin with the id {plugin.Manifest.Id} was loaded first.");
                 }
-
-                plugins.Add(plugin);
             }
+            else
+            {
+                seen[plugin.Manifest.Id] = plugins.Count;
+            }
+
+            plugins.Add(plugin);
         }
 
         return plugins;
     }
 
-    // A copy replaces the bundled one only when it can run and is newer, so the bundled copy stays the fallback; a local copy, as a plugin's
-    // developer installs it, may also have the same version.
-    private static bool ReplacesBundled(PluginInfo copy, PluginInfo bundled) =>
-        copy.Source is PluginSource.Hub or PluginSource.Local && bundled.Source == PluginSource.Bundled && copy.State == PluginState.Loaded
-        && SemanticVersion.TryParse(copy.Manifest.Version, out var version) && SemanticVersion.TryParse(bundled.Manifest.Version, out var shipped)
-        && (version > shipped || (copy.Source == PluginSource.Local && version == shipped));
+    // A hub copy replaces the bundled one only when it can run and is newer, so the bundled copy stays the fallback.
+    private static bool ReplacesBundled(PluginInfo hub, PluginInfo bundled) =>
+        hub.Source == PluginSource.Hub && bundled.Source == PluginSource.Bundled && hub.State == PluginState.Loaded
+        && SemanticVersion.TryParse(hub.Manifest.Version, out var newer) && SemanticVersion.TryParse(bundled.Manifest.Version, out var older) && newer > older;
 
-    private static string Origin(PluginInfo plugin) => plugin.Source == PluginSource.Hub ? "from the hub" : "installed locally";
+    private static string Instead(PluginInfo running) => running.Source == PluginSource.Bundled
+        ? $"Runesmith ships version {running.Manifest.Version}, which runs instead."
+        : $"Version {running.Manifest.Version} from the hub runs instead.";
+
+    private static string Refusal(PluginInfo running) =>
+        $"{(running.Source == PluginSource.Bundled ? "Runesmith ships this plugin" : "The hub installed this plugin")}, so the copy in your plugins folder does not load. "
+        + $"To run it instead, turn on {AllowLocalOverridesSetting} in Settings, under Plugins, and restart Runesmith.";
 
     /// <summary>Gets whether a plugin that works with the API versions in <paramref name="range"/> runs on an API: the API's version is in
     /// the range, and the range's lowest version, the one the plugin was built against, is at least the oldest version the API supports.</summary>

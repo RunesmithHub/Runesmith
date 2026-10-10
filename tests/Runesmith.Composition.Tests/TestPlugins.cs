@@ -47,9 +47,11 @@ internal sealed class TestPluginFolder : IDisposable
 
     /// <summary>Builds a plugin with a packaged manifest into its own folder, with the contracts it is built against copied next to it as a
     /// build would.</summary>
-    public string Add(TestPlugin plugin)
+    /// <param name="folder">The name of the plugin's folder, or null for its id.</param>
+    public string Add(TestPlugin plugin, string? folder = null)
     {
-        var lib = Directory.CreateDirectory(Path.Combine(PluginsPath, plugin.Id, "lib")).FullName;
+        folder ??= plugin.Id;
+        var lib = Directory.CreateDirectory(Path.Combine(PluginsPath, folder, "lib")).FullName;
         var others = plugin.BuiltAgainst.Select(other => built[other.Root + ".Contracts"]).ToList();
         var contracts = Compile(plugin.Root + ".Contracts", plugin.Contracts, others, lib);
         var implementation = Compile(plugin.Root, plugin.Implementation, [contracts, .. others], lib);
@@ -77,8 +79,8 @@ internal sealed class TestPluginFolder : IDisposable
             },
             ["build"] = new JsonObject { ["commit"] = "0000000000000000000000000000000000000000", ["run"] = "local", ["sdk"] = "10.0.100" },
         };
-        File.WriteAllText(Path.Combine(PluginsPath, plugin.Id, "plugin.json"), manifest.ToJsonString());
-        return Path.Combine(PluginsPath, plugin.Id);
+        File.WriteAllText(Path.Combine(PluginsPath, folder, "plugin.json"), manifest.ToJsonString());
+        return Path.Combine(PluginsPath, folder);
     }
 
     /// <summary>Builds a plugin with a manifest in the older format, without a <c>schemaVersion</c>.</summary>

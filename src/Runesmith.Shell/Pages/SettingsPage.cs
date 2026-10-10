@@ -15,6 +15,7 @@ using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.Workspace;
 using Runesmith.Shell.Appearance;
 using Runesmith.Shell.Services;
+using Runesmith.Workspace.Settings;
 
 namespace Runesmith.Shell.Pages;
 
@@ -245,9 +246,13 @@ internal sealed class SettingsPage : DockPanel
         var description = definition.Description ?? "";
         if (target == SettingScope.User && effective == SettingScope.Workspace)
             description += " The open folder sets its own value, which wins.";
+        var userOnly = target == SettingScope.Workspace && CoreSettings.UserOnly.Contains(definition.Key);
+        if (userOnly)
+            description += " Switch to User to change it.";
         description += $"  ({definition.Key})";
 
         var editor = Editor(definition, current, value => Set(definition, value, target));
+        editor.IsEnabled = !userOnly;
         var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Children = { editor } };
         if (settings.GetValue(definition.Key, target) is not null)
         {

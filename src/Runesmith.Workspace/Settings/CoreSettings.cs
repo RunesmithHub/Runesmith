@@ -1,4 +1,5 @@
 using System.Composition;
+using Runesmith.Composition;
 using Runesmith.Sdk.Settings;
 
 namespace Runesmith.Workspace.Settings;
@@ -12,6 +13,14 @@ public sealed class CoreSettings : ISettingContributor
     private const string Editor = "Editor";
     private const string Files = "Files";
     private const string Window = "Window";
+    private const string Plugins = "Plugins";
+
+    /// <summary>Whether a local copy of a plugin Runesmith ships or the hub installed runs in its place; read from the user's settings alone
+    /// when Runesmith starts.</summary>
+    public const string AllowLocalOverrides = PluginDiscovery.AllowLocalOverridesSetting;
+
+    /// <summary>Gets the settings that count only in the user's settings, never in an open folder's.</summary>
+    public static IReadOnlySet<string> UserOnly { get; } = new HashSet<string>(StringComparer.Ordinal) { AllowLocalOverrides };
 
     /// <summary>The globs <see cref="SettingKeys.Exclude"/> starts with.</summary>
     public const string DefaultExclude = "**/.git;**/bin;**/obj;**/node_modules;**/.vs;**/.idea";
@@ -69,5 +78,12 @@ public sealed class CoreSettings : ISettingContributor
         },
 
         new(SettingKeys.RestoreSession, "Restore the session", Window, true) { Description = "Open the last folder and its files again when Runesmith starts." },
+
+        new(AllowLocalOverrides, "Local copies replace plugins", Plugins, false)
+        {
+            Description = "Let a plugin in your plugins folder run in place of the plugin with the same id that comes with Runesmith or from the hub, "
+                + "such as a build of it you work on. The local copy gets its own secrets and storage. Only your user settings can turn this on. "
+                + "Takes effect when Runesmith starts again.",
+        },
     ];
 }

@@ -21,7 +21,7 @@ public static class RunesmithComposition
         var loader = new PluginAssemblyLoader();
         var resolver = new Resolver(loader);
 
-        var plugins = PluginDiscovery.Discover(options.PluginFolders, options.DisabledPlugins, options.HubPlugins, options.WithheldPlugins).ToList();
+        var plugins = PluginDiscovery.Discover(options.PluginFolders, options.DisabledPlugins, options.HubPlugins, options.WithheldPlugins, options.AllowLocalOverrides).ToList();
         var pluginLoader = new PluginLoader(plugins);
         var loaded = pluginLoader.Load();
         foreach (var contracts in pluginLoader.Contracts.Assemblies)
