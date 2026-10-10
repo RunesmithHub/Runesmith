@@ -16,7 +16,7 @@ public sealed class TreeViewTests
     private static readonly TreeViewDefinition Definition = new(new ToolWindowDefinition("acme.files", "Files", "folder", DockSide.Left)) { EmptyMessage = "No files" };
 
     [Fact]
-    public async Task ChildrenLoadWhenAnItemIsFirstExpandedAndRowsFollowTheTree()
+    public Task ChildrenLoadWhenAnItemIsFirstExpandedAndRowsFollowTheTree() => HeadlessSession.Value.Dispatch(async () =>
     {
         var provider = new FakeTree();
         using var model = new TreeViewModel(provider, Definition, _ => { });
@@ -34,10 +34,11 @@ public sealed class TreeViewTests
         await model.ExpandAsync(model.Roots[0]);
         Assert.Equal(3, provider.Asked.Count);
         Assert.Equal(5, model.Rows.Count);
-    }
+        return true;
+    }, TestContext.Current.CancellationToken);
 
     [Fact]
-    public async Task RefreshingKeepsExpandedItemsExpandedAndReloadsOneItemOnItsOwn()
+    public Task RefreshingKeepsExpandedItemsExpandedAndReloadsOneItemOnItsOwn() => HeadlessSession.Value.Dispatch(async () =>
     {
         var provider = new FakeTree();
         using var model = new TreeViewModel(provider, Definition, _ => { });
@@ -55,10 +56,11 @@ public sealed class TreeViewTests
         Assert.Equal(["app"], provider.Asked);
         Assert.Equal("2 files", model.Rows[1].Item.Description);
         Assert.Equal(["src", "  app", "    Program.cs", "    Startup.cs", "  lib", "    Util.cs", "README.md"], Labels(model));
-    }
+        return true;
+    }, TestContext.Current.CancellationToken);
 
     [Fact]
-    public async Task AProviderThatFailsShowsAnErrorRowAndIsReportedNotThrown()
+    public Task AProviderThatFailsShowsAnErrorRowAndIsReportedNotThrown() => HeadlessSession.Value.Dispatch(async () =>
     {
         var provider = new FakeTree { FailOn = "src" };
         var log = new List<string>();
@@ -70,10 +72,11 @@ public sealed class TreeViewTests
         Assert.Equal(TreeNodeKind.Error, model.Rows[1].Kind);
         Assert.Contains("broken", model.Rows[1].Item.Label, StringComparison.Ordinal);
         Assert.Contains("children of src", Assert.Single(log), StringComparison.Ordinal);
-    }
+        return true;
+    }, TestContext.Current.CancellationToken);
 
     [Fact]
-    public async Task TheFilterShowsMatchingLoadedItemsWithTheItemsThatHoldThem()
+    public Task TheFilterShowsMatchingLoadedItemsWithTheItemsThatHoldThem() => HeadlessSession.Value.Dispatch(async () =>
     {
         using var model = new TreeViewModel(new FakeTree(), Definition, _ => { });
         await model.LoadAsync();
@@ -87,7 +90,8 @@ public sealed class TreeViewTests
         model.SetFilter("");
         Assert.Equal(["src", "  app", "    Program.cs", "  lib", "README.md"], Labels(model));
         Assert.Null(model.Rows[2].FilterMatches);
-    }
+        return true;
+    }, TestContext.Current.CancellationToken);
 
     [Fact]
     public Task RevealLoadsThePathToAnItemThatWasNotLoadedAndSelectsIt() => HeadlessSession.Value.Dispatch(async () =>
@@ -107,7 +111,7 @@ public sealed class TreeViewTests
     }, TestContext.Current.CancellationToken);
 
     [Fact]
-    public async Task SelectionAndCheckboxesRaiseEventsAndAFailingHandlerIsReported()
+    public Task SelectionAndCheckboxesRaiseEventsAndAFailingHandlerIsReported() => HeadlessSession.Value.Dispatch(async () =>
     {
         var log = new List<string>();
         using var model = new TreeViewModel(new FakeTree(), Definition, log.Add);
@@ -123,7 +127,8 @@ public sealed class TreeViewTests
         Assert.Equal([("README.md", true)], checkedItems);
         Assert.True(model.Roots[1].Item.IsChecked);
         Assert.Contains("handler bug", Assert.Single(log), StringComparison.Ordinal);
-    }
+        return true;
+    }, TestContext.Current.CancellationToken);
 
     [Fact]
     public void OnlyThePluginThatExportsATreeViewGetsIt()
