@@ -10,7 +10,7 @@ public sealed class EditorCatalogTests : IDisposable
 
     private string AssociationsPath => Path.Combine(folder, "editor-associations.json");
 
-    public void Dispose() => Directory.Delete(folder, recursive: true);
+    public void Dispose() => TestFolders.Delete(folder);
 
     [Theory]
     [InlineData("*.png", "logo.png", true)]

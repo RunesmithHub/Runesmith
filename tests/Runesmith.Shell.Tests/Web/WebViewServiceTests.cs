@@ -20,7 +20,7 @@ public sealed class WebViewServiceTests : IDisposable
     {
         foreach (var service in services)
             service.Dispose();
-        Directory.Delete(folder, recursive: true);
+        TestFolders.Delete(folder);
     }
 
     [Fact]

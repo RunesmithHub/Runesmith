@@ -18,7 +18,7 @@ public sealed class ImageViewerTests : IDisposable
         { nameof(SampleImages.Ico), "Ico" },
     };
 
-    public void Dispose() => Directory.Delete(folder, recursive: true);
+    public void Dispose() => TestFolders.Delete(folder);
 
     [Theory]
     [MemberData(nameof(Formats))]

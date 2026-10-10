@@ -20,7 +20,7 @@ public sealed class BundledFilesTests : IDisposable
 
     private string Root { get; }
 
-    public void Dispose() => Directory.Delete(folder, recursive: true);
+    public void Dispose() => TestFolders.Delete(folder);
 
     [Theory]
     [InlineData("/index.html", "index.html")]

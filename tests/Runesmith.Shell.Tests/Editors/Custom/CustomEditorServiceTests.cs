@@ -13,7 +13,7 @@ public sealed class CustomEditorServiceTests : IDisposable
 {
     private readonly string folder = Directory.CreateTempSubdirectory("runesmith-custom-editors-").FullName;
 
-    public void Dispose() => Directory.Delete(folder, recursive: true);
+    public void Dispose() => TestFolders.Delete(folder);
 
     [Fact]
     public async Task OpensFilesInTheirEditorSavesTheChangesAndSwitchesWithOpenWith()
