@@ -33,6 +33,7 @@ internal sealed class PluginManagerView : DockPanel
     private readonly ComboBox tierFilter = new() { MinWidth = 150 };
     private readonly ComboBox categoryFilter = new() { MinWidth = 170 };
     private readonly CheckBox compatibleFilter = new() { Content = "Runs on this Runesmith", VerticalAlignment = VerticalAlignment.Center };
+    private readonly WrapPanel filters = new() { ItemSpacing = 8, LineSpacing = 8 };
     private readonly StackPanel results = new() { Spacing = 10 };
     private readonly DispatcherTimer rebuild = new() { Interval = TimeSpan.FromMilliseconds(60) };
     private PluginPageView? page;
@@ -97,6 +98,7 @@ internal sealed class PluginManagerView : DockPanel
         tierFilter.SelectionChanged += (_, _) => FillResults();
         categoryFilter.SelectionChanged += (_, _) => FillResults();
         compatibleFilter.IsCheckedChanged += (_, _) => FillResults();
+        filters.Children.AddRange([tierFilter, categoryFilter, compatibleFilter]);
 
         rebuild.Tick += (_, _) =>
         {
@@ -398,7 +400,6 @@ internal sealed class PluginManagerView : DockPanel
         }
 
         FillFilters();
-        var filters = new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { tierFilter, categoryFilter, compatibleFilter } };
         body.Children.Add(search);
         body.Children.Add(filters);
         if (StatusNotice() is { } notice)
