@@ -6,6 +6,8 @@
     <!-- The icon sizes default to icon.png in the plugin root. -->
     <RunesmithPluginIcon64 Condition="'$(RunesmithPluginIcon64)' == '' and Exists('$(RunesmithPluginRoot)icon.png')">$(RunesmithPluginRoot)icon.png</RunesmithPluginIcon64>
     <RunesmithPluginIcon128 Condition="'$(RunesmithPluginIcon128)' == '' and Exists('$(RunesmithPluginRoot)icon.png')">$(RunesmithPluginRoot)icon.png</RunesmithPluginIcon128>
+    <!-- The pages web views show, from the web folder in the plugin root. -->
+    <RunesmithPluginWebRoot Condition="'$(RunesmithPluginWebRoot)' == '' and Exists('$(RunesmithPluginRoot)web')">$(RunesmithPluginRoot)web/</RunesmithPluginWebRoot>
     <RunesmithPluginLayoutDir Condition="'$(RunesmithPluginLayoutDir)' == ''">$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(BaseOutputPath)', '$(Configuration)', 'plugin'))</RunesmithPluginLayoutDir>
   </PropertyGroup>
 
@@ -162,11 +164,13 @@ public sealed class WriteRunesmithPluginManifest : Microsoft.Build.Utilities.Tas
     </PropertyGroup>
     <ItemGroup>
       <_RunesmithPluginOutput Include="$(OutDir)**/*" />
+      <_RunesmithPluginWeb Include="$(RunesmithPluginWebRoot)**/*" Condition="'$(RunesmithPluginWebRoot)' != ''" />
       <_RunesmithPluginStale Include="$(RunesmithPluginLayoutDir)**/*"
-                             Exclude="@(_RunesmithPluginOutput->'$(_RunesmithPluginLib)%(RecursiveDir)%(Filename)%(Extension)');$(RunesmithPluginLayoutDir)plugin.json;$(RunesmithPluginLayoutDir)icon/*" />
+                             Exclude="@(_RunesmithPluginOutput->'$(_RunesmithPluginLib)%(RecursiveDir)%(Filename)%(Extension)');@(_RunesmithPluginWeb->'$(RunesmithPluginLayoutDir)web/%(RecursiveDir)%(Filename)%(Extension)');$(RunesmithPluginLayoutDir)plugin.json;$(RunesmithPluginLayoutDir)icon/*" />
     </ItemGroup>
     <Delete Files="@(_RunesmithPluginStale)" />
     <Copy SourceFiles="@(_RunesmithPluginOutput)" DestinationFiles="@(_RunesmithPluginOutput->'$(_RunesmithPluginLib)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_RunesmithPluginWeb)" DestinationFiles="@(_RunesmithPluginWeb->'$(RunesmithPluginLayoutDir)web/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(RunesmithPluginIcon64)" DestinationFiles="$(RunesmithPluginLayoutDir)icon/64.png" SkipUnchangedFiles="true" Condition="'$(RunesmithPluginIcon64)' != ''" />
     <Copy SourceFiles="$(RunesmithPluginIcon128)" DestinationFiles="$(RunesmithPluginLayoutDir)icon/128.png" SkipUnchangedFiles="true" Condition="'$(RunesmithPluginIcon128)' != ''" />
     <WriteRunesmithPluginManifest DeveloperManifest="$(RunesmithPluginRoot)plugin.json" LibDirectory="$(_RunesmithPluginLib)" Implementation="$(TargetFileName)"

@@ -125,7 +125,13 @@ A file opens in the first editor of this list that applies:
 editor, import `ICustomEditorService`: `GetChoices` lists the editors that can open a file, text editor first, and `OpenWithAsync` opens it
 in one of them, replacing the tab of another editor that has the file open. A file is open in one editor at a time.
 
+## Show web content
+
+A custom editor can show a web page made with HTML, CSS and JavaScript: put the control of an `IWebView` in `Content`. See
+[Web views](./web-views.mdx).
+
 ## Related
 
+- [Web views](./web-views.mdx)
 - [API overview](./api.mdx)
 - [Open With and images](/guide/open-with), for users

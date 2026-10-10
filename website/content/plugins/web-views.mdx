@@ -1,0 +1,127 @@
+---
+title: Web views
+description: Show web pages from your plugin's own files in tool windows and custom editors, talk to them with messages, and the rules web views follow.
+---
+
+A web view shows a web page in a tool window or a custom editor, for interfaces written in HTML, CSS and JavaScript, such as charts or
+previews. The pages come from the `web` folder of your plugin, and the page and your plugin talk through JSON messages. Runesmith uses the
+system's browser engine: WebView2 on Windows, WebKit on macOS, and WebKitGTK or WPE WebKit on Linux.
+
+## Show a page
+
+Put the pages in a `web` folder at your plugin's root, next to `plugin.json`. `dotnet build -t:InstallPlugin` copies the folder into the
+installed plugin, as `web/`.
+
+Import `IWebViewService`, call `Create` with the page to show, and return the view's `Control` as a tool window's content or a custom
+editor's `Content`. Dispose the view with it.
+
+```csharp title="ChartPanel.cs"
+[Export(typeof(IToolWindowProvider))]
+[method: ImportingConstructor]
+public sealed class ChartPanel(IWebViewService webViews) : IToolWindowProvider
+{
+    public ToolWindowDefinition Definition { get; } = new("acme.chart", "Build Times", "activity", DockSide.Bottom);
+
+    public Control CreateContent()
+    {
+        var view = webViews.Create("chart.html");
+        view.MessageReceived += (_, e) =>
+        {
+            if (e.Json == """{"kind":"ready"}""")
+                view.PostMessage("""{"kind":"data","points":[12,9,14]}""");
+        };
+        return view.Control;
+    }
+}
+```
+
+`Create` must be called by your plugin's own code; Runesmith tells which plugin calls it and shows that plugin's files.
+
+## Send and receive messages
+
+Pages load Runesmith's message script from `/runesmith/webview.js`, then use the `runesmith` object:
+
+```html title="web/chart.html"
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="chart.css">
+  <script src="/runesmith/webview.js"></script>
+  <script src="chart.js" defer></script>
+</head>
+<body><canvas id="chart"></canvas></body>
+</html>
+```
+
+```javascript title="web/chart.js"
+runesmith.onMessage((message) => {
+  if (message.kind === 'data') draw(message.points);
+});
+runesmith.postMessage({ kind: 'ready' });
+```
+
+| Side | Send | Receive |
+| --- | --- | --- |
+| Plugin | `IWebView.PostMessage(json)`, with JSON text | `IWebView.MessageReceived`, whose `Json` is JSON text |
+| Page | `runesmith.postMessage(value)`, with any value `JSON.stringify` accepts | `runesmith.onMessage(listener)`, which gets the parsed value |
+
+Messages are text, never objects: the page cannot call your plugin's .NET code, and your plugin reaches the page only through messages.
+`PostMessage` throws an `ArgumentException` for text that is not JSON. Messages the plugin sends before the page has loaded wait until it
+has, and messages that arrive before the page has a listener wait for its first one. Only your own pages can send messages; pages from the
+network cannot.
+
+## Security rules
+
+Web views follow these rules, whatever the page or the plugin asks for:
+
+- **Your files only, by default.** A web view loads the files of your plugin's `web` folder, from a local address that only your plugin's
+  views use, such as `http://127.0.0.1:41234/`. Each plugin has its own address, so pages of different plugins cannot read each other's
+  storage. No path reaches outside the folder: `..`, encoded `..`, backslashes and symbolic links are refused.
+- **The network needs the network capability.** A web view may open `https` pages only on the hosts your manifest lists in `networkHosts`,
+  and only when it declares the `network` [capability](./index.mdx#capabilities). `"*"` in `networkHosts` allows any host. Every other
+  address is blocked: other hosts, `http`, `file`, `data` and `javascript` addresses.
+- **No files from the computer.** Pages cannot open files outside your `web` folder; read files in your plugin and send what the page
+  needs as a message.
+- **Messages, not objects.** See above.
+- **Scripts from your files.** Your pages are served with a content security policy that allows scripts, styles, images, fonts and
+  connections only from your `web` folder, and from your declared hosts over `https` when you have the `network` capability. Inline scripts,
+  `eval` and frames are blocked; inline styles are allowed. Put your JavaScript in files.
+- **No popups or downloads.** New windows and downloads are blocked.
+- **Nothing kept between runs.** Pages' cookies and local storage last until Runesmith closes. Keep data in your plugin, such as in
+  [your plugin's folder](./api.mdx#folders), and send it to the page.
+- **No developer tools.**
+
+Runesmith reads the rules from your manifest as it loaded it, never from what the plugin says at run time. A plugin with a manifest in the
+older format declares no hosts, so its web views stay on its own files.
+
+When a page tries to go somewhere the rules block, Runesmith stops it, raises `NavigationBlocked` with the address and the reason, and
+writes the reason to the **Plugins** output channel. `IWebView.Navigate` refuses such an address with an `UnauthorizedAccessException` for
+an undeclared host or a missing capability, and an `ArgumentException` for anything else.
+
+## IWebView
+
+| Member | What it does |
+| --- | --- |
+| `Control` | The control that shows the page. |
+| `IsAvailable`, `UnavailableReason` | Whether this computer can show web pages, and why not. |
+| `Address` | The address of the page shown. |
+| `Navigate(address)` | Shows another page: a path in your `web` folder, such as `settings.html`, or an `https` address on a declared host. |
+| `PostMessage(json)` | Sends a message to the page. |
+| `MessageReceived` | A message from the page. |
+| `NavigationBlocked` | The page tried to open an address the rules block. |
+| `PageLoaded` | A page finished loading. |
+
+## When web views are not available
+
+Web views need the system's browser engine. When it is missing, `IsAvailable` is false and the control shows a message that says what to
+install, such as WebKitGTK 4.1 on Linux, instead of the page. On Windows, the WebView2 runtime comes with Windows 11 and current versions of
+Windows 10.
+
+Because the page is drawn by the system, it shows above Runesmith's own popups and dialogs where they overlap it.
+
+## Related
+
+- [Custom editors](./custom-editors.mdx)
+- [Capabilities](./index.mdx#capabilities)
+- [API overview](./api.mdx)

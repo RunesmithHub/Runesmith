@@ -24,6 +24,8 @@ internal sealed record TestPlugin(string Id, string Root)
     public IReadOnlyList<TestPlugin> BuiltAgainst { get; init; } = [];
 
     public IReadOnlyList<string> Capabilities { get; init; } = [];
+
+    public IReadOnlyList<string> NetworkHosts { get; init; } = [];
 }
 
 /// <summary>A temporary plugins folder that test plugins are built into.</summary>
@@ -69,6 +71,7 @@ internal sealed class TestPluginFolder : IDisposable
             ["runesmithApi"] = plugin.RunesmithApi,
             ["dependencies"] = new JsonArray([.. plugin.Dependencies.Select(d => new JsonObject { ["id"] = d.Id, ["range"] = d.Range })]),
             ["capabilities"] = new JsonArray([.. plugin.Capabilities.Select(c => new JsonObject { ["id"] = c, ["reason"] = "For the tests." })]),
+            ["networkHosts"] = new JsonArray([.. plugin.NetworkHosts.Select(h => (JsonNode)h)]),
             ["categories"] = new JsonArray("Other"),
             ["assemblies"] = new JsonObject
             {

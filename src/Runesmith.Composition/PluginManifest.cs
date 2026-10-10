@@ -50,6 +50,10 @@ public sealed record PluginManifest(string Id, string Name, string Version)
     public IReadOnlyList<DeclaredCapability>? Capabilities { get; init; }
 
     /// <summary>Gets whether the plugin may use what needs a capability: it declared it, or its manifest is in the older format.</summary>
+    /// <summary>Gets the hosts the plugin talks to with the network capability, such as <c>api.example.com</c>, or <c>*</c> for hosts the user
+    /// chooses; empty for a manifest in the older format.</summary>
+    public IReadOnlyList<string> NetworkHosts { get; init; } = [];
+
     public bool Allows(string capability) => Capabilities is not { } declared || declared.Any(c => c.Id == capability);
 
     /// <summary>Reads a manifest file in either format.</summary>
@@ -103,6 +107,7 @@ public sealed record PluginManifest(string Id, string Name, string Version)
             // The protocol's JSON leaves absent lists null despite their defaults.
             Dependencies = manifest.Dependencies ?? [],
             Capabilities = manifest.Capabilities ?? [],
+            NetworkHosts = manifest.NetworkHosts ?? [],
         };
     }
 

@@ -10,7 +10,7 @@ public sealed class PluginManifestTests : IDisposable
     public void APackagedManifestNamesTheAssembliesInLibAndWhatThePluginNeeds()
     {
         folder.Add(Greeters.Greeter);
-        var path = folder.Add(Greeters.Welcome with { Capabilities = ["network"] });
+        var path = folder.Add(Greeters.Welcome with { Capabilities = ["network"], NetworkHosts = ["api.example.com"] });
 
         var manifest = PluginManifest.Read(Path.Combine(path, PluginManifest.FileName));
 
@@ -25,6 +25,7 @@ public sealed class PluginManifestTests : IDisposable
         Assert.Equal("tests.greeter", dependency.Id);
         Assert.True(manifest.Allows("network"));
         Assert.False(manifest.Allows("credentials"));
+        Assert.Equal(["api.example.com"], manifest.NetworkHosts);
     }
 
     [Fact]
@@ -36,6 +37,7 @@ public sealed class PluginManifestTests : IDisposable
 
         Assert.Empty(manifest.Dependencies);
         Assert.Empty(manifest.Capabilities!);
+        Assert.Empty(manifest.NetworkHosts);
         Assert.False(manifest.Allows("process"));
     }
 
