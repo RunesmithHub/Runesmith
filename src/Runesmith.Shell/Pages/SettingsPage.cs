@@ -25,6 +25,7 @@ internal sealed class SettingsPage : DockPanel
 {
     private const string PluginsCategory = "Plugins";
     private const double SectionsWidth = 916;
+    private const double NarrowWidth = 760;
 
     private readonly ISettingsService settings;
     private readonly IWorkspace workspace;
@@ -36,6 +37,7 @@ internal sealed class SettingsPage : DockPanel
     private readonly ThemeService? themes;
     private readonly List<ISettingsSectionProvider> pluginSections;
     private readonly ListBox categories = new() { Classes = { "sidebar" }, Width = 200, Margin = new Thickness(12, 8, 0, 12) };
+    private readonly ComboBox categoryPicker = new() { HorizontalAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(28, 8, 28, 0), IsVisible = false };
     private readonly StackPanel sections = new() { Spacing = 24, Margin = new Thickness(28, 16, 28, 40) };
     private readonly SearchBox search = new() { PlaceholderText = "Search settings", Width = 280 };
     private readonly SegmentedControl scope = new();
@@ -63,16 +65,16 @@ internal sealed class SettingsPage : DockPanel
 
         var openJson = new Button { Classes = { "subtle", "small" }, Content = "Open settings file" };
         openJson.Click += (_, _) => _ = OpenJsonAsync();
-        var header = new DockPanel { Margin = new Thickness(28, 18, 28, 6) };
-        var tools = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { search, scope, openJson } };
-        DockPanel.SetDock(tools, Dock.Right);
-        header.Children.Add(tools);
-        header.Children.Add(new TextBlock { Text = "Settings", FontSize = 22, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+        var title = new TextBlock { Text = "Settings", FontSize = 22, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+        var tools = new WrapPanel { ItemSpacing = 10, LineSpacing = 8, VerticalAlignment = VerticalAlignment.Center, Children = { search, scope, openJson } };
+        var header = new SideBySidePanel { MinMainWidth = 140, Spacing = 16, Margin = new Thickness(28, 18, 28, 6), Children = { title, tools } };
         DockPanel.SetDock(header, Dock.Top);
         Children.Add(header);
 
         DockPanel.SetDock(categories, Dock.Left);
         Children.Add(categories);
+        DockPanel.SetDock(categoryPicker, Dock.Top);
+        Children.Add(categoryPicker);
         // Every category fills the same width, up to a readable one, whatever its rows need.
         var column = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star) { MaxWidth = SectionsWidth } }, Children = { sections } };
         Children.Add(new ScrollViewer { Content = column });
@@ -87,7 +89,16 @@ internal sealed class SettingsPage : DockPanel
             refreshTimer.Stop();
             Fill();
         };
-        categories.SelectionChanged += (_, _) => Fill();
+        categories.SelectionChanged += (_, _) =>
+        {
+            categoryPicker.SelectedItem = categories.SelectedItem;
+            Fill();
+        };
+        categoryPicker.SelectionChanged += (_, _) =>
+        {
+            if (categoryPicker.SelectedItem is { } chosen && !Equals(chosen, categories.SelectedItem))
+                categories.SelectedItem = chosen;
+        };
         search.PropertyChanged += (_, e) =>
         {
             if (e.Property == SearchBox.TextProperty)
@@ -101,7 +112,9 @@ internal sealed class SettingsPage : DockPanel
         });
         workspace.Changed += (_, _) => UpdateScope();
 
-        categories.ItemsSource = Categories();
+        var names = Categories();
+        categories.ItemsSource = names;
+        categoryPicker.ItemsSource = names;
         categories.SelectedIndex = 0;
         UpdateScope();
     }
@@ -111,6 +124,17 @@ internal sealed class SettingsPage : DockPanel
     {
         search.Text = "";
         categories.SelectedItem = category;
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property != BoundsProperty)
+            return;
+
+        var narrow = Bounds.Width < NarrowWidth;
+        categories.IsVisible = !narrow;
+        categoryPicker.IsVisible = narrow;
     }
 
     private SettingScope Scope => scope.SelectedIndex == 1 && workspace.RootPath is not null ? SettingScope.Workspace : SettingScope.User;
@@ -254,14 +278,18 @@ internal sealed class SettingsPage : DockPanel
 
         var editor = Editor(definition, current, value => Set(definition, value, target));
         editor.IsEnabled = !userOnly;
-        var content = new WrapPanel { ItemSpacing = 8, LineSpacing = 8, VerticalAlignment = VerticalAlignment.Center, Children = { editor } };
+        var content = new DockPanel { VerticalAlignment = VerticalAlignment.Center };
         if (settings.GetValue(definition.Key, target) is not null)
         {
             var reset = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.RotateCcw, Size = 14 } };
             ToolTip.SetTip(reset, target == SettingScope.Workspace ? "Remove the folder's value" : "Reset to the default");
             reset.Click += (_, _) => settings.Reset(definition.Key, target);
-            content.Children.Insert(0, reset);
+            reset.Margin = new Thickness(0, 0, 8, 0);
+            DockPanel.SetDock(reset, Dock.Left);
+            content.Children.Add(reset);
         }
+
+        content.Children.Add(editor);
 
         return SettingCard(definition.Title, description, content);
     }
