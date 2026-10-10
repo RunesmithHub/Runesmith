@@ -4,7 +4,7 @@
     <!-- Versions listed here also apply to packages that come in transitively, so a vulnerable transitive package can be raised here. -->
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
-    <AvaloniaVersion>12.1.3</AvaloniaVersion>
+    <AvaloniaVersion>12.1.4</AvaloniaVersion>
     <!-- The TextMate engine and its bundled grammars and themes must match. -->
     <TextMateSharpVersion>2.0.4</TextMateSharpVersion>
     <RoslynVersion>5.9.0</RoslynVersion>
