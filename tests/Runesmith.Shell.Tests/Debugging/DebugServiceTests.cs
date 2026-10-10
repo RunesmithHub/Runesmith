@@ -144,8 +144,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
         var configuration = new RunConfiguration(type.Id, "App", new OptionValues()) { BeforeLaunch = [] };
 
         var run = await runs.RunAsync(configuration, RunMode.Debug);
-        await WaitAsync(() => service.Current is { State: DebugState.Running });
-        Assert.Equal(RunState.Running, run!.State);
+        await WaitAsync(() => service.Current is { State: DebugState.Running } && run!.State == RunState.Running);
         Assert.Equal(RunMode.Debug, type.Modes.Single());
 
         await program.StopAtBreakpointAsync();
