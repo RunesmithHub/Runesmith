@@ -27,6 +27,7 @@ internal sealed partial class TerminalView : Control
     private readonly Action<string> openUrl;
     private readonly Dictionary<(int CodePoint, bool Bold, bool Italic), (GlyphTypeface Face, ushort Glyph)?> glyphs = [];
     private readonly DispatcherTimer blink = new() { Interval = TimeSpan.FromMilliseconds(530) };
+    private readonly Dictionary<Color, IBrush> brushes = [];
     private GlyphTypeface?[] faces = new GlyphTypeface?[4];
     private string fontFamily = Editor.EditorOptions.BundledFontFamily;
     private double fontSize = 13;
@@ -209,7 +210,7 @@ internal sealed partial class TerminalView : Control
     public override void Render(DrawingContext context)
     {
         Interlocked.Exchange(ref pendingRender, 0);
-        context.FillRectangle(new SolidColorBrush(palette.Background), new Rect(Bounds.Size));
+        context.FillRectangle(Brush(palette.Background), new Rect(Bounds.Size));
         if (faces[0] is null)
             return;
 
@@ -232,8 +233,8 @@ internal sealed partial class TerminalView : Control
                 if (selectionFrom is { } from && selectionTo is { } to && point >= from.Line && point <= to.Line)
                     DrawSelection(context, line, top, point == from.Line ? from.Column : 0, point == to.Line ? to.Column : line.Length);
                 DrawText(context, line, top, index == screen.ScrollbackCount + screen.CursorRow && ShowsCursor(screen) ? screen.CursorColumn : -1);
-                if (hovered is { } link && link.Line == point)
-                    DrawLinkUnderline(context, link, top);
+                if (hovered is { } link && point >= link.Start.Line && point <= link.End.Line)
+                    DrawLinkUnderline(context, link.Start.Line == point ? link.Start.Column : 0, link.End.Line == point ? link.End.Column : line.Length, top);
             }
 
             if (ShowsCursor(screen))
@@ -258,7 +259,7 @@ internal sealed partial class TerminalView : Control
             while (end < cells.Length && BackgroundOf(cells[end].Style) == color)
                 end++;
             if (color != palette.Background)
-                context.FillRectangle(new SolidColorBrush(color), new Rect(Padding + (start * cellWidth), top, (end - start) * cellWidth, cellHeight));
+                context.FillRectangle(Brush(color), new Rect(Padding + (start * cellWidth), top, (end - start) * cellWidth, cellHeight));
             start = end;
         }
     }
@@ -269,19 +270,42 @@ internal sealed partial class TerminalView : Control
         if (to <= from)
             return;
 
-        context.FillRectangle(new SolidColorBrush(palette.Selection), new Rect(Padding + (from * cellWidth), top, (to - from) * cellWidth, cellHeight));
+        context.FillRectangle(Brush(palette.Selection), new Rect(Padding + (from * cellWidth), top, (to - from) * cellWidth, cellHeight));
     }
 
+    // Glyphs of one face and color in a row are drawn as one run, each advancing by its cells, so the text stays on the grid.
     private void DrawText(DrawingContext context, TerminalLine line, double top, int cursorColumn)
     {
         var cells = line.Cells;
         var y = top + baseline;
+        var glyphs = new List<GlyphInfo>();
+        var characters = new System.Text.StringBuilder();
+        GlyphTypeface? runFace = null;
+        var runColor = default(Color);
+        var runStart = 0;
+        var runEnd = 0;
+
+        void Flush()
+        {
+            if (runFace is not null && glyphs.Count > 0)
+            {
+                var run = new GlyphRun(runFace, fontSize, characters.ToString().AsMemory(), [.. glyphs], new Point(Padding + (runStart * cellWidth), y));
+                context.DrawGlyphRun(Brush(runColor), run);
+            }
+
+            glyphs.Clear();
+            characters.Clear();
+            runFace = null;
+        }
+
         for (var column = 0; column < cells.Length; column++)
         {
             var cell = cells[column];
+            DrawDecorations(context, cell, column, top);
             if (cell.Width == 0 || cell.Rune is 0 or ' ' || cell.Style.Flags.HasFlag(CellFlags.Hidden))
             {
-                DrawDecorations(context, cell, column, top);
+                if (cell.Width != 0)
+                    Flush();
                 continue;
             }
 
@@ -291,18 +315,35 @@ internal sealed partial class TerminalView : Control
             var width = cell.Width * cellWidth;
             if (cell.Combining is null && Glyph(cell.Rune, bold, italic) is { } found)
             {
-                var run = new GlyphRun(found.Face, fontSize, char.ConvertFromUtf32(cell.Rune).AsMemory(), [new GlyphInfo(found.Glyph, 0, width, default)],
-                    new Point(Padding + (column * cellWidth), y));
-                context.DrawGlyphRun(new SolidColorBrush(foreground), run);
-            }
-            else
-            {
-                var text = new TextLayout(cell.Text, Typeface(bold, italic), fontSize, new SolidColorBrush(foreground));
-                text.Draw(context, new Point(Padding + (column * cellWidth) + Math.Max(0, (width - text.Width) / 2), top + Math.Max(0, (cellHeight - text.Height) / 2)));
+                if (runFace != found.Face || runColor != foreground || runEnd != column)
+                {
+                    Flush();
+                    runFace = found.Face;
+                    runColor = foreground;
+                    runStart = column;
+                }
+
+                glyphs.Add(new GlyphInfo(found.Glyph, characters.Length, width, default));
+                runEnd = column + cell.Width;
+                characters.Append(char.ConvertFromUtf32(cell.Rune));
+                continue;
             }
 
-            DrawDecorations(context, cell, column, top);
+            Flush();
+            var text = new TextLayout(cell.Text, Typeface(bold, italic), fontSize, Brush(foreground));
+            text.Draw(context, new Point(Padding + (column * cellWidth) + Math.Max(0, (width - text.Width) / 2), top + Math.Max(0, (cellHeight - text.Height) / 2)));
         }
+
+        Flush();
+    }
+
+    private IBrush Brush(Color color)
+    {
+        if (brushes.Count > 4096)
+            brushes.Clear();
+        if (!brushes.TryGetValue(color, out var brush))
+            brushes[color] = brush = new Avalonia.Media.Immutable.ImmutableSolidColorBrush(color);
+        return brush;
     }
 
     private void DrawDecorations(DrawingContext context, TerminalCell cell, int column, double top)
@@ -311,7 +352,7 @@ internal sealed partial class TerminalView : Control
         if ((flags & (CellFlags.Underline | CellFlags.DoubleUnderline | CellFlags.Strikethrough)) == 0 || cell.Width == 0)
             return;
 
-        var pen = new Pen(new SolidColorBrush(ForegroundOf(cell.Style)), 1);
+        var pen = new Pen(Brush(ForegroundOf(cell.Style)), 1);
         var left = Padding + (column * cellWidth);
         var right = left + (cell.Width * cellWidth);
         if (flags.HasFlag(CellFlags.Underline) || flags.HasFlag(CellFlags.DoubleUnderline))
@@ -329,10 +370,10 @@ internal sealed partial class TerminalView : Control
         }
     }
 
-    private void DrawLinkUnderline(DrawingContext context, HoveredLink link, double top)
+    private void DrawLinkUnderline(DrawingContext context, int from, int to, double top)
     {
         var y = Math.Round(top + baseline + 2) + 0.5;
-        context.DrawLine(new Pen(new SolidColorBrush(palette.Link), 1), new Point(Padding + (link.Start * cellWidth), y), new Point(Padding + (link.End * cellWidth), y));
+        context.DrawLine(new Pen(Brush(palette.Link), 1), new Point(Padding + (from * cellWidth), y), new Point(Padding + (to * cellWidth), y));
     }
 
     private void DrawCursor(DrawingContext context, TerminalScreen screen, int row)
@@ -340,7 +381,7 @@ internal sealed partial class TerminalView : Control
         var column = Math.Min(screen.CursorColumn, screen.Columns - 1);
         var width = screen.Row(screen.CursorRow).Cells[column].Width == 2 ? 2 * cellWidth : cellWidth;
         var rect = new Rect(Padding + (column * cellWidth), Padding + (row * cellHeight), width, cellHeight);
-        var brush = new SolidColorBrush(palette.Cursor);
+        var brush = Brush(palette.Cursor);
         if (!IsFocused)
         {
             context.DrawRectangle(new Pen(brush, 1), rect.Deflate(0.5));
@@ -362,7 +403,7 @@ internal sealed partial class TerminalView : Control
                 {
                     var run = new GlyphRun(found.Face, fontSize, char.ConvertFromUtf32(cell.Rune).AsMemory(), [new GlyphInfo(found.Glyph, 0, width, default)],
                         new Point(rect.Left, rect.Top + baseline));
-                    context.DrawGlyphRun(new SolidColorBrush(palette.Background), run);
+                    context.DrawGlyphRun(Brush(palette.Background), run);
                 }
 
                 break;
@@ -498,6 +539,8 @@ internal sealed partial class TerminalView : Control
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        if (e.Key is Key.LeftCtrl or Key.RightCtrl && hovered is not null)
+            Cursor = new Cursor(StandardCursorType.Hand);
         if (e.Handled)
             return;
 
@@ -541,6 +584,13 @@ internal sealed partial class TerminalView : Control
             ClearSelection();
             session.Write(sequence);
         }
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        base.OnKeyUp(e);
+        if (e.Key is Key.LeftCtrl or Key.RightCtrl)
+            Cursor = new Cursor(StandardCursorType.Ibeam);
     }
 
     protected override void OnTextInput(TextInputEventArgs e)
@@ -810,21 +860,7 @@ internal sealed partial class TerminalView : Control
             var screen = session.Screen;
             var index = FirstIndex(screen) + row;
             if (index < screen.TotalLines)
-            {
-                var line = screen.LineAt(index);
-                var text = line.GetText();
-                var point = screen.PointAt(index, 0).Line;
-                foreach (var link in FindLinks(text))
-                {
-                    var start = line.ColumnOf(link.Start);
-                    var end = line.ColumnOf(link.Start + link.Length);
-                    if (column >= start && column < end)
-                    {
-                        found = new HoveredLink(point, start, end, link.Url, link.File);
-                        break;
-                    }
-                }
-            }
+                found = LinkAt(screen, index, column);
         }
 
         if (found == hovered)
@@ -836,10 +872,55 @@ internal sealed partial class TerminalView : Control
         InvalidateVisual();
     }
 
+    // Finds the link at a cell in the line's text, joined with the lines it wrapped from and into, so a long path or address is one link.
+    private HoveredLink? LinkAt(TerminalScreen screen, int index, int column)
+    {
+        var first = index;
+        while (first > 0 && screen.LineAt(first - 1).IsWrapped)
+            first--;
+        var last = index;
+        while (last < screen.TotalLines - 1 && screen.LineAt(last).IsWrapped)
+            last++;
+
+        var text = new System.Text.StringBuilder();
+        var places = new List<(int Line, int Column)>();
+        for (var i = first; i <= last; i++)
+        {
+            var cells = screen.LineAt(i).Cells;
+            for (var c = 0; c < cells.Length; c++)
+            {
+                foreach (var character in cells[c].Text)
+                {
+                    text.Append(character);
+                    places.Add((i, c));
+                }
+            }
+        }
+
+        foreach (var (start, length, url, file) in FindLinks(text.ToString()))
+        {
+            if (length <= 0 || start + length > places.Count)
+                continue;
+
+            var from = places[start];
+            var to = places[start + length - 1];
+            if ((index, column).CompareTo(from) < 0 || (index, column).CompareTo(to) > 0)
+                continue;
+
+            return new HoveredLink(screen.PointAt(from.Line, from.Column), screen.PointAt(to.Line, to.Column + 1), url, file);
+        }
+
+        return null;
+    }
+
     private IEnumerable<(int Start, int Length, string? Url, ConsoleLink? File)> FindLinks(string text)
     {
         foreach (Match match in UrlPattern().Matches(text))
-            yield return (match.Index, match.Length, match.Value.TrimEnd('.', ',', ')', ';', ':'), null);
+        {
+            var url = match.Value.TrimEnd('.', ',', ')', ';', ':', '"', '\'');
+            yield return (match.Index, url.Length, url, null);
+        }
+
         foreach (var link in ConsoleLinks.Find(text))
         {
             if (resolver.Resolve(link) is not null)
@@ -883,5 +964,5 @@ internal sealed partial class TerminalView : Control
     [GeneratedRegex(@"\bhttps?://[^\s<>""'`]+", RegexOptions.CultureInvariant)]
     private static partial Regex UrlPattern();
 
-    private sealed record HoveredLink(long Line, int Start, int End, string? Url, ConsoleLink? File);
+    private sealed record HoveredLink(TerminalPoint Start, TerminalPoint End, string? Url, ConsoleLink? File);
 }

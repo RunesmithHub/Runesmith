@@ -67,13 +67,16 @@ internal sealed class TerminalSession : ITerminal, IDisposable
         }
     }
 
-    /// <summary>Gets the title the tab shows: the program's own title, or the name.</summary>
+    /// <summary>Gets whether the tab shows the title the program sets, as the user's shells do, rather than its name.</summary>
+    public bool ShowsProgramTitle { get; init; }
+
+    /// <summary>Gets the title the tab shows: the program's own title when it shows one, or the name.</summary>
     public string Title
     {
         get
         {
             lock (Gate)
-                return Screen.Title is { Length: > 0 } title ? title : Name;
+                return ShowsProgramTitle && Screen.Title is { Length: > 0 } title ? title : Name;
         }
     }
 

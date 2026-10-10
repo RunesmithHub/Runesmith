@@ -91,7 +91,7 @@ public sealed class TerminalService : ITerminalService, IDisposable
             environment[key] = value;
         var name = Path.GetFileNameWithoutExtension(shell);
         var count = Interlocked.Increment(ref shellCount);
-        var session = Start(count == 1 ? name : $"{name} ({count})", shell, arguments, folder, environment, hidden: false, closesOnSuccess: true);
+        var session = Start(count == 1 ? name : $"{name} ({count})", shell, arguments, folder, environment, hidden: false, closesOnSuccess: true, showsTitle: true);
         Show(session, focus);
         return session;
     }
@@ -132,13 +132,14 @@ public sealed class TerminalService : ITerminalService, IDisposable
     }
 
     private TerminalSession Start(string name, string program, IReadOnlyList<string> arguments, string? folder, IReadOnlyDictionary<string, string?> environment,
-        bool hidden, bool closesOnSuccess)
+        bool hidden, bool closesOnSuccess, bool showsTitle = false)
     {
         var start = new PtyStart(program, arguments, ResolveFolder(folder), environment, 80, 24);
         var session = new TerminalSession(name, start, Math.Max(0, Setting(TerminalSettings.Scrollback, 10_000)), Show, Close)
         {
             IsHidden = hidden,
             ClosesOnSuccess = closesOnSuccess,
+            ShowsProgramTitle = showsTitle,
         };
         lock (gate)
             all.Add(session);
