@@ -91,7 +91,11 @@ public sealed class EditorFeaturesTests
         var providers = features.GetDecorationProviders(Document);
         var decorations = await providers[0].GetDecorationsAsync(new DecorationRequest(Document, Document.Buffer.Current), Token);
         var raised = 0;
-        providers[0].Changed += (_, _) => raised++;
+        providers[0].Changed += (sender, _) =>
+        {
+            Assert.Same(providers[0], sender);
+            raised++;
+        };
         broken.Raise();
 
         Assert.Single(providers);

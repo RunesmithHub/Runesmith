@@ -192,6 +192,7 @@ public sealed class EditorFeatures : IEditorFeatures
     {
         private readonly IDecorationProvider provider;
         private readonly EditorFeatures owner;
+        private EventHandler<DecorationsChangedEventArgs>? changed;
 
         public GuardedDecorationProvider(IDecorationProvider provider, EditorFeatures owner)
         {
@@ -202,10 +203,22 @@ public sealed class EditorFeatures : IEditorFeatures
 
         public string? Source { get; }
 
+        // Raised as the wrapper, since editors match the sender against the providers they were given.
         public event EventHandler<DecorationsChangedEventArgs>? Changed
         {
-            add => provider.Changed += value;
-            remove => provider.Changed -= value;
+            add
+            {
+                if (changed is null)
+                    provider.Changed += Forward;
+                changed += value;
+            }
+
+            remove
+            {
+                changed -= value;
+                if (changed is null)
+                    provider.Changed -= Forward;
+            }
         }
 
         public async Task<IReadOnlyList<Decoration>> GetDecorationsAsync(DecorationRequest request, CancellationToken cancellationToken)
@@ -224,6 +237,8 @@ public sealed class EditorFeatures : IEditorFeatures
                 return [];
             }
         }
+
+        private void Forward(object? sender, DecorationsChangedEventArgs e) => changed?.Invoke(this, e);
 
         public override string ToString() => provider.GetType().Name;
     }
