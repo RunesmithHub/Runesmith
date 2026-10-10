@@ -63,6 +63,7 @@ internal sealed class TerminalScreen : IVtHandler
     private char[] charsets = ['B', 'B'];
     private int activeCharset;
     private int lastPrinted = ' ';
+    private TerminalLink? link;
 
     /// <summary>Creates a screen of <paramref name="columns"/> × <paramref name="rows"/> that keeps up to <paramref name="scrollbackLines"/>
     /// lines that scrolled off its top.</summary>
@@ -603,7 +604,10 @@ internal sealed class TerminalScreen : IVtHandler
                 break;
             case "7":
                 if (Uri.TryCreate(argument, UriKind.Absolute, out var uri) && uri.IsFile)
-                    WorkingDirectory = Uri.UnescapeDataString(uri.AbsolutePath);
+                    WorkingDirectory = TerminalLink.LocalPath(uri);
+                break;
+            case "8":
+                link = OpenLink(argument);
                 break;
             case "133":
                 if (argument.StartsWith("D;", StringComparison.Ordinal) && int.TryParse(argument.AsSpan(2), NumberStyles.Integer, CultureInfo.InvariantCulture, out var code))
@@ -614,6 +618,53 @@ internal sealed class TerminalScreen : IVtHandler
                     Reply?.Invoke($"\u001b]{command};{color}\u001b\\");
                 break;
         }
+    }
+
+    // Reads OSC 8's "params;URI", where params are key=value pairs split by colons; an empty URI ends the link.
+    private TerminalLink? OpenLink(string argument)
+    {
+        var separator = argument.IndexOf(';', StringComparison.Ordinal);
+        if (separator < 0 || separator == argument.Length - 1)
+            return null;
+
+        var uri = argument[(separator + 1)..];
+        var id = argument[..separator].Split(':').Select(p => p.StartsWith("id=", StringComparison.Ordinal) ? p[3..] : null).LastOrDefault(i => i is { Length: > 0 });
+        return link is { } open && open.Uri == uri && id is not null && open.Id == id ? open : new TerminalLink(uri, id);
+    }
+
+    /// <summary>Gets the link a program wrote at a cell, with where its text starts and where it ends, after its last cell, when it wraps
+    /// over several lines too.</summary>
+    public (TerminalLink Link, TerminalPoint Start, TerminalPoint End)? LinkAt(int index, int column)
+    {
+        if (index < 0 || index >= TotalLines || column < 0 || column >= LineAt(index).Length || LineAt(index).Cells[column].Link is not { } found)
+            return null;
+
+        var (first, from) = (index, column);
+        while (Step(first, from, -1) is { } before && found.IsSameAs(LineAt(before.Index).Cells[before.Column].Link))
+            (first, from) = before;
+        var (last, to) = (index, column);
+        while (Step(last, to, 1) is { } after && found.IsSameAs(LineAt(after.Index).Cells[after.Column].Link))
+            (last, to) = after;
+        return (found, PointAt(first, from), PointAt(last, to + 1));
+    }
+
+    // Gets the cell before or after one in the text, across wrapped lines and the blank a wide character left at the edge.
+    private (int Index, int Column)? Step(int index, int column, int direction)
+    {
+        var line = LineAt(index);
+        if (direction < 0)
+        {
+            if (column > 0)
+                return (index, column - 1);
+            if (index == 0 || LineAt(index - 1) is not { IsWrapped: true, Length: > 0 } previous)
+                return null;
+            return (index - 1, previous.EndsWithPaddingBefore(line) ? previous.Length - 2 : previous.Length - 1);
+        }
+
+        var last = index + 1 < TotalLines && line.EndsWithPaddingBefore(LineAt(index + 1)) ? line.Length - 2 : line.Length - 1;
+        if (column < last)
+            return (index, column + 1);
+        return line.IsWrapped && index + 1 < TotalLines ? (index + 1, 0) : null;
     }
 
     private void Print(int codePoint)
@@ -670,9 +721,9 @@ internal sealed class TerminalScreen : IVtHandler
         ClearWideAt(line, cursorColumn);
         if (width == 2)
             ClearWideAt(line, cursorColumn + 1);
-        line.Cells[cursorColumn] = new TerminalCell { Rune = codePoint, Width = (byte)width, Style = style };
+        line.Cells[cursorColumn] = new TerminalCell { Rune = codePoint, Width = (byte)width, Style = style, Link = link };
         if (width == 2)
-            line.Cells[cursorColumn + 1] = new TerminalCell { Width = 0, Style = style };
+            line.Cells[cursorColumn + 1] = new TerminalCell { Width = 0, Style = style, Link = link };
         lastPrinted = codePoint;
 
         if (cursorColumn + width >= Columns)
@@ -1126,6 +1177,7 @@ internal sealed class TerminalScreen : IVtHandler
         LineFeedNewLine = false;
         CursorShape = CursorShape.Block;
         Title = null;
+        link = null;
     }
 
     private void SelectGraphicRendition(VtParameters p)

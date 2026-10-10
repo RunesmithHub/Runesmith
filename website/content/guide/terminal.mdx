@@ -92,6 +92,15 @@ files open in the editor at the line, and web addresses in the browser.
 
 Relative paths are found from the shell's folder and from the open folder.
 
+Programs can also write text as a link to an address of their own, with the OSC 8 escape sequence, as `ls --hyperlink=auto` does for
+file names. Point at such a link to underline it and see where it leads in its tooltip, and <Keys>Ctrl</Keys>+click it to open it:
+`http` and `https` links open in the browser, and `file` links to files on this computer open in the editor, at the line when the link
+ends in `#12` or `#L12`. Links of other kinds are not opened. Try it in your shell:
+
+```bash
+printf '\e]8;;https://hub.runesmith.dev\e\\Runesmith plugin hub\e]8;;\e\\\n'
+```
+
 ## Run configurations in the terminal
 
 Turn on **Run in the terminal** (`run.useTerminal`) to run configurations in a tab of the Terminal panel instead of the **Run** panel's

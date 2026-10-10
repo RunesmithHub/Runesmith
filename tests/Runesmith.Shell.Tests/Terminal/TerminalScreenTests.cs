@@ -440,6 +440,100 @@ public sealed class TerminalScreenTests
     }
 
     [Fact]
+    public void AFolderWithADriveLetterIsAWindowsPathOnWindows()
+    {
+        var screen = Screen($"{Esc}]7;file:///C:/Users/me/my%20project\u0007");
+
+        Assert.Equal(OperatingSystem.IsWindows() ? @"C:\Users\me\my project" : "C:/Users/me/my project", screen.WorkingDirectory);
+    }
+
+    [Fact]
+    public void AnOsc8LinkMarksTheCellsOfItsText()
+    {
+        var screen = Screen($"see {Esc}]8;;https://hub.runesmith.dev{Esc}\\hub{Esc}]8;;{Esc}\\ or {Esc}]8;;https://docs.runesmith.dev\u0007docs{Esc}]8;;\u0007");
+
+        Assert.Equal("see hub or docs", screen.RowText(0));
+        Assert.Equal(["https://hub.runesmith.dev"], Enumerable.Range(4, 3).Select(c => screen.Cell(0, c).Link?.Uri).Distinct());
+        Assert.Null(screen.Cell(0, 3).Link);
+        Assert.Null(screen.Cell(0, 7).Link);
+        var (link, start, end) = screen.LinkAt(0, 5)!.Value;
+        Assert.Equal((screen.PointAt(0, 4), screen.PointAt(0, 7)), (start, end));
+        Assert.Equal("https://hub.runesmith.dev/", link.WebAddress);
+        Assert.Equal("https://docs.runesmith.dev", screen.LinkAt(0, 12)!.Value.Link.Uri);
+        Assert.Null(screen.LinkAt(0, 8));
+    }
+
+    [Fact]
+    public void AnOsc8LinkThatWrapsIsOneLinkAndKeepsItsCellsWhenRewrapped()
+    {
+        var screen = Screen($"ab{Esc}]8;;https://example.com/a{Esc}\\0123中456789{Esc}]8;;{Esc}\\", columns: 6);
+        Assert.Equal(["ab0123", "中4567", "89"], Rows(screen, 3));
+
+        Assert.Equal((screen.PointAt(0, 2), screen.PointAt(2, 2)), Span(screen.LinkAt(1, 3)));
+
+        screen.Resize(7, 24);
+
+        Assert.Equal(["ab0123", "中45678", "9"], Rows(screen, 3));
+        Assert.Equal((screen.PointAt(0, 2), screen.PointAt(2, 1)), Span(screen.LinkAt(2, 0)));
+
+        screen.Resize(30, 24);
+
+        Assert.Equal((screen.PointAt(0, 2), screen.PointAt(0, 14)), Span(screen.LinkAt(0, 7)));
+    }
+
+    [Fact]
+    public void Osc8LinksWithAnIdAreOneLinkAndOthersStayApart()
+    {
+        var screen = Screen($"{Esc}]8;;https://a.example{Esc}\\ab{Esc}]8;;https://a.example{Esc}\\cd{Esc}]8;;{Esc}\\ " +
+            $"{Esc}]8;id=1;https://b.example{Esc}\\ef{Esc}]8;;{Esc}\\{Esc}]8;id=1;https://b.example{Esc}\\gh{Esc}]8;;{Esc}\\");
+
+        Assert.Equal((screen.PointAt(0, 0), screen.PointAt(0, 2)), Span(screen.LinkAt(0, 1)));
+        Assert.Equal((screen.PointAt(0, 5), screen.PointAt(0, 9)), Span(screen.LinkAt(0, 6)));
+        Assert.Equal("1", screen.Cell(0, 8).Link?.Id);
+    }
+
+    [Fact]
+    public void TextWrittenAfterALinkEndsOrOverItsCellsIsNotPartOfIt()
+    {
+        var screen = Screen($"{Esc}]8;;https://example.com{Esc}\\link{Esc}]8;;{Esc}\\ plain{Esc}[1;3Hx\u0301{Esc}[X");
+
+        Assert.Equal("lix\u0301  plain", screen.RowText(0));
+        Assert.Equal((screen.PointAt(0, 0), screen.PointAt(0, 2)), Span(screen.LinkAt(0, 1)));
+        Assert.Null(screen.LinkAt(0, 2));
+        Assert.Null(screen.LinkAt(0, 3));
+        Assert.Null(screen.LinkAt(0, 6));
+        Assert.Equal("x\u0301", screen.Cell(0, 2).Text);
+    }
+
+    [Fact]
+    public void ACombiningMarkKeepsTheLinkOfItsCharacter()
+    {
+        var screen = Screen($"{Esc}]8;;https://example.com{Esc}\\cafe\u0301{Esc}]8;;{Esc}\\");
+
+        Assert.Equal("e\u0301", screen.Cell(0, 3).Text);
+        Assert.Equal("https://example.com", screen.Cell(0, 3).Link?.Uri);
+    }
+
+    [Fact]
+    public void Osc8LinksOpenOnlyWebPagesAndFilesOfThisComputer()
+    {
+        Assert.Equal("https://hub.runesmith.dev/docs?q=1", new TerminalLink("https://hub.runesmith.dev/docs?q=1", null).WebAddress);
+        Assert.Equal("http://localhost:8080/", new TerminalLink("HTTP://localhost:8080", null).WebAddress);
+        string[] others = ["javascript:alert(1)", "mailto:me@example.com", "ftp://example.com/file", "ssh://host", "vscode://file/x", "data:text/html,x", "/etc/hosts", "not a link"];
+        Assert.All(others, uri => Assert.Null(new TerminalLink(uri, null).WebAddress));
+        Assert.All(others, uri => Assert.Null(new TerminalLink(uri, null).File));
+
+        var path = Path.Combine(Path.GetTempPath(), "runesmith link", "App.cs");
+        var uri = new Uri(path).AbsoluteUri;
+        Assert.Equal((path, 0, 0), new TerminalLink(uri, null).File);
+        Assert.Equal((path, 12, 0), new TerminalLink(uri + "#12", null).File);
+        Assert.Equal((path, 12, 5), new TerminalLink(uri + "#L12:5", null).File);
+        Assert.Equal((path, 12, 0), new TerminalLink(uri.Replace("file:///", "file://localhost/", StringComparison.Ordinal) + "#12", null).File);
+        Assert.Null(new TerminalLink(uri.Replace("file:///", "file://another-computer/", StringComparison.Ordinal), null).File);
+        Assert.Null(new TerminalLink(uri, null).WebAddress);
+    }
+
+    [Fact]
     public void ColorQueriesAreAnswered()
     {
         var replies = new List<string>();
@@ -760,4 +854,10 @@ public sealed class TerminalScreenTests
     }
 
     private static string[] Rows(TerminalScreen screen, int count) => [.. Enumerable.Range(0, count).Select(screen.RowText)];
+
+    private static (TerminalPoint Start, TerminalPoint End) Span((TerminalLink Link, TerminalPoint Start, TerminalPoint End)? link)
+    {
+        Assert.NotNull(link);
+        return (link.Value.Start, link.Value.End);
+    }
 }
