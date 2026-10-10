@@ -25,10 +25,6 @@ Runesmith is licensed under the Apache License 2.0; see [LICENSE](LICENSE). It u
 | [Microsoft.VisualStudio.Composition](https://github.com/microsoft/vs-mef) 17.13.41 | MIT | Composing Runesmith's parts and plugins |
 | [MessagePack for C#](https://github.com/MessagePack-CSharp/MessagePack-CSharp) 2.5.307, through Microsoft.VisualStudio.Composition | MIT | The composition cache |
 | [System.Composition](https://github.com/dotnet/runtime) 10.0.12 and the [.NET runtime](https://github.com/dotnet/runtime) | MIT | Every part of Runesmith |
-| [Roslyn](https://github.com/dotnet/roslyn), the C# compiler: Microsoft.CodeAnalysis.CSharp.Features, Microsoft.CodeAnalysis.CSharp.Workspaces and Microsoft.CodeAnalysis.Workspaces.MSBuild 5.9.0 | MIT | The C# analyzer, in the C# plugin and `runesmith-language-server` |
-| What Roslyn brings with it: [MSBuild](https://github.com/dotnet/msbuild)'s Microsoft.Build.Framework, [Humanizer](https://github.com/Humanizr/Humanizer), [Microsoft.DiaSymReader](https://github.com/dotnet/symreader), [Microsoft.VisualStudio.SolutionPersistence](https://github.com/microsoft/vs-solutionpersistence) and Microsoft.Extensions packages from the [.NET runtime](https://github.com/dotnet/runtime) | MIT | The C# analyzer |
-
-Roslyn and the libraries it brings are licensed under the MIT License, whose text is in the .NET section below.
 
 The texts below are the licenses of these components.
 

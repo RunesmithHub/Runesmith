@@ -1,5 +1,5 @@
 # When a version tag such as v0.2.0 is pushed: publishes Runesmith for each platform with the plugins bundled-plugins.json pins, creates a
-# GitHub release with the archives, and pushes the plugin SDK, text, language and template packages to the plugin hub's feed. A tag such
+# GitHub release with the archives, and pushes the plugin SDK, text, language services and template packages to the plugin hub's feed. A tag such
 # as sdk/v0.2.0 pushes only the packages. Pull requests that change this workflow, the app, the bundled plugins or the build targets, and
 # runs on demand, build everything without releasing it.
 name: Release
@@ -92,7 +92,7 @@ jobs:
           if-no-files-found: error
 
   packages:
-    name: Pack the plugin SDK, language and template packages
+    name: Pack the plugin SDK, language services and template packages
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -124,11 +124,11 @@ jobs:
           fi
           echo "RunesmithSdkVersion=$version" >> "$GITHUB_ENV"
 
-      # Plugins build against the SDK package, which depends on the text package, and the language plugins against the language engines;
+      # Plugins build against the SDK package, which depends on the text package, and language plugins against the language services core;
       # the template creates such plugins.
       - name: Pack
         run: |
-          for project in Runesmith.Text Runesmith.Sdk Runesmith.LanguageServices Runesmith.Languages.Java.Syntax Runesmith.Languages.Java Runesmith.Languages.CSharp; do
+          for project in Runesmith.Text Runesmith.Sdk Runesmith.LanguageServices; do
             dotnet pack "src/$project" --configuration Release --output artifacts/packages -warnaserror
           done
           dotnet pack templates/Runesmith.Templates --configuration Release --output artifacts/packages -warnaserror
@@ -142,7 +142,6 @@ jobs:
             artifacts/packages/Runesmith.Sdk.*.nupkg
             artifacts/packages/Runesmith.Text.*.nupkg
             artifacts/packages/Runesmith.LanguageServices.*.nupkg
-            artifacts/packages/Runesmith.Languages.*.nupkg
             artifacts/packages/Runesmith.Templates.*.nupkg
           retention-days: 7
           if-no-files-found: error

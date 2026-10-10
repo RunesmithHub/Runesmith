@@ -13,8 +13,5 @@
     <ProjectReference Include="..\..\src\Runesmith.Languages\Runesmith.Languages.csproj" />
     <ProjectReference Include="..\..\src\Runesmith.Editor\Runesmith.Editor.csproj" />
     <ProjectReference Include="..\..\src\Runesmith.LanguageServices\Runesmith.LanguageServices.csproj" />
-    <ProjectReference Include="..\..\src\Runesmith.Languages.CSharp\Runesmith.Languages.CSharp.csproj" />
-    <ProjectReference Include="..\..\src\Runesmith.Languages.Java.Syntax\Runesmith.Languages.Java.Syntax.csproj" />
-    <ProjectReference Include="..\..\src\Runesmith.Languages.Java\Runesmith.Languages.Java.csproj" />
   </ItemGroup>
 </Project>

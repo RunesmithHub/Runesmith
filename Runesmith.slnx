@@ -4,10 +4,6 @@
     <Project Path="src/Runesmith.Lsp/Runesmith.Lsp.csproj" />
     <Project Path="src/Runesmith.Dap/Runesmith.Dap.csproj" />
     <Project Path="src/Runesmith.LanguageServices/Runesmith.LanguageServices.csproj" />
-    <Project Path="src/Runesmith.Languages.CSharp/Runesmith.Languages.CSharp.csproj" />
-    <Project Path="src/Runesmith.Languages.Java.Syntax/Runesmith.Languages.Java.Syntax.csproj" />
-    <Project Path="src/Runesmith.Languages.Java/Runesmith.Languages.Java.csproj" />
-    <Project Path="src/Runesmith.LanguageServer/Runesmith.LanguageServer.csproj" />
     <Project Path="src/Runesmith.Sdk/Runesmith.Sdk.csproj" />
     <Project Path="src/Runesmith.Composition/Runesmith.Composition.csproj" />
     <Project Path="src/Runesmith.Hub/Runesmith.Hub.csproj" />
@@ -29,10 +25,6 @@
     <Project Path="tests/Runesmith.Lsp.Tests/Runesmith.Lsp.Tests.csproj" />
     <Project Path="tests/Runesmith.Dap.Tests/Runesmith.Dap.Tests.csproj" />
     <Project Path="tests/Runesmith.LanguageServices.Tests/Runesmith.LanguageServices.Tests.csproj" />
-    <Project Path="tests/Runesmith.Languages.CSharp.Tests/Runesmith.Languages.CSharp.Tests.csproj" />
-    <Project Path="tests/Runesmith.Languages.Java.Syntax.Tests/Runesmith.Languages.Java.Syntax.Tests.csproj" />
-    <Project Path="tests/Runesmith.Languages.Java.Tests/Runesmith.Languages.Java.Tests.csproj" />
-    <Project Path="tests/Runesmith.LanguageServer.Tests/Runesmith.LanguageServer.Tests.csproj" />
     <Project Path="tests/Runesmith.Composition.Tests/Runesmith.Composition.Tests.csproj" />
     <Project Path="tests/Runesmith.Hub.Tests/Runesmith.Hub.Tests.csproj" />
     <Project Path="tests/Runesmith.Workspace.Tests/Runesmith.Workspace.Tests.csproj" />

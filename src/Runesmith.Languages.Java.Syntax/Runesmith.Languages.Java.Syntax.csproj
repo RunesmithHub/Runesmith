@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <Description>Java's lexer, parser and syntax tree, for every Java version from 8 to 25.</Description>
-  </PropertyGroup>
-  <ItemGroup>
-    <InternalsVisibleTo Include="Runesmith.Languages.Java.Syntax.Tests" />
-    <InternalsVisibleTo Include="Runesmith.Benchmarks" />
-  </ItemGroup>
-</Project>

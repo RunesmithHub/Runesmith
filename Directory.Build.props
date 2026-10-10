@@ -6,9 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
-    <!-- Plugins build against these packages from the hub feed: the SDK, the text buffer, and the language engines the official language plugins use. -->
+    <!-- Plugins build against these packages from the hub feed: the SDK, the text buffer and the language services core. -->
     <IsPackable>false</IsPackable>
-    <IsPackable Condition="'$(MSBuildProjectName)' == 'Runesmith.Sdk' or '$(MSBuildProjectName)' == 'Runesmith.Text' or '$(MSBuildProjectName)' == 'Runesmith.LanguageServices' or '$(MSBuildProjectName)' == 'Runesmith.Languages.CSharp' or '$(MSBuildProjectName)' == 'Runesmith.Languages.Java' or '$(MSBuildProjectName)' == 'Runesmith.Languages.Java.Syntax'">true</IsPackable>
+    <IsPackable Condition="'$(MSBuildProjectName)' == 'Runesmith.Sdk' or '$(MSBuildProjectName)' == 'Runesmith.Text' or '$(MSBuildProjectName)' == 'Runesmith.LanguageServices'">true</IsPackable>
     <Authors>Dylan de Beer</Authors>
     <Product>Runesmith</Product>
     <Copyright>Copyright 2026 Dylan de Beer</Copyright>
