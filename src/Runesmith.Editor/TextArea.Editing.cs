@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Runesmith.Editor.Editing;
@@ -76,9 +77,19 @@ public sealed partial class TextArea
     /// <summary>Makes changes to the text as one undo step, such as accepting a completion, and selects <paramref name="selectionAfter"/>.</summary>
     public void ApplyChanges(IReadOnlyList<TextChange> changes, EditorSelection selectionAfter) => Apply(new EditResult(changes, selectionAfter));
 
+    /// <summary>Raised before an undo; a handler that sets <see cref="HandledEventArgs.Handled"/> undoes something else instead, such as a
+    /// whole workspace edit.</summary>
+    public event EventHandler<HandledEventArgs>? UndoRequested;
+
+    /// <summary>Raised before a redo; a handler that sets <see cref="HandledEventArgs.Handled"/> redoes something else instead.</summary>
+    public event EventHandler<HandledEventArgs>? RedoRequested;
+
     public void Undo()
     {
         if (IsReadOnly)
+            return;
+
+        if (Handled(UndoRequested))
             return;
 
         BreakUndoGroup();
@@ -93,11 +104,21 @@ public sealed partial class TextArea
         if (IsReadOnly)
             return;
 
+        if (Handled(RedoRequested))
+            return;
+
         BreakUndoGroup();
         if (Document.History.Redo(Document.Buffer) is { StateAfter: EditorSelection after })
             Select(after);
         else
             Select(selection);
+    }
+
+    private bool Handled(EventHandler<HandledEventArgs>? handler)
+    {
+        var args = new HandledEventArgs();
+        handler?.Invoke(this, args);
+        return args.Handled;
     }
 
     public void SelectAll() => Select(new EditorSelection(0, Snapshot.Length), scrollIntoView: false);

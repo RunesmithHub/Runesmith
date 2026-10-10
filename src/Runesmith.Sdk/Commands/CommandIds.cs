@@ -17,6 +17,15 @@ public static class CommandIds
 
     public const string Undo = "edit.undo";
     public const string Redo = "edit.redo";
+
+    /// <summary>Undoes the last workspace edit, with its file operations, as one step.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public const string UndoWorkspaceEdit = "edit.undoWorkspaceEdit";
+
+    /// <summary>Applies the last undone workspace edit again.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public const string RedoWorkspaceEdit = "edit.redoWorkspaceEdit";
+
     public const string Cut = "edit.cut";
     public const string Copy = "edit.copy";
     public const string Paste = "edit.paste";

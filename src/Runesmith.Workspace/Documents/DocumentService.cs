@@ -13,8 +13,9 @@ namespace Runesmith.Workspace.Documents;
 /// <remarks>Use it on the UI thread. Edits it makes itself, such as reloading a file or trimming whitespace on save, are recorded in the
 /// document's undo history; edits made through the buffer directly are recorded by whoever makes them, such as the editor.</remarks>
 [Export(typeof(IDocumentService))]
+[Export(typeof(IDocumentLocations))]
 [Shared]
-public sealed class DocumentService : IDocumentService, IDisposable
+public sealed class DocumentService : IDocumentService, IDocumentLocations, IDisposable
 {
     /// <summary>The largest file that opens, in bytes.</summary>
     public const long MaxFileSize = 50 * 1024 * 1024;
@@ -42,6 +43,28 @@ public sealed class DocumentService : IDocumentService, IDisposable
     public event EventHandler<DocumentEventArgs>? Closed;
 
     public event EventHandler<DocumentEventArgs>? ChangedOnDisk;
+
+    public event EventHandler<DocumentMovedEventArgs>? Moved;
+
+    public void Move(string oldPath, string newPath)
+    {
+        var from = PathComparison.Normalize(oldPath);
+        var to = PathComparison.Normalize(newPath);
+        foreach (var document in _documents.ToList())
+        {
+            if (document.FilePath is not { } path || !PathComparison.IsInside(path, from))
+                continue;
+
+            var moved = to + path[from.Length..];
+            document.FilePath = moved;
+            document.Name = Path.GetFileName(moved);
+            if (document.LanguageId == _languages.GetLanguageForFile(path).Id || document.LanguageId == ILanguageRegistry.PlainText)
+                document.LanguageId = _languages.GetLanguageForFile(moved).Id;
+            Unwatch(path);
+            Watch(moved);
+            Moved?.Invoke(this, new DocumentMovedEventArgs(document, path));
+        }
+    }
 
     public IDocument? Find(string filePath)
     {
