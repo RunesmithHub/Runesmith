@@ -59,6 +59,24 @@ internal sealed class FileIndex(string root, GlobMatcher exclude)
         return relative != "." && exclude.IsMatchOrInside(GlobMatcher.ToGlobPath(relative));
     }
 
+    /// <summary>Whether the index holds the file; false while the first read of the folder runs.</summary>
+    public bool Contains(string path)
+    {
+        lock (_gate)
+            return _files.Contains(path);
+    }
+
+    /// <summary>Gets the indexed files inside a folder, such as one that was just deleted or renamed.</summary>
+    public List<string> FilesUnder(string folder)
+    {
+        var prefix = folder + Path.DirectorySeparatorChar;
+        lock (_gate)
+            return [.. _files.Where(file => file.StartsWith(prefix, PathComparison.Comparison))];
+    }
+
+    /// <summary>Gets the files inside a folder that are not excluded, read from the disk.</summary>
+    public List<string> ReadFilesUnder(string folder) => Directory.Exists(folder) && !IsExcluded(folder) ? Enumerate(folder) : [];
+
     public void Apply(IReadOnlyList<FileChange> changes)
     {
         lock (_gate)

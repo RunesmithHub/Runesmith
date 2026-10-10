@@ -4,7 +4,6 @@ using Runesmith.Editor.Input;
 using Runesmith.Sdk.Documents;
 using Runesmith.Sdk.Settings;
 using Runesmith.Sdk.Shell;
-using Runesmith.Shell.Services;
 
 namespace Runesmith.Shell.Editors;
 

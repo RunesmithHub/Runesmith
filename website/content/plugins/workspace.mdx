@@ -1,0 +1,239 @@
+---
+title: Files and search
+description: Watch files of the open folder for changes, search it like the Search panel, and create, rename and delete files in workspace edits that undo as one step.
+---
+
+Plugins work with the files of the open folder through three services: `IWorkspaceFiles` reports files that change on disk,
+`IWorkspaceSearch` searches the folder the way the **Search** panel does, and `IWorkspaceEditService` creates, renames and deletes files
+together with text changes, as one step the user can undo. All three were added in plugin API 0.1.2, so a plugin that uses them declares
+`"runesmithApi": "^0.1.2"`.
+
+## Watch files
+
+Import `IWorkspaceFiles` and call `Watch` with globs and a handler. It returns an `IFileWatcher`; dispose it to stop. This plugin logs the
+project files that change:
+
+```csharp title="ProjectWatcher.cs"
+[Export(typeof(IPlugin))]
+[method: ImportingConstructor]
+public sealed class ProjectWatcher(IWorkspaceFiles files, IOutputService output) : IPlugin
+{
+    private IFileWatcher? watcher;
+
+    public Task InitializeAsync(CancellationToken cancellationToken)
+    {
+        var channel = output.GetChannel("Projects");
+        watcher = files.Watch(["**/*.csproj"], changes =>
+        {
+            foreach (var change in changes)
+                channel.AppendLine(change.Kind == FileChangeKind.Renamed ? $"Renamed {change.OldPath} to {change.Path}" : $"{change.Kind} {change.Path}");
+        });
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => watcher?.Dispose();
+}
+```
+
+Globs are relative to the watched folder. `**` matches any number of folders, `*` any part of a name and `?` one character, and a glob
+without a `/` matches a name at any depth, so `*.cs` finds C# files everywhere. An empty list reports every file and folder.
+
+The handler gets each `FileChangeEvent` with its `Kind`, its full `Path` and, for a rename, its `OldPath`:
+
+| Kind | What happened |
+| --- | --- |
+| `Created` | A file or folder was created, or moved into the folder. |
+| `Changed` | A file's content or size changed. |
+| `Deleted` | A file or folder was deleted, or moved out of the folder. |
+| `Renamed` | A file or folder was renamed or moved inside the folder. |
+| `Rescan` | The system dropped changes, so anything may have changed: read again what you keep about the folder. `Path` is the folder. |
+
+`FileWatchOptions` changes what is watched and how:
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `Folder` | The open folder | The folder to watch. Without one, the watcher follows the folder the user opens. |
+| `Exclude` | None | Globs to leave out, on top of `files.exclude`. |
+| `IncludeExcluded` | `false` | Also report what `files.exclude` leaves out, such as `bin`, `obj`, `node_modules` and `.git`. |
+| `Delay` | None | How long to wait for more changes after the last one before reporting a batch. |
+
+### How changes arrive
+
+- Runesmith watches the open folder once, with one system watcher, and every plugin's watcher shares it. Another folder gets one system
+  watcher however many plugins watch it.
+- Changes arrive in batches, about 100 milliseconds after a burst of changes ends and at most every half second while it goes on, such as
+  during a build or a checkout. `Delay` waits longer.
+- A batch has at most one event per path. A file that is created and then changed is `Created`, one that is created and deleted is not
+  reported, a rename followed by another is one `Renamed`, and a save that writes a new file and renames it over the old one is `Changed`.
+- A rename that leaves the globs is reported as `Deleted` and one that enters them as `Created`.
+- In the open folder, renaming, moving or deleting a folder reports the folder and each file Runesmith knew to be inside it, so `**/*.cs`
+  sees the C# files of a folder that moved.
+- The handler runs on a background thread, one batch at a time, in order. A handler that throws is logged to the **Plugins** channel
+  of the **Output** panel and gets the next batch.
+
+## Search the folder
+
+Import `IWorkspaceSearch`. `SearchAsync` finds text or a regular expression in every file of the open folder and returns each file's
+matches as soon as that file is searched. It uses the **Search** panel's engine, so it finds what the panel finds: files that
+`files.exclude` leaves out are skipped, open documents are searched with their unsaved changes, and files larger than 10 MB and binary
+files are skipped. This command lists the to-dos of the folder in an output channel:
+
+```csharp title="TodoCommands.cs"
+[Export(typeof(ICommandContributor))]
+[method: ImportingConstructor]
+public sealed class TodoCommands(IWorkspaceSearch search, IOutputService output) : ICommandContributor
+{
+    public void Contribute(ICommandRegistry registry) =>
+        registry.Add(new CommandDefinition("acme.todo.list", "List To-dos", "To-do"), async _ =>
+        {
+            var channel = output.GetChannel("To-do");
+            channel.Clear();
+            var query = new WorkspaceSearchQuery(@"\bTODO\b")
+            {
+                Options = TextSearchOptions.Regex | TextSearchOptions.MatchCase,
+                Exclude = ["*.min.js"],
+                MaxResults = 1000,
+            };
+            await foreach (var file in search.SearchAsync(query))
+            {
+                foreach (var match in file.Matches)
+                    channel.AppendLine($"{file.FilePath}:{match.Line + 1}:{match.Column + 1} {match.LineText.Trim()}");
+            }
+
+            var projects = await search.FindFilesAsync("**/*.csproj");
+            channel.AppendLine($"{projects.Count} projects");
+            channel.Show();
+        });
+}
+```
+
+| `WorkspaceSearchQuery` | Default | Meaning |
+| --- | --- | --- |
+| `Text` | | The text to find, or a .NET regular expression with `TextSearchOptions.Regex`. |
+| `Options` | `None` | `MatchCase`, `WholeWord` and `Regex`, combined. Without `MatchCase`, case is ignored. |
+| `Include` | Every file | Globs relative to the open folder that a file must match, such as `*.cs` or `src/**`. |
+| `Exclude` | None | Globs to leave out, on top of `files.exclude`. |
+| `MaxResults` | 10,000 | The number of matches after which the search stops; the last file's `IsLimitReached` is then true. |
+
+Each `WorkspaceSearchMatch` has the `Line` and `Column`, counted from zero, the `Length` and the whole `LineText`. A match that goes past
+the end of its line ends there. An invalid regular expression throws an `ArgumentException` when you call `SearchAsync`, and cancelling the
+token stops the search.
+
+`FindFilesAsync` finds files by glob, such as `**/*.csproj` or `*.json;*.yaml`, in the list of files Runesmith keeps up to date, so it does
+not read the disk. It returns full paths, sorted.
+
+## Create, rename and delete files
+
+A `WorkspaceEdit` changes text in `Documents` and, since 0.1.2, creates, renames and deletes files and folders in `FileOperations`. Apply
+it with `IWorkspaceEditService.ApplyAsync`. This command moves the active file into an `Archive` folder and adds a line to it:
+
+```csharp title="ArchiveCommands.cs"
+[Export(typeof(ICommandContributor))]
+[method: ImportingConstructor]
+public sealed class ArchiveCommands(IEditorService editors, IWorkspaceEditService edits) : ICommandContributor
+{
+    public void Contribute(ICommandRegistry registry)
+    {
+        registry.Add(new CommandDefinition("acme.archive.file", "Archive File", "Archive"), async _ =>
+        {
+            if (editors.ActiveEditor?.Document.FilePath is not { } path)
+                return;
+
+            var archived = Path.Combine(Path.GetDirectoryName(path)!, "Archive", Path.GetFileName(path));
+            var edit = new WorkspaceEdit([new DocumentEdit(path, [new TextChange(new TextSpan(0, 0), "// Archived\n")])])
+            {
+                FileOperations = [new RenameFileOperation(path, archived)],
+            };
+            await edits.ApplyAsync(edit, new WorkspaceEditOptions { Label = $"Archive {Path.GetFileName(path)}" });
+        });
+        registry.Add(new CommandDefinition("acme.archive.undo", "Undo Archive", "Archive"), _ => edits.UndoAsync(), _ => edits.CanUndo);
+    }
+}
+```
+
+| Operation | Options |
+| --- | --- |
+| `CreateFileOperation(FilePath)` | `Content`, written as UTF-8; `Overwrite` replaces a file that exists; `IgnoreIfExists` leaves it and goes on. Missing folders are created. |
+| `RenameFileOperation(OldPath, NewPath)` | Renames or moves a file or folder. `Overwrite` replaces a file at the new path; `IgnoreIfExists` skips the rename. |
+| `DeleteFileOperation(Path)` | `Recursive` deletes a folder that is not empty; `IgnoreIfMissing` goes on when the path does not exist; `UseTrash`, on by default, sends the files to the system's trash. |
+
+### How an edit is applied
+
+1. Runesmith checks every operation against the disk as the operations before it leave it, and every text change against its file. When
+   one fails, such as a file that exists without `Overwrite`, a file to delete or replace with unsaved changes, or a document that changed
+   since `Snapshot`, nothing is changed and the user is told why.
+2. It asks the [participants](#take-part-in-file-operations) for text changes to make with the operations.
+3. With `Confirmation` set to `WhenLarge`, the default for this overload, it asks the user first when the edit touches more than
+   `LargeEditThreshold` files, 20 by default, counting the files in folders it renames or deletes. `Always` always asks, and `Never`
+   never does. The question lists the changes.
+4. It makes the operations in order. When the disk refuses one, it takes back the ones it made.
+5. It makes the text changes. A `DocumentEdit` may name a renamed file by its old or its new path, and a created file by its path; text
+   changes to a created file are in the coordinates of its `Content`. Files that are not open open in background tabs.
+6. Open editors follow renamed files, editors of deleted files close, and `FilesChangedMessage` is published.
+
+The edit is one step of the workspace's undo history. **Edit › Undo Workspace Edit** and `UndoAsync` take back its text changes and then
+its operations: renamed files move back, created files go and deleted files come back. When the edit's text change is the last change of a
+file, <Keys>Ctrl+Z</Keys> in that file's editor undoes the whole edit too. **Redo Workspace Edit** and `RedoAsync` make it again. An undo
+that would lose work, such as when a renamed file was changed again since, is refused with the reason. Runesmith keeps the last 20 edits.
+
+Deleted files go to the system's trash where Runesmith can use it: the desktop trash on Linux, for files on its drive, and `~/.Trash` on
+macOS. Otherwise, and with `UseTrash` off, Runesmith keeps the files while the edit can be undone, and deletes them for good once the edit
+leaves the history or Runesmith closes.
+
+The overload without `WorkspaceEditOptions`, which plugins built for 0.1.1 call, never asks. Edits from language servers apply this way too:
+Runesmith declares the `create`, `rename` and `delete` resource operations, so servers can send them in `documentChanges`.
+
+## Take part in file operations
+
+Export an `IFileOperationParticipant` to hear of the files workspace edits create, rename and delete, such as to update a namespace when a
+C# file moves. `WillApplyAsync` runs before the operations and returns text changes to make in the same step, or null; `DidApplyAsync`
+runs after them, and after the edit is undone or redone, with the operations that were made: for an undo, the reverse ones.
+
+```csharp title="NamespaceParticipant.cs"
+[Export(typeof(IFileOperationParticipant))]
+[method: ImportingConstructor]
+public sealed class NamespaceParticipant(IWorkspace workspace) : IFileOperationParticipant
+{
+    public async Task<WorkspaceEdit?> WillApplyAsync(IReadOnlyList<FileOperation> operations, CancellationToken cancellationToken)
+    {
+        var edits = new List<DocumentEdit>();
+        foreach (var rename in operations.OfType<RenameFileOperation>().Where(r => r.OldPath.EndsWith(".cs", StringComparison.Ordinal)))
+        {
+            var text = await File.ReadAllTextAsync(rename.OldPath, cancellationToken);
+            var line = text.Split('\n')[0];
+            if (!line.StartsWith("namespace ", StringComparison.Ordinal) || workspace.RootPath is not { } root)
+                continue;
+
+            var folder = Path.GetRelativePath(root, Path.GetDirectoryName(rename.NewPath)!);
+            var name = string.Join('.', folder.Split(Path.DirectorySeparatorChar).Where(part => part != "."));
+            var target = name.Length == 0 ? "App" : "App." + name;
+            edits.Add(new DocumentEdit(rename.NewPath, [new TextChange(new TextSpan(10, line.TrimEnd('\r', ';').Length - 10), target)]));
+        }
+
+        return edits.Count == 0 ? null : new WorkspaceEdit(edits);
+    }
+}
+```
+
+Runesmith calls the participants at the same time, on a background thread, and gives them `IFileOperationParticipant.TimeBudget`, 3
+seconds, together. Then it cancels the token and goes on without the participants that have not answered; it logs them, and those that
+throw, to the **Plugins** channel. File operations in a participant's edit are ignored.
+
+## Capabilities
+
+Reading and changing files inside the open folder needs no [capability](./index.mdx#capabilities). Outside it, a plugin needs
+`filesystem`:
+
+| Service | Without `filesystem` |
+| --- | --- |
+| `IWorkspaceFiles.Watch` | Watches the open folder and folders inside it. A `Folder` outside the open folder throws an `UnauthorizedAccessException`, and a watcher whose folder is no longer inside the open folder after the user opens another one stops reporting, with `IsWatching` false. |
+| `IWorkspaceSearch` | Searches only the open folder, so it never needs the capability. |
+| `IWorkspaceEditService.ApplyAsync` | File operations on paths outside the open folder throw an `UnauthorizedAccessException`. Text changes need no capability, as before. |
+
+Each refusal is written to the **Plugins** channel of the **Output** panel.
+
+## Related
+
+- [API overview](./api.mdx)
+- [Editor extensions](./language-features.mdx#workspace-edits), where workspace edits come from.
+- [Find in files](/guide/search), the **Search** panel.

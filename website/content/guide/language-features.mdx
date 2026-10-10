@@ -62,6 +62,11 @@ Put the caret on a name and press <Keys>F2</Keys>, or choose **Edit › Rename S
 in the files that are not open, which open in tabs so you can review and save them. A name the language cannot rename, such as one a
 library defines, shows a message instead.
 
+Some fixes and renames also create, rename or delete files, such as moving a class to a file of its own. Open editors follow renamed
+files, and deleted files go to the trash. The files and the text are one step: **Edit › Undo Workspace Edit** takes back all of it, and
+so does <Keys>Ctrl+Z</Keys> in a file the edit changed, while that change is the last one in the file. **Edit › Redo Workspace Edit** makes
+it again.
+
 ## Format
 
 **Format Document** (<Keys>Shift+Alt+F</Keys>) formats the whole file with its language's formatter, and **Format Selection** formats the

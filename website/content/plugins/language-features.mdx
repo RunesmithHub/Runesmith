@@ -105,6 +105,9 @@ changes were computed for, and Runesmith refuses the edit when the document chan
 Runesmith checks every file before it changes any, opens the files that are not open in background tabs, and makes each file's changes
 one step of that file's undo history. Import `IWorkspaceEditService` to apply an edit yourself, such as from a command.
 
+An edit can also create, rename and delete files in `FileOperations`, applied with its text changes as one step that undoes together;
+see [Create, rename and delete files](./workspace.mdx#create-rename-and-delete-files).
+
 ## Rename
 
 Export an `IRenameProvider`. `PrepareRenameAsync` returns a `RenameTarget`, the span of the name and the text the rename box starts with, or
@@ -214,6 +217,7 @@ A [language server](./api.mdx#languages) gets these features from the requests i
 | Inlay hints | `textDocument/inlayHint`, and `workspace/inlayHint/refresh` from the server |
 | Code lens | `textDocument/codeLens`, `codeLens/resolve`, and `workspace/codeLens/refresh` from the server |
 | Edits the server makes | `workspace/applyEdit`, applied like any workspace edit |
+| Files a rename or code action creates, renames or deletes | The `create`, `rename` and `delete` resource operations in a workspace edit's `documentChanges` |
 
 A [language analyzer](./api.mdx#language-analyzers) implements any of these interfaces of `Runesmith.LanguageServices` next to
 `ILanguageAnalyzer`:

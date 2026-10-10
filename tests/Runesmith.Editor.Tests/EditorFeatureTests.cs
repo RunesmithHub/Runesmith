@@ -34,6 +34,29 @@ public sealed class EditorFeatureTests
     });
 
     [Fact]
+    public Task AnUndoOrRedoHandlerCanTakeOverTheEditorsUndo() => Run(() =>
+    {
+        var document = new FileTestDocument(FilePath, "int x;");
+        using var editor = new TextEditor(document, new FakeEditorServices().Create());
+        editor.Area.ApplyChanges([new TextChange(new TextSpan(0, 3), "long")], default);
+        var takeOver = true;
+        var asked = 0;
+        editor.Area.UndoRequested += (_, e) => (asked, e.Handled) = (asked + 1, takeOver);
+        editor.Area.RedoRequested += (_, e) => (asked, e.Handled) = (asked + 1, takeOver);
+
+        editor.Undo();
+        Assert.Equal("long x;", document.Buffer.Current.GetText());
+
+        takeOver = false;
+        editor.Undo();
+        Assert.Equal("int x;", document.Buffer.Current.GetText());
+        editor.Redo();
+        Assert.Equal("long x;", document.Buffer.Current.GetText());
+        Assert.Equal(3, asked);
+        return Task.CompletedTask;
+    });
+
+    [Fact]
     public Task FormattingSaysWhenNoFormatterServesTheLanguage() => Run(async () =>
     {
         var fakes = new FakeEditorServices();

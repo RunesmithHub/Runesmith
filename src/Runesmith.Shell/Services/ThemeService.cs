@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Styling;
 using HammerUI.Theming;
+using Runesmith.Composition;
 using Runesmith.Languages.Highlighting;
 using Runesmith.Sdk.Appearance;
 using Runesmith.Sdk.Messaging;

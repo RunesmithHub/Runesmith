@@ -14,4 +14,13 @@ internal static class UiThread
         else
             Dispatcher.UIThread.Post(action);
     }
+
+    /// <summary>Runs the function on the UI thread, or right here when this is the UI thread or no application runs one, and returns its
+    /// result.</summary>
+    public static Task<T> InvokeAsync<T>(Func<T> function)
+    {
+        if (Application.Current is null || Dispatcher.UIThread.CheckAccess())
+            return Task.FromResult(function());
+        return Dispatcher.UIThread.InvokeAsync(function).GetTask();
+    }
 }

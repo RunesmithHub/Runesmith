@@ -136,6 +136,8 @@ users read before they install it.
 The SDK services that need a capability refuse a plugin that did not declare it, throw an `UnauthorizedAccessException` and write the
 reason to the **Plugins** output channel: `ISecretStore` needs `credentials` and `ILauncher` needs `process`. Web views open
 `https` pages only on the hosts in `networkHosts`, and only with `network`; see [Web views](./web-views.mdx#security-rules).
+`IWorkspaceFiles` needs `filesystem` to watch a folder outside the open folder, and `IWorkspaceEditService` to create, rename or delete
+files outside it; searching and watching the open folder need nothing. See [Files and search](./workspace.mdx#capabilities).
 
 ## Your plugin's data
 

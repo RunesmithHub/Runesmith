@@ -20,6 +20,7 @@ using Runesmith.Shell.Services;
 using Runesmith.Shell.ToolWindows;
 using Runesmith.Shell.Views;
 using Runesmith.Text;
+using Runesmith.Workspace.Documents;
 
 namespace Runesmith.Shell.Editors;
 
@@ -46,6 +47,7 @@ public sealed class EditorService : IEditorService
     private readonly Lazy<CommandService> commands;
     private readonly Lazy<CustomEditorService> customEditors;
     private readonly Lazy<PluginSuggestions> suggestions;
+    private readonly Lazy<WorkspaceEditService> workspaceEdits;
     private readonly Dictionary<IDocument, DocumentPanel> panels = [];
     private readonly Dictionary<IDocument, DispatcherTimer> autoSaveTimers = [];
     private readonly Dictionary<IDocument, int> borrowed = [];
@@ -71,7 +73,9 @@ public sealed class EditorService : IEditorService
         Lazy<IDiffService> diffs,
         Lazy<CommandService> commands,
         Lazy<CustomEditorService> customEditors,
-        Lazy<PluginSuggestions> suggestions)
+        Lazy<PluginSuggestions> suggestions,
+        Lazy<WorkspaceEditService> workspaceEdits,
+        [Import(AllowDefault = true)] IDocumentLocations? locations = null)
     {
         this.documents = documents;
         this.editorServices = editorServices;
@@ -88,9 +92,12 @@ public sealed class EditorService : IEditorService
         this.commands = commands;
         this.customEditors = customEditors;
         this.suggestions = suggestions;
+        this.workspaceEdits = workspaceEdits;
         options = ReadOptions();
         settings.Changed += OnSettingChanged;
         documents.ChangedOnDisk += OnChangedOnDisk;
+        if (locations is not null)
+            locations.Moved += OnDocumentMoved;
         FollowLayout();
     }
 
@@ -481,10 +488,19 @@ public sealed class EditorService : IEditorService
         }
     }
 
-    private void RenamePanel(IDocument document, DocumentPanel panel, string oldId)
+    private void OnDocumentMoved(object? sender, DocumentMovedEventArgs e)
+    {
+        if (panels.TryGetValue(e.Document, out var panel))
+            RenamePanel(e.Document, panel, panel.Id, activate: false);
+    }
+
+    private void RenamePanel(IDocument document, DocumentPanel panel, string oldId, bool activate = true)
     {
         var group = layout.Layout.FindPanel(oldId);
         var index = group is null ? -1 : group.Panels.ToList().IndexOf(oldId);
+        var shown = group?.ActivePanel;
+        var focused = layout.Layout.FocusedGroup?.Id;
+        var caret = panel.Editor.CaretOffset;
         layout.Layout.ClosePanel(oldId);
         layout.Unregister(oldId);
         DisposePanel(panel);
@@ -498,8 +514,18 @@ public sealed class EditorService : IEditorService
             layout.Layout.MovePanel(renamed.Id, group.Id, index);
         else
             layout.AddToEditors(renamed.Id);
-        layout.Layout.ActivatePanel(renamed.Id);
-        SetActive(editor);
+        if (activate)
+        {
+            layout.Layout.ActivatePanel(renamed.Id);
+            SetActive(editor);
+            return;
+        }
+
+        editor.CaretOffset = Math.Min(caret, document.Buffer.Current.Length);
+        if (shown is not null && shown != oldId)
+            layout.Layout.ActivatePanel(shown);
+        if (focused is not null)
+            layout.Layout.FocusGroup(focused);
     }
 
     private void FollowLayout() => layout.Layout.Changed += (_, _) =>
@@ -612,6 +638,8 @@ public sealed class EditorService : IEditorService
         editor.NavigationRequested += (_, locations) => _ = NavigateAsync(editor, locations);
         editor.GotFocus += (_, _) => SetActive(editor);
         editor.ShowChangesRequested += (_, _) => ShowChanges(editor);
+        editor.Area.UndoRequested += (_, e) => e.Handled = workspaceEdits.Value.TryUndoWith(document);
+        editor.Area.RedoRequested += (_, e) => e.Handled = workspaceEdits.Value.TryRedoWith(document);
         editor.Area.ContextRequested += (_, _) =>
             editor.Area.ContextMenu = MenuBuilder.ContextMenu(commands.Value, ContextMenuCommands(editor), ContextMenus.Editor, ContextTarget(editor));
         // Avalonia opens a context menu only from a control that had one when the request began, so each starts with an empty one.

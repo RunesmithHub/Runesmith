@@ -28,7 +28,8 @@ public sealed class CoreCommands(
     Lazy<NewProjectService> newProject,
     Lazy<RunService> runs,
     Lazy<IRunConfigurationService> runConfigurations,
-    CustomEditorService customEditors) : ICommandContributor
+    CustomEditorService customEditors,
+    WorkspaceEditService workspaceEdits) : ICommandContributor
 {
     public const string FindNext = "edit.findNext";
     public const string FindPrevious = "edit.findPrevious";
@@ -87,6 +88,10 @@ public sealed class CoreCommands(
 
         Sync(CommandIds.Undo, "Undo", "Edit", "undo", "Ctrl+Z", () => (shell.FocusedTextBox is { } box ? (Action)box.Undo : customEditors.Active is { } custom ? custom.Editor.Undo : Editor!.Undo)(), () => HasEditorOrText() || HasCustomEditor(), Menus.Edit, "1-undo");
         Sync(CommandIds.Redo, "Redo", "Edit", "redo", "Ctrl+Y | Ctrl+Shift+Z", () => (shell.FocusedTextBox is { } box ? (Action)box.Redo : customEditors.Active is { } custom ? custom.Editor.Redo : Editor!.Redo)(), () => HasEditorOrText() || HasCustomEditor(), Menus.Edit, "1-undo");
+        Add(CommandIds.UndoWorkspaceEdit, "Undo Workspace Edit", "Edit", "undo", null, () => workspaceEdits.UndoAsync(), () => workspaceEdits.CanUndo, Menus.Edit, "1-undo",
+            "Undo the last change a refactoring, code action or plugin made to files, with the files it created, renamed or deleted.");
+        Add(CommandIds.RedoWorkspaceEdit, "Redo Workspace Edit", "Edit", "redo", null, () => workspaceEdits.RedoAsync(), () => workspaceEdits.CanRedo, Menus.Edit, "1-undo",
+            "Make the last undone workspace edit again.");
         Add(CommandIds.Cut, "Cut", "Edit", "cut", "Ctrl+X", () => shell.FocusedTextBox is { } box ? Run(box.Cut) : Editor!.CutAsync(), HasEditorOrText, Menus.Edit, "2-clipboard");
         Add(CommandIds.Copy, "Copy", "Edit", "copy", "Ctrl+C", () => shell.FocusedTextBox is { } box ? Run(box.Copy) : Editor!.CopyAsync(), HasEditorOrText, Menus.Edit, "2-clipboard");
         Add(CommandIds.Paste, "Paste", "Edit", "paste", "Ctrl+V", () => shell.FocusedTextBox is { } box ? Run(box.Paste) : Editor!.PasteAsync(), HasEditorOrText, Menus.Edit, "2-clipboard");

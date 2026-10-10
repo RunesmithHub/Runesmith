@@ -1,9 +1,7 @@
-using Runesmith.Composition;
-
-namespace Runesmith.Shell.Services;
+namespace Runesmith.Composition;
 
 /// <summary>Checks that a plugin declared the capability a service needs before the service does the work.</summary>
-internal static class PluginAccess
+public static class PluginAccess
 {
     /// <summary>The output channel refusals are written to.</summary>
     public const string ChannelName = "Plugins";

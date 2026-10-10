@@ -69,8 +69,8 @@ public sealed class LspMappingTests : IDisposable
         {
             DocumentChanges =
             [
-                new(new Protocol.OptionalVersionedTextDocumentIdentifier(LspUri.FromPath(openPath), 2), [new Protocol.TextEdit(Range(1, 0, 1, 4), "BETA")]),
-                new(new Protocol.OptionalVersionedTextDocumentIdentifier(LspUri.FromPath(closedPath), null),
+                new Protocol.TextDocumentEdit(new Protocol.OptionalVersionedTextDocumentIdentifier(LspUri.FromPath(openPath), 2), [new Protocol.TextEdit(Range(1, 0, 1, 4), "BETA")]),
+                new Protocol.TextDocumentEdit(new Protocol.OptionalVersionedTextDocumentIdentifier(LspUri.FromPath(closedPath), null),
                 [
                     new Protocol.TextEdit(Range(1, 0, 1, 3), "TWO\r\n2"),
                     new Protocol.TextEdit(Range(0, 0, 0, 0), "zero\n"),
@@ -84,6 +84,40 @@ public sealed class LspMappingTests : IDisposable
         Assert.Equal(new TextChange(new TextSpan(6, 4), "BETA"), Assert.Single(converted.Documents[0].Changes));
         Assert.Null(converted.Documents[1].Snapshot);
         Assert.Equal([new TextChange(new TextSpan(0, 0), "zero\n"), new TextChange(new TextSpan(4, 3), "TWO\n2")], converted.Documents[1].Changes);
+    }
+
+    [Fact]
+    public void ResourceOperationsBecomeFileOperationsAndTextEditsNameTheirFilesAsTheyEndUp()
+    {
+        var program = Path.Combine(folder, "Program.cs");
+        File.WriteAllText(program, "class Program {}\r\n");
+        var main = Path.Combine(folder, "App", "Main.cs");
+        var created = Path.Combine(folder, "New.cs");
+        var edit = new Protocol.WorkspaceEdit
+        {
+            DocumentChanges =
+            [
+                new Protocol.TextDocumentEdit(new Protocol.OptionalVersionedTextDocumentIdentifier(LspUri.FromPath(program), null), [new Protocol.TextEdit(Range(0, 6, 0, 13), "Main")]),
+                new Protocol.RenameFile(LspUri.FromPath(program), LspUri.FromPath(main), new Protocol.RenameFileOptions(true, null)),
+                new Protocol.TextDocumentEdit(new Protocol.OptionalVersionedTextDocumentIdentifier(LspUri.FromPath(main), null), [new Protocol.TextEdit(Range(0, 0, 0, 0), "// moved\n")]),
+                new Protocol.CreateFile(LspUri.FromPath(created)),
+                new Protocol.TextDocumentEdit(new Protocol.OptionalVersionedTextDocumentIdentifier(LspUri.FromPath(created), null), [new Protocol.TextEdit(Range(0, 0, 0, 0), "class New {}")]),
+                new Protocol.DeleteFile(LspUri.FromPath(Path.Combine(folder, "obj")), new Protocol.DeleteFileOptions(true, true)),
+            ],
+        };
+
+        var converted = LspConvert.ToWorkspaceEdit(edit, new TestDocuments());
+
+        Assert.Equal(
+            [
+                new RenameFileOperation(program, main) { Overwrite = true },
+                new CreateFileOperation(created),
+                new DeleteFileOperation(Path.Combine(folder, "obj")) { Recursive = true, IgnoreIfMissing = true },
+            ],
+            converted.FileOperations);
+        Assert.Equal([main, main, created], converted.Documents.Select(d => d.FilePath));
+        Assert.Equal(new TextChange(new TextSpan(6, 7), "Main"), Assert.Single(converted.Documents[0].Changes));
+        Assert.Equal(new TextChange(new TextSpan(0, 0), "class New {}"), Assert.Single(converted.Documents[2].Changes));
     }
 
     [Fact]

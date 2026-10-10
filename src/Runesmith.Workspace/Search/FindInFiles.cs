@@ -20,7 +20,7 @@ public sealed record FileSearchMatch(int Line, int Column, int Length, string Pr
 /// <param name="IsLimitReached">Whether the search stopped after this file because it found <see cref="FindInFiles.MaxMatches"/> matches.</param>
 public sealed record FileSearchResult(string FilePath, IReadOnlyList<FileSearchMatch> Matches, bool IsLimitReached = false);
 
-/// <summary>Searches the files of the open folder.</summary>
+/// <summary>Searches the files of the open folder, for the Search panel and for plugins through <see cref="IWorkspaceSearch"/>.</summary>
 [Export(typeof(FindInFiles))]
 [Shared]
 public sealed class FindInFiles
@@ -52,25 +52,38 @@ public sealed class FindInFiles
     public IAsyncEnumerable<FileSearchResult> SearchAsync(
         string query, TextSearchOptions options, string? includeGlobs = null, string? excludeGlobs = null, CancellationToken cancellationToken = default)
     {
+        Validate(query, options);
+        return Search(query, options, includeGlobs, excludeGlobs, OpenSnapshots(), MaxMatches, ToPreviewMatches,
+            (path, matches, limitReached) => new FileSearchResult(path, matches, limitReached), cancellationToken);
+    }
+
+    /// <exception cref="ArgumentException">The query is an invalid regular expression.</exception>
+    internal static void Validate(string query, TextSearchOptions options)
+    {
         ArgumentNullException.ThrowIfNull(query);
         if (options.HasFlag(TextSearchOptions.Regex) && !TextSearch.TryCreateRegex(query, options, out _, out var error))
             throw new ArgumentException(error, nameof(query));
-
-        var open = _documents.Documents
-            .Where(d => d.FilePath is not null)
-            .ToDictionary(d => d.FilePath!, d => d.Buffer.Current, PathComparison.Comparer);
-        return Search(query, options, GlobMatcher.Parse(includeGlobs), GlobMatcher.Parse(excludeGlobs), open, cancellationToken);
     }
 
-    private async IAsyncEnumerable<FileSearchResult> Search(
-        string query, TextSearchOptions options, GlobMatcher include, GlobMatcher exclude, Dictionary<string, TextSnapshot> open,
+    /// <summary>Takes the text of the open documents, which must happen on the UI thread.</summary>
+    internal Dictionary<string, TextSnapshot> OpenSnapshots() =>
+        _documents.Documents
+            .Where(d => d.FilePath is not null)
+            .ToDictionary(d => d.FilePath!, d => d.Buffer.Current, PathComparison.Comparer);
+
+    /// <summary>The search both the panel and plugins use: it differs only in how a file's matches are described.</summary>
+    internal async IAsyncEnumerable<TResult> Search<TMatch, TResult>(
+        string query, TextSearchOptions options, string? includeGlobs, string? excludeGlobs, Dictionary<string, TextSnapshot> open, int maxMatches,
+        Func<TextSnapshot, IReadOnlyList<TextSpan>, List<TMatch>> toMatches, Func<string, List<TMatch>, bool, TResult> toResult,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        if (query.Length == 0 || _workspace.RootPath is not { } root)
+        if (query.Length == 0 || maxMatches <= 0 || _workspace.RootPath is not { } root)
             yield break;
 
+        var include = GlobMatcher.Parse(includeGlobs);
+        var exclude = GlobMatcher.Parse(excludeGlobs);
         var files = await _workspace.GetFilesAsync(cancellationToken).ConfigureAwait(false);
-        var channel = Channel.CreateBounded<FileSearchResult>(64);
+        var channel = Channel.CreateBounded<TResult>(64);
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var found = 0;
         var producer = Task.Run(async () =>
@@ -85,15 +98,17 @@ public sealed class FindInFiles
                         return;
 
                     var snapshot = open.TryGetValue(path, out var current) ? current : ReadSnapshot(path);
-                    if (snapshot is null || FindMatches(snapshot, query, options) is not { Count: > 0 } matches)
+                    if (snapshot is null || FindSpans(snapshot, query, options) is not { Count: > 0 } spans)
                         return;
 
+                    var matches = toMatches(snapshot, spans);
                     var total = Interlocked.Add(ref found, matches.Count);
-                    var limitReached = total >= MaxMatches;
+                    var limitReached = total >= maxMatches;
                     if (limitReached)
-                        matches = matches[..Math.Max(0, matches.Count - (total - MaxMatches))];
+                        matches = matches[..Math.Max(0, matches.Count - (total - maxMatches))];
+                    // The caller's token, not the stop token, so matches found before another file reached the limit still arrive.
                     if (matches.Count > 0)
-                        await channel.Writer.WriteAsync(new FileSearchResult(path, matches, limitReached), token).ConfigureAwait(false);
+                        await channel.Writer.WriteAsync(toResult(path, matches, limitReached), cancellationToken).ConfigureAwait(false);
                     if (limitReached)
                         await stop.CancelAsync().ConfigureAwait(false);
                 }).ConfigureAwait(false);
@@ -128,18 +143,20 @@ public sealed class FindInFiles
         }
     }
 
-    private static List<FileSearchMatch> FindMatches(TextSnapshot snapshot, string query, TextSearchOptions options)
+    private static IReadOnlyList<TextSpan> FindSpans(TextSnapshot snapshot, string query, TextSearchOptions options)
     {
-        IReadOnlyList<TextSpan> spans;
         try
         {
-            spans = TextSearch.FindAll(snapshot, query, options);
+            return TextSearch.FindAll(snapshot, query, options);
         }
         catch (RegexMatchTimeoutException)
         {
             return [];
         }
+    }
 
+    private static List<FileSearchMatch> ToPreviewMatches(TextSnapshot snapshot, IReadOnlyList<TextSpan> spans)
+    {
         var matches = new List<FileSearchMatch>(spans.Count);
         foreach (var span in spans)
         {
