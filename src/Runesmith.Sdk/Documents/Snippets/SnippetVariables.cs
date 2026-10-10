@@ -12,6 +12,9 @@ internal sealed record SnippetContext(string? FilePath, string DocumentName, Tex
 
     public (string Open, string Close)? BlockComment { get; init; }
 
+    /// <summary>Gets the full path of the open folder, or null when none is open.</summary>
+    public string? WorkspaceFolder { get; init; }
+
     public DateTimeOffset Now { get; init; } = DateTimeOffset.Now;
 }
 
@@ -40,6 +43,9 @@ internal static class SnippetVariables
             "TM_FILENAME_BASE" => Path.GetFileNameWithoutExtension(path ?? context.DocumentName),
             "TM_DIRECTORY" => path is null ? "" : Path.GetDirectoryName(path) ?? "",
             "TM_FILEPATH" => path ?? context.DocumentName,
+            "RELATIVE_FILEPATH" => path is null ? context.DocumentName : RelativeToWorkspace(path, context.WorkspaceFolder),
+            "WORKSPACE_NAME" => context.WorkspaceFolder is { } folder ? FolderName(folder) : "",
+            "WORKSPACE_FOLDER" => context.WorkspaceFolder ?? "",
             Clipboard => context.Clipboard ?? "",
             "CURRENT_YEAR" => now.ToString("yyyy", invariant),
             "CURRENT_YEAR_SHORT" => now.ToString("yy", invariant),
@@ -62,6 +68,19 @@ internal static class SnippetVariables
             _ => null,
         };
     }
+
+    // A file outside the open folder, or with no folder open, keeps its full path.
+    private static string RelativeToWorkspace(string path, string? folder)
+    {
+        if (folder is null)
+            return path;
+
+        var relative = Path.GetRelativePath(folder, path);
+        var outside = relative == ".." || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) || Path.IsPathRooted(relative);
+        return outside ? path : relative;
+    }
+
+    private static string FolderName(string folder) => Path.GetFileName(Path.TrimEndingDirectorySeparator(folder)) is { Length: > 0 } name ? name : folder;
 
     /// <summary>Gets the indentation at the start of the line an offset is on.</summary>
     public static string IndentOf(TextSnapshot snapshot, int offset)

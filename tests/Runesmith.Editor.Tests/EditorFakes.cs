@@ -5,6 +5,7 @@ using Runesmith.Sdk.Build;
 using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.Documents;
 using Runesmith.Sdk.Languages;
+using Runesmith.Sdk.Workspace;
 using Runesmith.Text;
 
 namespace Runesmith.Editor.Tests;
@@ -26,6 +27,8 @@ internal sealed class FakeEditorServices
 
     public List<IEditorKeyHook> Hooks { get; } = [];
 
+    public FakeFolder Folder { get; } = new();
+
     public EditorServices Create() => new(
         Language,
         new NoHighlighting(),
@@ -36,7 +39,8 @@ internal sealed class FakeEditorServices
         Syntax,
         new EditorKeyHooks(Hooks),
         new Lazy<IWorkspaceEditService>(() => Edits),
-        new Lazy<ICommandService>(() => Commands));
+        new Lazy<ICommandService>(() => Commands),
+        new Lazy<IWorkspace>(() => Folder));
 }
 
 internal sealed class FileTestDocument(string filePath, string text, string languageId = "fake") : IDocument
@@ -285,4 +289,33 @@ internal sealed class FakeSyntaxFeatures : ISyntaxFeatures
         Task.FromResult<IReadOnlyList<SemanticToken>?>(null);
 
     public void Raise(string? path) => Changed?.Invoke(this, new LanguageFeatureChangedEventArgs(path));
+}
+
+/// <summary>The open folder the test names, or none.</summary>
+internal sealed class FakeFolder : IWorkspace
+{
+    public string? RootPath { get; set; }
+
+    public string? Name => RootPath is null ? null : Path.GetFileName(RootPath);
+
+    public IReadOnlyList<string> Solutions => [];
+
+    public event EventHandler? Changed;
+
+    public Task OpenAsync(string folderPath)
+    {
+        RootPath = folderPath;
+        Changed?.Invoke(this, EventArgs.Empty);
+        return Task.CompletedTask;
+    }
+
+    public void Close()
+    {
+        RootPath = null;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public bool Contains(string path) => RootPath is not null && path.StartsWith(RootPath, StringComparison.Ordinal);
+
+    public Task<IReadOnlyList<string>> GetFilesAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<string>>([]);
 }

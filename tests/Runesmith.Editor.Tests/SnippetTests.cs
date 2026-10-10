@@ -97,6 +97,21 @@ public sealed class SnippetTests
     });
 
     [Fact]
+    public Task WorkspaceVariablesReadTheOpenFolder() => Run((editor, fakes) =>
+    {
+        var folder = Path.GetDirectoryName(FilePath)!;
+        fakes.Folder.RootPath = folder;
+
+        editor.InsertSnippet("$WORKSPACE_NAME: $RELATIVE_FILEPATH in ${WORKSPACE_FOLDER}");
+        Assert.Equal($"runesmith-tests: Snippets.cs in {folder}", Text(editor));
+
+        editor.Undo();
+        fakes.Folder.Close();
+        editor.InsertSnippet("${WORKSPACE_NAME:no folder}: $RELATIVE_FILEPATH");
+        Assert.Equal($"no folder: {FilePath}", Text(editor));
+    });
+
+    [Fact]
     public Task SelectedTextAndTheFileNameAreVariables() => Run((editor, _) =>
     {
         editor.Area.InsertText("value");
