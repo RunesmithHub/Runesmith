@@ -42,6 +42,15 @@ public sealed class TerminalScreenTests
     }
 
     [Fact]
+    public void ASpaceAndABackspaceAtTheMarginWrapLikeAPagerExpects()
+    {
+        var screen = Screen($"0123456789{Esc}[m \b{Esc}[33m{Esc}[mnext", columns: 10);
+
+        Assert.Equal("0123456789", screen.RowText(0));
+        Assert.Equal("next", screen.RowText(1));
+    }
+
+    [Fact]
     public void ACarriageReturnAtTheMarginCancelsThePendingWrap()
     {
         var screen = Screen("0123456789\rA", columns: 10);

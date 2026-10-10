@@ -299,7 +299,7 @@ public sealed class TerminalToolWindow : IToolWindowProvider
     }
 
     /// <summary>A terminal and its scroll bar.</summary>
-    private sealed class TerminalHost : DockPanel
+    private sealed class TerminalHost : Panel
     {
         private readonly ScrollBar scrollBar = new() { Orientation = Orientation.Vertical, Width = 12, AllowAutoHide = true, SmallChange = 1 };
         private bool updating;
@@ -307,9 +307,9 @@ public sealed class TerminalToolWindow : IToolWindowProvider
         public TerminalHost(TerminalView view)
         {
             View = view;
-            DockPanel.SetDock(scrollBar, Dock.Right);
-            Children.Add(scrollBar);
+            scrollBar.HorizontalAlignment = HorizontalAlignment.Right;
             Children.Add(view);
+            Children.Add(scrollBar);
             view.ScrollChanged += (_, _) => UpdateScrollBar();
             scrollBar.ValueChanged += (_, _) =>
             {

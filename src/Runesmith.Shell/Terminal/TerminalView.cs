@@ -18,6 +18,9 @@ namespace Runesmith.Shell.Terminal;
 internal sealed partial class TerminalView : Control
 {
     private const double Padding = 6;
+
+    // The scroll bar floats over this strip, so showing it never changes the number of columns.
+    private const double ScrollBarStrip = 12;
     private const int WheelLines = 3;
 
     private readonly TerminalSession session;
@@ -478,7 +481,7 @@ internal sealed partial class TerminalView : Control
         if (Bounds.Width <= 0 || Bounds.Height <= 0)
             return;
 
-        var columns = Math.Max(2, (int)Math.Floor((Bounds.Width - (2 * Padding)) / cellWidth));
+        var columns = Math.Max(2, (int)Math.Floor((Bounds.Width - (2 * Padding) - ScrollBarStrip) / cellWidth));
         var rows = Math.Max(1, (int)Math.Floor((Bounds.Height - (2 * Padding)) / cellHeight));
         session.Resize(columns, rows);
         ScrollChanged?.Invoke(this, EventArgs.Empty);
