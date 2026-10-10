@@ -168,8 +168,19 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      # The package is checked against the SHA-512 nuget.org lists for it and installed from a folder that is the only package source.
       - name: Install Sleet
-        run: dotnet tool install sleet --version 7.2.0 --tool-path "$RUNNER_TEMP/tools"
+        env:
+          SLEET_VERSION: 7.2.0
+          SLEET_SHA512: 7f0ead4b6eef92d3d84b2ad30d54815688f2c5402d4acd58023e8eb4c312f69ffd10eecf8f54e21262643da29b41fb550f2d9168589d9695a970636783a9f67a
+        run: |
+          source="$RUNNER_TEMP/sleet-source"
+          mkdir -p "$source"
+          curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 --output "$source/sleet.$SLEET_VERSION.nupkg" \
+            "https://api.nuget.org/v3-flatcontainer/sleet/$SLEET_VERSION/sleet.$SLEET_VERSION.nupkg"
+          echo "$SLEET_SHA512  $source/sleet.$SLEET_VERSION.nupkg" | sha512sum --check --strict --quiet
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<configuration>\n  <packageSources>\n    <clear />\n    <add key="sleet" value="%s" />\n  </packageSources>\n</configuration>\n' "$source" > "$source/nuget.config"
+          NUGET_PACKAGES="$RUNNER_TEMP/sleet-packages" dotnet tool install sleet --version "$SLEET_VERSION" --tool-path "$RUNNER_TEMP/tools" --configfile "$source/nuget.config"
 
       # Holds the bucket keys, so it lives outside the workspace and is removed after the push.
       - name: Write the Sleet configuration
