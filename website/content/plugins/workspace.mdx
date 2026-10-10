@@ -227,6 +227,9 @@ Runesmith calls the participants at the same time, on a background thread, and g
 seconds, together. Then it cancels the token and goes on without the participants that have not answered; it logs them, and those that
 throw, to the **Plugins** channel. File operations in a participant's edit are ignored.
 
+A participant cannot stop an edit. Text changes it asks for that do not fit, such as ones that overlap the edit's own changes or another
+participant's, or name a file the edit deletes, are left out and logged to the **Plugins** channel, and the rest of the edit is made.
+
 ### Language servers
 
 The running language servers take part in every file operation, whether a plugin, the Explorer or a server's own edit makes it. Runesmith
@@ -234,8 +237,10 @@ declares `workspace.fileOperations` and sends each server the requests and notif
 the files and folders its filters match by glob, by file or folder, and with or without case:
 
 - Before the operations, `workspace/willCreateFiles`, `willRenameFiles` and `willDeleteFiles`. The text changes a server answers with join
-  the edit, as a participant's do; its resource operations are ignored. Servers get 2.5 seconds, within the participants' budget, and a
-  server that has not answered by then is left out, with a line in its channel of the **Output** panel.
+  the edit, as a participant's do: where they overlap the edit's own, as when a server renames a file in its own edit and answers
+  `willRenameFiles` with the same changes, only the edit's own are made. Resource operations in the answer are ignored. Servers get 2.5
+  seconds, within the participants' budget, and a server that has not answered by then is left out, with a line in its channel of the
+  **Output** panel.
 - After the operations, and after the edit is undone or redone, `workspace/didCreateFiles`, `didRenameFiles` and `didDeleteFiles`.
 
 A rename matches a filter by its old or its new path. A folder that is renamed or deleted is sent as the folder, not as the files in it.

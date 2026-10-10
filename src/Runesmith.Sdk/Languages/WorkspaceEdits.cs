@@ -175,7 +175,8 @@ public interface IFileOperationParticipant
     static TimeSpan TimeBudget { get; } = TimeSpan.FromSeconds(3);
 
     /// <summary>Called before the operations are made; returns text changes to make in the same step, such as to the moved file, or null.
-    /// The changes may name a renamed file by its old or new path. File operations in the returned edit are ignored.</summary>
+    /// The changes may name a renamed file by its old or new path. File operations in the returned edit are ignored, and so are the changes
+    /// to a file that do not fit the edit, such as ones that overlap its own changes there.</summary>
     Task<WorkspaceEdit?> WillApplyAsync(IReadOnlyList<FileOperation> operations, CancellationToken cancellationToken) =>
         Task.FromResult<WorkspaceEdit?>(null);
 

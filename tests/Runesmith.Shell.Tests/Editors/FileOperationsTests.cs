@@ -327,6 +327,39 @@ public sealed class FileOperationsTests : IDisposable
     });
 
     [Fact]
+    public Task ParticipantChangesThatDoNotFitTheEditAreLeftOutAndTheEditIsMade() => Run(async () =>
+    {
+        var file = Write("A.cs", "class A {}");
+        var gone = Write("Gone.cs", "class Gone {}");
+        var renamed = Path.Combine(root, "B.cs");
+        participants.Add(new RecordingParticipant
+        {
+            Will = _ => new WorkspaceEdit(
+            [
+                new DocumentEdit(file, [Replace(6, 1, "B")]),
+                new DocumentEdit(renamed, [Insert(0, "// moved\n")]),
+                new DocumentEdit(gone, [Insert(0, "// gone\n")]),
+            ]),
+        });
+        var service = Create();
+
+        Assert.True(await service.ApplyAsync(new WorkspaceEdit([new DocumentEdit(file, [Replace(6, 1, "B")])])
+        {
+            FileOperations = [new RenameFileOperation(file, renamed), new DeleteFileOperation(gone)],
+        }));
+
+        Assert.Equal("// moved\nclass B {}", documents!.Find(renamed)!.Buffer.Current.GetText());
+        Assert.False(File.Exists(gone));
+        Assert.Contains(log, line => line.Contains("changes to B.cs that were left out: B.cs has overlapping changes", StringComparison.Ordinal));
+        Assert.Contains(log, line => line.Contains("left out: Gone.cs is deleted by the same edit.", StringComparison.Ordinal));
+
+        Assert.True(await service.UndoAsync());
+
+        Assert.Equal("class A {}", File.ReadAllText(file));
+        Assert.Equal("class Gone {}", File.ReadAllText(gone));
+    });
+
+    [Fact]
     public Task UndoingInTheEditorTakesBackTheWholeEditWhenItWasTheLastChange() => Run(async () =>
     {
         var service = Create();

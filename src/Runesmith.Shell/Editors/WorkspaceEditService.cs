@@ -294,36 +294,70 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
             return (false, $"{unsavedBefore.Name} has unsaved changes.");
 
         var operations = plan.Operations;
-        var documentEdits = edit.Documents.Where(d => d.Changes.Count > 0).ToList();
-        if (operations.Count > 0)
-            documentEdits.AddRange(await AskParticipantsAsync(operations));
+        var groups = new Dictionary<string, EditGroup>(PathComparison.Comparer);
+        foreach (var own in edit.Documents.Where(d => d.Changes.Count > 0))
+        {
+            var (target, problem) = Resolve(plan, own.FilePath);
+            if (target is null)
+                return (false, problem);
+            GroupOf(groups, target).Own.Add(own);
+        }
 
-        var groups = Resolve(plan, documentEdits, out var resolveProblem);
-        if (resolveProblem is not null)
-            return (false, resolveProblem);
+        if (operations.Count > 0)
+        {
+            foreach (var (who, asked) in await AskParticipantsAsync(operations))
+            {
+                var (target, problem) = Resolve(plan, asked.FilePath);
+                if (target is null)
+                    log($"{who} asked for changes that were left out: {problem}");
+                else
+                    GroupOf(groups, target).Asked.Add((who, asked));
+            }
+        }
 
         var targets = new List<(EditTarget Target, IDocument? Document, IReadOnlyList<TextChange> Changes)>();
-        foreach (var (target, group) in groups)
+        foreach (var group in groups.Values)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var target = group.Target;
+            var name = Path.GetFileName(target.FinalPath);
             IDocument? document = null;
-            string? problem;
-            IReadOnlyList<TextChange> changes;
+            TextSnapshot snapshot;
             if (target.Created is { } created)
             {
-                problem = Check(TextSnapshot.Create(LineEndings.Normalize(created.Content)), isReadOnly: false, group, out changes);
+                snapshot = TextSnapshot.Create(LineEndings.Normalize(created.Content));
             }
             else
             {
                 document = documents.Find(target.CurrentPath!) ?? (await editors.Value.OpenAsync(target.CurrentPath!, activate: false))?.Document;
-                if (document is null)
+                if (document is null && group.Own.Count > 0)
                     return (false, null);
-                problem = Check(document.Buffer.Current, document.IsReadOnly, group, out changes);
+                if (document is null)
+                    continue;
+                snapshot = document.Buffer.Current;
             }
 
-            if (problem is not null)
-                return (false, $"{Path.GetFileName(target.FinalPath)} {problem}");
-            targets.Add((target, document, changes));
+            var isReadOnly = document?.IsReadOnly == true;
+            IReadOnlyList<TextChange> changes = [];
+            if (group.Own.Count > 0 && Check(snapshot, isReadOnly, group.Own, out changes) is { } problem)
+                return (false, $"{name} {problem}");
+
+            // A participant's changes join the edit's own only where they fit, so a participant can never stop the edit.
+            var accepted = new List<DocumentEdit>(group.Own);
+            foreach (var (who, asked) in group.Asked)
+            {
+                if (Check(snapshot, isReadOnly, [.. accepted, asked], out var combined) is { } conflict)
+                {
+                    log($"{who} asked for changes to {name} that were left out: {name} {conflict}");
+                    continue;
+                }
+
+                accepted.Add(asked);
+                changes = combined;
+            }
+
+            if (changes.Count > 0)
+                targets.Add((target, document, changes));
         }
 
         var closing = ToClose(plan, out var unsaved);
@@ -380,33 +414,18 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
 
     private Task<bool> UndoIfLastAsync(Step step) => undo.Count > 0 && undo[^1] == step ? UndoAsync() : Task.FromResult(false);
 
-    // Groups the edits by the file they end up in. Without file operations every path names the file as it is, open or not.
-    private static List<(EditTarget Target, List<DocumentEdit> Edits)> Resolve(FileOperationPlan plan, List<DocumentEdit> edits, out string? problem)
+    // Finds the file the changes of a path go to. Without file operations every path names the file as it is, open or not.
+    private static (EditTarget? Target, string? Problem) Resolve(FileOperationPlan plan, string path)
     {
-        problem = null;
-        var groups = new Dictionary<string, (EditTarget Target, List<DocumentEdit> Edits)>(PathComparison.Comparer);
-        foreach (var edit in edits)
-        {
-            var full = Path.GetFullPath(edit.FilePath);
-            EditTarget? target;
-            if (plan.Operations.Count == 0)
-            {
-                target = new EditTarget(full, full, null);
-            }
-            else
-            {
-                (target, problem) = plan.Resolve(full);
-                if (target is null)
-                    return [];
-            }
+        var full = Path.GetFullPath(path);
+        return plan.Operations.Count == 0 ? (new EditTarget(full, full, null), null) : plan.Resolve(full);
+    }
 
-            if (groups.TryGetValue(target.FinalPath, out var group))
-                group.Edits.Add(edit);
-            else
-                groups[target.FinalPath] = (target, [edit]);
-        }
-
-        return [.. groups.Values];
+    private static EditGroup GroupOf(Dictionary<string, EditGroup> groups, EditTarget target)
+    {
+        if (!groups.TryGetValue(target.FinalPath, out var group))
+            groups[target.FinalPath] = group = new EditGroup(target);
+        return group;
     }
 
     private void DemandAccess(FileOperationPlan plan, PluginInfo? plugin)
@@ -494,7 +513,8 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
         return true;
     }
 
-    private async Task<IReadOnlyList<DocumentEdit>> AskParticipantsAsync(IReadOnlyList<FileOperation> operations)
+    // Gets the text changes the participants ask for, each with who asked.
+    private async Task<List<(string Who, DocumentEdit Edit)>> AskParticipantsAsync(IReadOnlyList<FileOperation> operations)
     {
         if (participants.Count == 0)
             return [];
@@ -504,13 +524,13 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
         await Task.WhenAny(Task.WhenAll(asked.Select(a => a.Task)), Task.Delay(ParticipantBudget, CancellationToken.None));
         await budget.CancelAsync();
 
-        var edits = new List<DocumentEdit>();
+        var edits = new List<(string Who, DocumentEdit Edit)>();
         foreach (var (participant, task) in asked)
         {
             if (task.IsCompletedSuccessfully)
             {
                 if (task.Result is { } edit)
-                    edits.AddRange(edit.Documents.Where(d => d.Changes.Count > 0));
+                    edits.AddRange(edit.Documents.Where(d => d.Changes.Count > 0).Select(d => (Who(participant), d)));
             }
             else
             {
@@ -537,14 +557,15 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
         }, CancellationToken.None);
     }
 
-    private void Report(Lazy<IFileOperationParticipant> participant, Task task, string when)
-    {
-        var owner = participant.IsValueCreated ? PluginCallers.Of(participant.Value.GetType().Assembly) : null;
-        var who = owner is null ? "A file operation participant" : $"{owner.Manifest.Name} ({owner.Manifest.Id})";
+    private void Report(Lazy<IFileOperationParticipant> participant, Task task, string when) =>
         log(task.IsFaulted
-            ? $"{who} failed {when} file operations: {task.Exception?.GetBaseException().Message}"
-            : $"{who} took longer than {ParticipantBudget.TotalSeconds:0.#} seconds {when} file operations and was skipped.");
-    }
+            ? $"{Who(participant)} failed {when} file operations: {task.Exception?.GetBaseException().Message}"
+            : $"{Who(participant)} took longer than {ParticipantBudget.TotalSeconds:0.#} seconds {when} file operations and was skipped.");
+
+    private static string Who(Lazy<IFileOperationParticipant> participant) =>
+        (participant.IsValueCreated ? PluginCallers.Of(participant.Value.GetType().Assembly) : null) is { } owner
+            ? $"{owner.Manifest.Name} ({owner.Manifest.Id})"
+            : "A file operation participant";
 
     private void Finish(Step step, IReadOnlyList<FileOperation> operations)
     {
@@ -729,6 +750,16 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
         var root = Path.Combine(RunesmithPaths.Cache, "workspace-edits");
         _ = Task.Run(() => FileStash.DeleteAbandoned(root));
         return new FileStash(Path.Combine(root, Guid.NewGuid().ToString("N")), SystemTrash.Create());
+    }
+
+    /// <summary>The text changes that end up in one file: the edit's own, which must all apply, and those participants asked for.</summary>
+    private sealed class EditGroup(EditTarget target)
+    {
+        public EditTarget Target { get; } = target;
+
+        public List<DocumentEdit> Own { get; } = [];
+
+        public List<(string Who, DocumentEdit Edit)> Asked { get; } = [];
     }
 
     private sealed class Step(string label, List<FileAction> actions, List<TextRecord> texts)
