@@ -1,10 +1,11 @@
 ---
 title: Language features
-description: Highlighting, completion, signature help, hover, go to definition, problems, quick fixes, rename, formatting, inlay hints and code lens, and the analyzers and language servers behind them.
+description: Highlighting, completion, signature help, hover, go to definition, problems, quick fixes, rename, formatting, inlay hints, code lens, references, symbols, folding and hierarchies, and the analyzers and language servers behind them.
 ---
 
 Runesmith highlights more than 60 languages by itself. Language analyzers and language servers add the rest: completion, signature help,
-hover, go to definition, problems, quick fixes, rename, formatting, inlay hints and code lens. The official C# and Java plugins,
+hover, go to definition, problems, quick fixes, rename, formatting, inlay hints and code lens, and language servers and plugins also add
+references, symbols, folding, semantic highlighting, selection ranges and hierarchies. The official C# and Java plugins,
 which you install from the plugin hub, bring Runesmith's own analyzers, which run inside Runesmith; other plugins can add analyzers and
 language servers for more languages. When you open a C# or Java file without its plugin, Runesmith
 [suggests it](./plugins.mdx#suggested-plugins).
@@ -14,6 +15,10 @@ language servers for more languages. When you open a C# or Java file without its
 Runesmith picks a file's language by its name or extension, and highlights it with the language's TextMate grammar in the colors of the
 current theme. Large files highlight the visible lines first and the rest in the background, so typing never waits for it. The language
 shows in the status bar.
+
+When the language knows what each name means, such as from its language server, it colors names by meaning over that highlighting:
+a parameter in the parameter color, a type in the type color, a constant in the constant color, and a deprecated symbol struck through.
+These semantic colors follow your typing and update a moment after you stop, without flickering.
 
 ## Completion
 
@@ -76,6 +81,23 @@ selected lines. Both indent with the editor's **Tab size** and **Insert spaces**
 Turn on **Format on save** (`editor.formatOnSave`) to format a file each time you save it. Saving waits up to three seconds for the
 formatter, then saves the text as it is. Auto save after a delay does not format, so the text does not move while you type.
 
+## References, symbols and hierarchies
+
+- **Find References** (<Keys>Shift+F12</Keys>) and **Go to Implementation** (<Keys>Ctrl+F12</Keys>) list what they find in the
+  **References** panel, and the other uses of the symbol under the caret are highlighted. See [References](./references.mdx).
+- The **Outline** panel, the breadcrumbs and **Go to Symbol in File** (<Keys>Ctrl+R</Keys>) show the symbols of the file; **Go to Symbol in
+  Workspace** (<Keys>Ctrl+Shift+R</Keys>) finds them in the whole folder. See [Outline](./outline.mdx).
+- **Show Call Hierarchy** (<Keys>Ctrl+Alt+H</Keys>) and **Show Type Hierarchy** (<Keys>Ctrl+Alt+Shift+H</Keys>) open the **Hierarchy**
+  panel. See [Hierarchies](./hierarchies.mdx).
+- Blocks fold from the gutter or with <Keys>Ctrl+Shift+[</Keys> and <Keys>Ctrl+Shift+]</Keys>. See [Folding](./folding.mdx).
+
+## Expand selection
+
+**Expand Selection** (<Keys>Shift+Alt+Right</Keys>) grows the selection to the next larger element around it: a word, then its expression,
+its statement, its block and so on, as the language sees them. **Shrink Selection** (<Keys>Shift+Alt+Left</Keys>) goes back one step at a
+time. Without a language that knows the elements, the selection grows through the word, the text inside each pair of brackets, the
+brackets, the line and the whole file. Both are in the **Selection** menu.
+
 ## Inlay hints and code lens
 
 Some languages show inlay hints: faint text inside a line that is not part of the file, such as the name of the parameter an argument is
@@ -122,4 +144,8 @@ Each server has two settings: whether it runs and which executable it runs. See 
 ## Related
 
 - [C# support](/plugins/csharp)
+- [References](./references.mdx)
+- [Outline](./outline.mdx)
+- [Folding](./folding.mdx)
+- [Hierarchies](./hierarchies.mdx)
 - [Troubleshooting](./troubleshooting.mdx)

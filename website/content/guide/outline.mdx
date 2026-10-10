@@ -1,0 +1,49 @@
+---
+title: Outline
+description: The Outline panel shows the symbols of the active file as a tree that follows the caret, with a filter and a choice of order.
+---
+
+The **Outline** panel shows the classes, functions and other symbols of the active file as a tree. It follows the caret, so the symbol you
+are in is always selected, and clicking a symbol goes to it. The same symbols show in the breadcrumbs under the tabs and in **Go to Symbol
+in File**.
+
+## Show the outline
+
+Click **Outline** on the left stripe, or choose **View › Show Outline**. The panel shows the symbols of the active file and changes when
+you switch to another file. The top two levels start open, such as a namespace and its classes, so their members show; the panel remembers
+what you open and close while the file is open.
+
+## Use the outline
+
+| Action | Does |
+| --- | --- |
+| Click a symbol | Goes to the symbol in the editor. |
+| <Keys>Up</Keys> and <Keys>Down</Keys> | Move through the symbols; the editor shows each one, and the panel keeps the focus. |
+| <Keys>Enter</Keys> | Goes to the selected symbol and puts the focus in the editor. |
+| Type in **Filter symbols** | Shows only the symbols whose names match, with the symbols around them. <Keys>Down</Keys> moves into the list. |
+| **A-Z** | Orders the symbols of each level by name instead of by where they are in the file. |
+| The crosshair button | Turns following the caret on or off. |
+
+Each symbol shows an icon for its kind, such as a class or a method, and a detail after its name, such as a method's parameters.
+Deprecated symbols are struck through.
+
+## Breadcrumbs
+
+The bar under the tabs shows the file's path and then the symbols around the caret, such as `Program › Main`. Click a symbol there to see
+the symbols beside it, and pick one to go to it. **Breadcrumbs** (`editor.breadcrumbs`) turns the bar off.
+
+## Go to a symbol by name
+
+<Keys>Ctrl+R</Keys>, or **Go › Go to Symbol in File...**, opens the search box with `@` and lists the symbols of the active file. Type
+part of a name to filter them and press <Keys>Enter</Keys> to go to one. <Keys>Ctrl+Shift+R</Keys>, or **Go › Go to Symbol in
+Workspace...**, opens it with `#` to find symbols in every file of the open folder. See [Navigation](./navigation.mdx).
+
+## Where the symbols come from
+
+Symbols come from the language's server and from plugins. For a file whose language has neither, the panel says so. The [Editor
+extensions](/plugins/language-features#symbols) page shows how a plugin adds them.
+
+## Related
+
+- [Navigation](./navigation.mdx)
+- [Folding](./folding.mdx)

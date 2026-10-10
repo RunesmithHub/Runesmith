@@ -195,6 +195,7 @@ public sealed partial class TextArea
         FollowEditWithSnippet(changeSet);
         MapDecorations(changeSet);
         FollowEditWithChanges(first, lastBefore, delta);
+        Folding.Map(changeSet);
         for (var number = first; number <= Math.Min(lastBefore + delta, changeSet.After.LineCount - 1); number++)
             maxLineWidth = Math.Max(maxLineWidth, changeSet.After.GetLine(number).Length * Formatting.CharacterWidth);
 

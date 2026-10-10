@@ -52,6 +52,8 @@ On macOS, the defaults use <Keys>Cmd</Keys> where this page says <Keys>Ctrl</Key
 | Command | Keys |
 | --- | --- |
 | Select All | <Keys>Ctrl+A</Keys> |
+| Expand Selection | <Keys>Shift+Alt+Right</Keys> |
+| Shrink Selection | <Keys>Shift+Alt+Left</Keys> |
 | Move Line Up | <Keys>Alt+Up</Keys> |
 | Move Line Down | <Keys>Alt+Down</Keys> |
 | Duplicate Line | <Keys>Shift+Alt+Down</Keys> |
@@ -68,11 +70,16 @@ On macOS, the defaults use <Keys>Cmd</Keys> where this page says <Keys>Ctrl</Key
 | Show Search | |
 | Show Problems | <Keys>Ctrl+Shift+M</Keys> |
 | Show Output | <Keys>Ctrl+Shift+U</Keys> |
+| Show Outline, Show References, Show Hierarchy | |
 | Toggle Light and Dark Theme | <Keys>Ctrl+Shift+T</Keys> |
 | Zoom In | <Keys>Ctrl+=</Keys> or <Keys>Ctrl+Shift+=</Keys> |
 | Zoom Out | <Keys>Ctrl+-</Keys> |
 | Reset Zoom | <Keys>Ctrl+0</Keys> |
 | Reset Layout | |
+| Fold | <Keys>Ctrl+Shift+[</Keys> |
+| Unfold | <Keys>Ctrl+Shift+]</Keys> |
+| Fold All | <Keys>Ctrl+Alt+[</Keys> |
+| Unfold All | <Keys>Ctrl+Alt+]</Keys> |
 
 ## Go
 
@@ -82,11 +89,19 @@ On macOS, the defaults use <Keys>Cmd</Keys> where this page says <Keys>Ctrl</Key
 | Go to File... | <Keys>Ctrl+P</Keys> |
 | Go to Line... | <Keys>Ctrl+G</Keys> |
 | Go to Definition | <Keys>F12</Keys> |
+| Go to Implementation | <Keys>Ctrl+F12</Keys> |
+| Find References | <Keys>Shift+F12</Keys> |
+| Go to Symbol in File... | <Keys>Ctrl+R</Keys> |
+| Go to Symbol in Workspace... | <Keys>Ctrl+Shift+R</Keys> |
+| Show Call Hierarchy | <Keys>Ctrl+Alt+H</Keys> |
+| Show Type Hierarchy | <Keys>Ctrl+Alt+Shift+H</Keys> |
 | Back | <Keys>Alt+Left</Keys> |
 | Forward | <Keys>Alt+Right</Keys> |
 | Next Change | <Keys>F7</Keys> |
 | Previous Change | <Keys>Shift+F7</Keys> |
 | Show Changes | |
+
+In the **References** panel, <Keys>F4</Keys> and <Keys>Shift+F4</Keys> select the next and previous place.
 
 ## Run
 
@@ -175,3 +190,5 @@ box; function keys still run their commands. Undo, redo, cut, copy, paste and se
 
 - [The editor](./editor.mdx)
 - [Navigation](./navigation.mdx)
+- [References](./references.mdx)
+- [Folding](./folding.mdx)

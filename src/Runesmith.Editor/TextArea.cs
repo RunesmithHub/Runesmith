@@ -47,6 +47,7 @@ public sealed partial class TextArea : Control
         Cursor = new Cursor(StandardCursorType.Ibeam);
         caretTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(530) };
         caretTimer.Tick += (_, _) => BlinkCaret();
+        Folding.Changed += OnFoldingChanged;
         document.Buffer.Changed += OnBufferChanged;
         ResourcesChanged += (_, _) => ResetTheme();
         ActualThemeVariantChanged += (_, _) => ResetTheme();
@@ -175,8 +176,8 @@ public sealed partial class TextArea : Control
     /// <summary>Gets the width of the gutter, where the line numbers are.</summary>
     public double GutterWidth =>
         options.ShowLineNumbers
-            ? Math.Max(MinimumLineNumberDigits, Snapshot.LineCount.ToString(System.Globalization.CultureInfo.InvariantCulture).Length) * Formatting.CharacterWidth + 30 + GlyphMarginWidth
-            : 14 + GlyphMarginWidth;
+            ? Math.Max(MinimumLineNumberDigits, Snapshot.LineCount.ToString(System.Globalization.CultureInfo.InvariantCulture).Length) * Formatting.CharacterWidth + 30 + GlyphMarginWidth + FoldMargin
+            : 14 + GlyphMarginWidth + FoldMargin;
 
     /// <summary>Raised when the caret moves or the selection changes.</summary>
     public event EventHandler? SelectionChanged;
@@ -206,6 +207,8 @@ public sealed partial class TextArea : Control
         selection = value;
         preferredX = null;
         LeaveSnippetWhenCaretLeaves();
+        if (Folding.HasHiddenLines)
+            Folding.Reveal(Snapshot.GetLineFromPosition(value.Caret).LineNumber);
         UpdateBracketMatch();
         ShowCaret();
         if (scrollIntoView)

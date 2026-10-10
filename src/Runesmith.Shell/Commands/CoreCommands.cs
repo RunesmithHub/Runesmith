@@ -126,7 +126,7 @@ public sealed class CoreCommands(
         Sync(CommandIds.ResetLayout, "Reset Layout", "View", "layout", null, toolWindows.Reset, menu: Menus.View, group: "4-layout");
 
         Add(CommandIds.SearchEverywhere, "Search Everywhere", "Go", "search", "Ctrl+Shift+A", shell.ShowSearchEverywhereAsync, menu: Menus.Go, group: "1-go",
-            description: "Search files, commands and settings in one list; pressing Shift twice opens it too.");
+            description: "Search files, symbols, commands and settings in one list; pressing Shift twice opens it too.");
         Add(CommandIds.QuickOpen, "Go to File...", "Go", "file-code", "Ctrl+P", () => shell.ShowQuickPickAsync(), menu: Menus.Go, group: "1-go");
         Add(CommandIds.GoToLine, "Go to Line...", "Go", null, "Ctrl+G", () => shell.ShowQuickPickAsync(":"), HasEditor, Menus.Go, "1-go");
         Add(CommandIds.GoToDefinition, "Go to Definition", "Go", null, "F12", () => Editor!.GoToDefinitionAsync(), HasEditor, Menus.Go, "2-symbol");

@@ -17,6 +17,7 @@ using Runesmith.Shell.Editors.Custom;
 using Runesmith.Shell.Hub;
 using Runesmith.Shell.Palette;
 using Runesmith.Shell.Services;
+using Runesmith.Shell.Symbols;
 using Runesmith.Shell.ToolWindows;
 using Runesmith.Shell.Views;
 using Runesmith.Text;
@@ -48,6 +49,7 @@ public sealed class EditorService : IEditorService
     private readonly Lazy<CustomEditorService> customEditors;
     private readonly Lazy<PluginSuggestions> suggestions;
     private readonly Lazy<WorkspaceEditService> workspaceEdits;
+    private readonly Lazy<DocumentSymbols>? symbols;
     private readonly Dictionary<IDocument, DocumentPanel> panels = [];
     private readonly Dictionary<IDocument, DispatcherTimer> autoSaveTimers = [];
     private readonly Dictionary<IDocument, int> borrowed = [];
@@ -75,8 +77,10 @@ public sealed class EditorService : IEditorService
         Lazy<CustomEditorService> customEditors,
         Lazy<PluginSuggestions> suggestions,
         Lazy<WorkspaceEditService> workspaceEdits,
-        [Import(AllowDefault = true)] IDocumentLocations? locations = null)
+        [Import(AllowDefault = true)] IDocumentLocations? locations = null,
+        [Import(AllowDefault = true)] Lazy<DocumentSymbols>? symbols = null)
     {
+        this.symbols = symbols;
         this.documents = documents;
         this.editorServices = editorServices;
         this.layout = layout;
@@ -423,6 +427,29 @@ public sealed class EditorService : IEditorService
         await OpenAsync(filePath, position);
     }
 
+    /// <summary>Opens a file and selects a place in it. With <paramref name="focus"/> the editor gets the keyboard focus and Back returns to where
+    /// the caret was; without it the file only shows, such as while the user moves through a list of results.</summary>
+    public async Task<TextEditor?> RevealAsync(string filePath, TextPosition start, TextPosition? end, bool focus)
+    {
+        if (focus)
+        {
+            RememberCaret();
+            forward.Clear();
+        }
+
+        if (await OpenInTextEditorAsync(filePath, activate: focus) is not TextEditor editor)
+            return null;
+
+        var snapshot = editor.Area.Snapshot;
+        var from = snapshot.GetOffset(start);
+        var to = end is { } last ? Math.Max(from, snapshot.GetOffset(last)) : from;
+        editor.Area.Select(new EditorSelection(from, to), scrollIntoView: false);
+        editor.Area.ScrollIntoView(from, center: true);
+        if (focus)
+            editor.Area.Focus();
+        return editor;
+    }
+
     /// <summary>Makes the editor text bigger or smaller by changing the font size setting.</summary>
     public void Zoom(int delta)
     {
@@ -665,13 +692,18 @@ public sealed class EditorService : IEditorService
 
     private void DisposePanel(DocumentPanel panel)
     {
+        symbols?.Value.Release(panel.Editor);
         changeBases.Untrack(panel.Editor.Area);
         panel.Dispose();
     }
 
     private static string?[] ContextMenuCommands(TextEditor editor)
     {
-        string?[] clipboard = [CommandIds.Cut, CommandIds.Copy, CommandIds.Paste, null, CommandIds.ShowCodeActions, CommandIds.GoToDefinition, CommandIds.Rename, CommandIds.FormatDocument];
+        string?[] clipboard =
+        [
+            CommandIds.Cut, CommandIds.Copy, CommandIds.Paste, null, CommandIds.ShowCodeActions, CommandIds.GoToDefinition, CommandIds.GoToImplementation,
+            CommandIds.FindReferences, CommandIds.ShowCallHierarchy, CommandIds.ShowTypeHierarchy, CommandIds.Rename, CommandIds.FormatDocument,
+        ];
         return editor.Area.BaseText is null
             ? clipboard
             : [.. clipboard, null, CoreCommands.PreviousChange, CoreCommands.NextChange, CoreCommands.RollbackLines, CoreCommands.ShowChanges];
@@ -694,7 +726,11 @@ public sealed class EditorService : IEditorService
     {
         var breadcrumbs = new PathBreadcrumbs(path => explorer.Value.Reveal(path));
         breadcrumbs.Show(document.FilePath, workspace.RootPath, Icons.Find(IconOf(document.LanguageId)));
-        return new DocumentPanel(ShellLayout.DocumentPanelId(document.FilePath ?? document.Name), editor, fileIcons, breadcrumbs) { ShowsBreadcrumbs = ShowsBreadcrumbs(document) };
+        var symbolPath = symbols is null || document.FilePath is null ? null : new SymbolBreadcrumbs(editor, symbols.Value.For(editor));
+        return new DocumentPanel(ShellLayout.DocumentPanelId(document.FilePath ?? document.Name), editor, fileIcons, breadcrumbs, symbolPath)
+        {
+            ShowsBreadcrumbs = ShowsBreadcrumbs(document),
+        };
     }
 
     private bool ShowsBreadcrumbs(IDocument document) => document.FilePath is not null && settings.Get<bool>(ShellSettings.Breadcrumbs);

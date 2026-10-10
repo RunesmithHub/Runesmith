@@ -271,6 +271,7 @@ public sealed partial class LanguageClient : IAsyncDisposable
         connection.OnRequest("client/unregisterCapability", (_, _) => Task.FromResult<object?>(null));
         connection.OnRequest("window/workDoneProgress/create", (_, _) => Task.FromResult<object?>(null));
         RegisterEditing(connection);
+        RegisterNavigation(connection);
         connection.OnRequest("window/showMessageRequest", (p, _) =>
         {
             if (p is { } element && element.Deserialize(LspJsonContext.Default.ShowMessageParams) is { } message)

@@ -15,7 +15,7 @@ area.
 | Project | The open folder's name. Its menu lists the recent folders, **New Project...**, **Open Folder...**, **Clone Repository...** when a plugin provides it, and **Close Folder**. |
 | Plugin widgets | Controls plugins add, such as the version control branch widget, after the project and before the run widget. |
 | Debug toolbar | While a [debug session](./debugging.mdx) runs, **Continue** or **Pause**, **Step Over**, **Step Into** and **Step Out**, before the run widget. |
-| **Search everywhere** | Finds files, commands and settings in one list. Press <Keys>Shift</Keys> twice, or <Keys>Ctrl+Shift+A</Keys>. |
+| **Search everywhere** | Finds files, symbols, commands and settings in one list. Press <Keys>Shift</Keys> twice, or <Keys>Ctrl+Shift+A</Keys>. |
 | Run widget | With a folder open, the selected [run configuration](./running.mdx) with its list, and **Run** (<Keys>Shift+F10</Keys>), **Debug**, **Stop** (<Keys>Ctrl+F2</Keys>) and **Build** (<Keys>Ctrl+Shift+B</Keys>), which builds the selected configuration's project or the open folder. |
 | Gear | **Settings**, **Plugins**, **SDKs**, **Keyboard Shortcuts** and the switch between light and dark. |
 
@@ -28,9 +28,10 @@ with Avalonia's drawn decorations, which Avalonia still marks as experimental. O
 
 ## Search everywhere
 
-Search everywhere shows a few of each: the files whose names match, the commands and the settings. Use <Keys>Up</Keys> and
-<Keys>Down</Keys> to move and <Keys>Enter</Keys> to open. A file opens in the editor, a command runs, and a setting opens its page of the
-settings. Start the query with `>` to search only commands, or `:` to go to a line.
+Search everywhere shows a few of each: the files whose names match, the symbols of the open folder, the commands and the settings. Use
+<Keys>Up</Keys> and <Keys>Down</Keys> to move and <Keys>Enter</Keys> to open. A file opens in the editor, a symbol opens where it is
+declared, a command runs, and a setting opens its page of the settings. Start the query with `>` to search only commands, `#` for symbols,
+`@` for the symbols of the active file, or `:` to go to a line.
 
 ## Tool windows
 
@@ -38,8 +39,8 @@ Tool windows are the panels around the editor area. Each has a button on a strip
 
 | Stripe | Group | Opens in |
 | --- | --- | --- |
-| Left | Upper | The left area: **Explorer** and **Search**. |
-| Left | Lower | The bottom area: **Problems** and **Output**. |
+| Left | Upper | The left area: **Explorer**, **Search** and **Outline**. |
+| Left | Lower | The bottom area: **Problems**, **Output**, **References** and **Hierarchy**. |
 | Right | | The right area, for the tool windows plugins add. |
 
 Each area shows one tool window at a time. Click a button to show its window, or to hide it when it is the one shown. A button with a count
@@ -49,9 +50,12 @@ says how many problems there are, on **Problems**, or how many programs still ru
 | --- | --- | --- | --- |
 | **Explorer** | Left | <Keys>Ctrl+Shift+E</Keys> | The open folder's files. |
 | **Search** | Left | <Keys>Ctrl+Shift+F</Keys> | [Find in files](./search.mdx). |
+| **Outline** | Left | | The [symbols of the active file](./outline.mdx). |
 | **Run** | Bottom | | A tab per [run](./running.mdx) with its output; it opens when a run starts. |
 | **Problems** | Bottom | <Keys>Ctrl+Shift+M</Keys> | [Errors and warnings](./problems.mdx) from language analyzers, language servers and builds. |
 | **Output** | Bottom | <Keys>Ctrl+Shift+U</Keys> | The logs of builds, language analyzers, language servers and plugins. |
+| **References** | Bottom | | What [Find References and Go to Implementation](./references.mdx) found; it opens when they find several places. |
+| **Hierarchy** | Bottom | | The [call or type hierarchy](./hierarchies.mdx) of a symbol; it opens when you show one. |
 
 The **View** menu has a **Show** item for each window; the same key hides the window again. Plugins can add windows of their own, which get
 a button and a **View** menu item too.

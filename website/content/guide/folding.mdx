@@ -1,0 +1,40 @@
+---
+title: Folding
+description: Fold blocks of code, comments and imports away, with the gutter, the keyboard or the View menu.
+---
+
+Folding hides the lines of a block, such as a method's body, so the code around it fits on screen. A folded block keeps its first line and
+shows a placeholder after it. The language says which lines fold; for a language that does not, the editor folds by indentation.
+
+## Fold and unfold
+
+Move the pointer over the gutter: a chevron shows beside each line that starts a block. Click it to fold the block, and click the chevron
+or the placeholder at the end of the line to unfold it. A folded block keeps its chevron, pointing right.
+
+| Command | Keys | Does |
+| --- | --- | --- |
+| **Fold** | <Keys>Ctrl+Shift+[</Keys> | Folds the innermost block around the caret. |
+| **Unfold** | <Keys>Ctrl+Shift+]</Keys> | Unfolds the folded block on the caret's line. |
+| **Fold All** | <Keys>Ctrl+Alt+[</Keys> | Folds every block of the file. |
+| **Unfold All** | <Keys>Ctrl+Alt+]</Keys> | Unfolds every block. |
+
+The commands are also in the **View** menu.
+
+## Folded lines
+
+- The caret moves over folded lines: <Keys>Up</Keys> and <Keys>Down</Keys> skip them, and so does <Keys>Right</Keys> at the end of a folded
+  line.
+- Going to a place inside a folded block, such as a search result, a problem or a definition, unfolds it.
+- Folded blocks stay folded as you type. A block unfolds when an edit changes its hidden lines, such as an undo or a replace.
+- Copying a selection that spans a folded block copies its hidden lines too.
+
+## What folds
+
+The language decides what folds: blocks of code, comments of several lines, runs of imports, and regions marked in the code, such as with
+`#region`. A region can show its own text in place of the placeholder. Without a language that says, a line folds the lines after it that
+are indented deeper. The [Editor extensions](/plugins/language-features#folding) page shows how a plugin adds folding.
+
+## Related
+
+- [The editor](./editor.mdx)
+- [Outline](./outline.mdx)

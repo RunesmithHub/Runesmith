@@ -213,6 +213,7 @@ internal sealed class ServerSession : IAsyncDisposable
         Output.AppendLine($"[{DateTime.Now:HH:mm:ss}] {info} is running.");
         SetState(SessionState.Running);
         context.DecorationsChanged?.Invoke();
+        context.SyntaxChanged?.Invoke();
     }
 
     private LanguageClient CreateClient()
@@ -234,6 +235,7 @@ internal sealed class ServerSession : IAsyncDisposable
         created.Progress += OnProgress;
         created.ApplyEdit = context.ApplyEdit;
         created.DecorationsRefreshRequested += (_, _) => context.DecorationsChanged?.Invoke();
+        created.SyntaxRefreshRequested += (_, _) => context.SyntaxChanged?.Invoke();
         created.StateChanged += (sender, state) => OnClientStateChanged((LanguageClient)sender!, state);
         if (context.IsTracing())
             created.Trace += trace => Output.AppendLine($"{(trace.Direction == JsonRpcDirection.Sent ? "-->" : "<--")} {trace.Method ?? $"#{trace.Id}"} {trace.Json}");
@@ -456,4 +458,7 @@ internal sealed record SessionContext(
 
     /// <summary>Gets what runs when a server starts running or asks for its inlay hints and code lenses to be requested again.</summary>
     public Action? DecorationsChanged { get; init; }
+
+    /// <summary>Gets what runs when a server starts running or asks for its semantic tokens or folding ranges to be requested again.</summary>
+    public Action? SyntaxChanged { get; init; }
 }

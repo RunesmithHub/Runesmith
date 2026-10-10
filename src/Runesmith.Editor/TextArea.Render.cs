@@ -47,8 +47,10 @@ public sealed partial class TextArea
                 DrawIndentGuides(context, brushes, snapshot, first, last, left, caret.Line);
 
             DrawInlayBackgrounds(context, first, last, left);
-            for (var number = first; number <= last; number++)
+            for (var number = first; number <= last; number = NextShownLine(number))
                 GetVisualLine(number).Line.Draw(context, new Point(left, LineTop(number)));
+
+            DrawFoldPlaceholders(context, brushes, first, last, left);
 
             if (options.ShowWhitespace)
                 DrawWhitespace(context, brushes, first, last, left);
@@ -100,7 +102,7 @@ public sealed partial class TextArea
 
         var brush = IsFocused ? brushes.Selection : brushes.InactiveSelection;
         var newlineWidth = Formatting.CharacterWidth * 0.6;
-        for (var number = first; number <= last; number++)
+        for (var number = first; number <= last; number = NextShownLine(number))
         {
             var line = snapshot.GetLine(number);
             var start = Math.Max(selection.Start, line.Start);
@@ -149,7 +151,7 @@ public sealed partial class TextArea
             active = (depth - 1, from, to);
         }
 
-        for (var number = first; number <= last; number++)
+        for (var number = first; number <= last; number = NextShownLine(number))
         {
             var top = LineTop(number);
             for (var index = 0; index < depths[number - first]; index++)
@@ -188,7 +190,7 @@ public sealed partial class TextArea
     private void DrawWhitespace(DrawingContext context, EditorBrushes brushes, int first, int last, double left)
     {
         var size = Math.Max(1.5, Formatting.FontSize / 9);
-        for (var number = first; number <= last; number++)
+        for (var number = first; number <= last; number = NextShownLine(number))
         {
             var visual = GetVisualLine(number);
             var middle = LineTop(number) + LineHeight / 2;
@@ -283,6 +285,9 @@ public sealed partial class TextArea
         var endLine = Math.Min(last, snapshot.GetLineFromPosition(Math.Min(span.End, snapshot.Length)).LineNumber);
         for (var number = startLine; number <= endLine; number++)
         {
+            if (IsHiddenLine(number))
+                continue;
+
             var line = snapshot.GetLine(number);
             var start = Math.Max(span.Start, line.Start) - line.Start;
             var end = Math.Min(span.End, line.End) - line.Start;
@@ -306,6 +311,7 @@ public sealed partial class TextArea
         DrawProblemMarkers(context, brushes, snapshot, first, last);
         DrawChangeMarkers(context, brushes);
         DrawGlyphs(context, first, last);
+        DrawFoldMarkers(context, brushes, first, last);
         if (!options.ShowLineNumbers)
             return;
 
@@ -317,8 +323,8 @@ public sealed partial class TextArea
             lineNumberBrushes = brushes;
         }
 
-        var right = gutterWidth - 14;
-        for (var number = first; number <= last; number++)
+        var right = gutterWidth - 14 - FoldMargin;
+        for (var number = first; number <= last; number = NextShownLine(number))
         {
             var current = number == caretLine;
             if (!lineNumbers.TryGetValue((number, current), out var text))
@@ -344,6 +350,9 @@ public sealed partial class TextArea
                 continue;
 
             var number = snapshot.GetLineFromPosition(Math.Min(marker.Span.Start, snapshot.Length)).LineNumber;
+            if (IsHiddenLine(number))
+                continue;
+
             if (!worst.TryGetValue(number, out var severity) || marker.Severity < severity)
                 worst[number] = marker.Severity;
         }

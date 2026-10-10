@@ -13,19 +13,21 @@ namespace Runesmith.Shell.Docking;
 internal sealed class DocumentPanel : IDockPanel, INotifyPropertyChanged, IDisposable
 {
     private readonly FileIcons icons;
-    private readonly PathBreadcrumbs breadcrumbs;
+    private readonly Border bar;
     private readonly DockPanel layout;
     private Control? notice;
     private string? description;
     private bool wasModified;
 
-    public DocumentPanel(string id, TextEditor editor, FileIcons icons, PathBreadcrumbs breadcrumbs)
+    public DocumentPanel(string id, TextEditor editor, FileIcons icons, PathBreadcrumbs breadcrumbs, Control? symbolPath = null)
     {
         Id = id;
         Editor = editor;
         this.icons = icons;
-        this.breadcrumbs = breadcrumbs;
-        var bar = new Border { Classes = { "breadcrumbs" }, Child = breadcrumbs };
+        var path = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, ClipToBounds = true, Children = { breadcrumbs } };
+        if (symbolPath is not null)
+            path.Children.Add(symbolPath);
+        bar = new Border { Classes = { "breadcrumbs" }, Child = path };
         DockPanel.SetDock(bar, Dock.Top);
         layout = new DockPanel { Children = { bar, editor } };
         Content = layout;
@@ -72,12 +74,8 @@ internal sealed class DocumentPanel : IDockPanel, INotifyPropertyChanged, IDispo
     /// <summary>Gets or sets whether the file's path shows under the tabs.</summary>
     public bool ShowsBreadcrumbs
     {
-        get => breadcrumbs.Parent is Control { IsVisible: true };
-        set
-        {
-            if (breadcrumbs.Parent is Control bar)
-                bar.IsVisible = value;
-        }
+        get => bar.IsVisible;
+        set => bar.IsVisible = value;
     }
 
     /// <summary>Shows a line over the editor, under the path, in place of the one shown before.</summary>

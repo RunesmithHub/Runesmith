@@ -1,13 +1,14 @@
 ---
 title: Editor extensions
-description: Decorations, quick fixes and refactorings, rename, formatting and keyboard hooks for plugins, with examples.
+description: Decorations, quick fixes and refactorings, rename, formatting, references, symbols, folding, semantic tokens, hierarchies and keyboard hooks for plugins, with examples.
 ---
 
 A plugin can change what the editor shows and does beyond completion and hover: put icons in the gutter, hints inside lines, code lens
-above lines and highlights on text; offer quick fixes and refactorings; rename symbols; format documents; and see keys before the editor
-does. Each is an export of `Runesmith.Sdk`, found the same way as the other [language features](./api.mdx#languages), and each answer is
-kept apart per plugin, so one plugin's failure does not affect another's. Language servers and language analyzers get the same features
-without code of their own; see [From language servers and analyzers](#from-language-servers-and-analyzers).
+above lines and highlights on text; offer quick fixes and refactorings; rename symbols; format documents; find references and
+implementations; list symbols; fold code; color tokens by meaning; grow the selection; show call and type hierarchies; and see keys before
+the editor does. Each is an export of `Runesmith.Sdk`, found the same way as the other [language features](./api.mdx#languages), and each
+answer is kept apart per plugin, so one plugin's failure does not affect another's. Language servers get the same features without code
+of their own; see [From language servers and analyzers](#from-language-servers-and-analyzers).
 
 ## Decorations
 
@@ -145,6 +146,391 @@ public sealed class TrailingWhitespaceFormatter : IDocumentFormattingProvider
 The editor applies the changes as one undo step, and only when the text has not changed while the formatter ran. A formatter that runs a
 program, such as a command-line formatter, starts it with `ILauncher` and needs the `process` capability.
 
+## References and implementations
+
+Export an `IReferenceProvider` for **Find References** (<Keys>Shift+F12</Keys>) and an `IImplementationProvider` for **Go to
+Implementation** (<Keys>Ctrl+F12</Keys>). Each returns `DocumentLocation`s: a file, a start and, for the span of the name, an end. Every
+provider of the language is asked and the answers are merged without duplicates. One place opens at once; several are listed in the
+**References** panel. `includeDeclaration` says whether the symbol's own declaration belongs in the list.
+
+```csharp title="IniReferences.cs"
+[Export(typeof(IReferenceProvider))]
+[Languages("ini")]
+public sealed class IniReferences : IReferenceProvider
+{
+    public Task<IReadOnlyList<DocumentLocation>> GetReferencesAsync(IDocument document, TextSnapshot snapshot, int offset, bool includeDeclaration,
+        CancellationToken cancellationToken)
+    {
+        var word = WordBoundaries.GetWordAt(snapshot, offset);
+        if (word.IsEmpty || document.FilePath is not { } path)
+            return Task.FromResult<IReadOnlyList<DocumentLocation>>([]);
+
+        var name = Regex.Escape(snapshot.GetText(word));
+        var found = Regex.Matches(snapshot.GetText(), $@"\b{name}\b")
+            .Where(match => includeDeclaration || !IsKey(snapshot, match.Index))
+            .Select(match => new DocumentLocation(path, snapshot.GetPosition(match.Index), snapshot.GetPosition(match.Index + match.Length)))
+            .ToList();
+        return Task.FromResult<IReadOnlyList<DocumentLocation>>(found);
+    }
+
+    // A key is declared where a line starts with it.
+    internal static bool IsKey(TextSnapshot snapshot, int offset)
+    {
+        var line = snapshot.GetLineFromPosition(offset);
+        return snapshot.GetText(TextSpan.FromBounds(line.Start, offset)).Trim().Length == 0;
+    }
+}
+```
+
+An implementation provider has the same shape. This one finds the keys a `.local.ini` file next to the document overrides:
+
+```csharp title="IniImplementations.cs"
+[Export(typeof(IImplementationProvider))]
+[Languages("ini")]
+public sealed class IniImplementations : IImplementationProvider
+{
+    public Task<IReadOnlyList<DocumentLocation>> GetImplementationsAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken)
+    {
+        var word = snapshot.GetText(WordBoundaries.GetWordAt(snapshot, offset));
+        var overrides = Path.ChangeExtension(document.FilePath, ".local.ini");
+        if (word.Length == 0 || overrides is null || !File.Exists(overrides))
+            return Task.FromResult<IReadOnlyList<DocumentLocation>>([]);
+
+        var found = File.ReadAllLines(overrides).Select((text, line) => (text, line))
+            .Where(entry => entry.text.TrimStart().StartsWith(word + "=", StringComparison.Ordinal))
+            .Select(entry => new DocumentLocation(overrides, new TextPosition(entry.line, 0)))
+            .ToList();
+        return Task.FromResult<IReadOnlyList<DocumentLocation>>(found);
+    }
+}
+```
+
+## Occurrence highlights
+
+Export an `IDocumentHighlightProvider` to highlight the other occurrences of the symbol under the caret. The editor asks a moment after the
+caret stops on a word and draws each `DocumentHighlight` with a faint background: a `Write` in the information color, a `Read` or `Text`
+in a neutral one. The first provider that answers is used; return null for documents that are not yours.
+
+```csharp title="IniHighlights.cs"
+[Export(typeof(IDocumentHighlightProvider))]
+[Languages("ini")]
+public sealed class IniHighlights : IDocumentHighlightProvider
+{
+    public Task<IReadOnlyList<DocumentHighlight>?> GetDocumentHighlightsAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken)
+    {
+        var word = WordBoundaries.GetWordAt(snapshot, offset);
+        if (word.IsEmpty)
+            return Task.FromResult<IReadOnlyList<DocumentHighlight>?>([]);
+
+        var name = Regex.Escape(snapshot.GetText(word));
+        var highlights = Regex.Matches(snapshot.GetText(), $@"\b{name}\b")
+            .Select(match => new DocumentHighlight(new TextSpan(match.Index, match.Length),
+                IniReferences.IsKey(snapshot, match.Index) ? DocumentHighlightKind.Write : DocumentHighlightKind.Read))
+            .ToList();
+        return Task.FromResult<IReadOnlyList<DocumentHighlight>?>(highlights);
+    }
+}
+```
+
+## Symbols
+
+Export an `IDocumentSymbolProvider` to list a document's symbols as a tree. The tree fills the **Outline** panel, the symbols around the
+caret in the breadcrumbs under the tabs, and **Go to Symbol in File** (<Keys>Ctrl+R</Keys>). Each `DocumentSymbol` has a name, a
+`SymbolKind`, the `Range` of the whole declaration, the `SelectionRange` that is selected when the user goes to it (usually the name),
+an optional `Detail` shown after the name, `IsDeprecated`, and its `Children`. The first provider that answers is used. Runesmith asks
+when the document opens and a moment after typing stops; raise `Changed` when the symbols change for another reason.
+
+```csharp title="IniSymbols.cs"
+[Export(typeof(IDocumentSymbolProvider))]
+[Languages("ini")]
+public sealed class IniSymbols : IDocumentSymbolProvider
+{
+    public Task<IReadOnlyList<DocumentSymbol>?> GetDocumentSymbolsAsync(IDocument document, TextSnapshot snapshot, CancellationToken cancellationToken)
+    {
+        var sections = new List<DocumentSymbol>();
+        var keys = new List<DocumentSymbol>();
+        for (var number = snapshot.LineCount - 1; number >= 0; number--)
+        {
+            var line = snapshot.GetLine(number);
+            var text = snapshot.GetLineText(number);
+            if (text.StartsWith('[') && text.IndexOf(']') is > 1 and var close)
+            {
+                var end = sections.Count > 0 ? sections[0].Range.Start - 1 : snapshot.Length;
+                var name = new TextSpan(line.Start + 1, close - 1);
+                sections.Insert(0, new DocumentSymbol(text[1..close], SymbolKind.Namespace, TextSpan.FromBounds(line.Start, Math.Max(line.End, end)), name)
+                {
+                    Children = [.. keys],
+                });
+                keys.Clear();
+            }
+            else if (text.IndexOf('=') is > 0 and var equals)
+            {
+                var key = text[..equals].Trim();
+                var start = line.Start + text.IndexOf(key, StringComparison.Ordinal);
+                keys.Insert(0, new DocumentSymbol(key, SymbolKind.Property, line.Span, new TextSpan(start, key.Length)) { Detail = text[(equals + 1)..].Trim() });
+            }
+        }
+
+        return Task.FromResult<IReadOnlyList<DocumentSymbol>?>([.. keys, .. sections]);
+    }
+}
+```
+
+Export an `IWorkspaceSymbolProvider` to find symbols in the whole open folder by name, for **Go to Symbol in Workspace**
+(<Keys>Ctrl+Shift+R</Keys>, or `#` in the search box) and **Search Everywhere**. Every provider is asked, whatever the language, so it needs
+no `[Languages]`. The query may be fuzzy, such as `gUsr` for `GetUser`; return what could match and Runesmith ranks it.
+
+```csharp title="IniWorkspaceSymbols.cs"
+[Export(typeof(IWorkspaceSymbolProvider))]
+[method: ImportingConstructor]
+public sealed class IniWorkspaceSymbols(IWorkspace workspace) : IWorkspaceSymbolProvider
+{
+    public Task<IReadOnlyList<WorkspaceSymbol>> GetWorkspaceSymbolsAsync(string query, CancellationToken cancellationToken)
+    {
+        if (workspace.RootPath is not { } root)
+            return Task.FromResult<IReadOnlyList<WorkspaceSymbol>>([]);
+
+        var symbols = new List<WorkspaceSymbol>();
+        foreach (var path in Directory.EnumerateFiles(root, "*.ini", SearchOption.AllDirectories))
+        {
+            var lines = File.ReadAllLines(path);
+            for (var line = 0; line < lines.Length; line++)
+            {
+                if (lines[line].StartsWith('[') && lines[line].IndexOf(']') is > 1 and var close)
+                    symbols.Add(new WorkspaceSymbol(lines[line][1..close], SymbolKind.Namespace, new DocumentLocation(path, new TextPosition(line, 1))));
+            }
+        }
+
+        return Task.FromResult<IReadOnlyList<WorkspaceSymbol>>(symbols);
+    }
+}
+```
+
+## Folding
+
+Export an `IFoldingRangeProvider` to say which lines fold. A `FoldingRange(StartLine, EndLine)` keeps its first line visible and hides the
+lines after it up to and including `EndLine`; the folded line ends in `CollapsedText`, or an ellipsis. `Kind` is `Block` (the default),
+`Comment`, `Imports` or `Region`. The first provider that answers is used; without one, the editor folds by indentation. Folded ranges stay
+folded while the user types and when the provider answers again, matched by their first line.
+
+```csharp title="IniFolding.cs"
+[Export(typeof(IFoldingRangeProvider))]
+[Languages("ini")]
+public sealed class IniFolding : IFoldingRangeProvider
+{
+    public Task<IReadOnlyList<FoldingRange>?> GetFoldingRangesAsync(IDocument document, TextSnapshot snapshot, CancellationToken cancellationToken)
+    {
+        var ranges = new List<FoldingRange>();
+        var section = -1;
+        var comments = -1;
+        for (var number = 0; number <= snapshot.LineCount; number++)
+        {
+            var text = number < snapshot.LineCount ? snapshot.GetLineText(number) : "[";
+            var isComment = text.StartsWith(';');
+            if (!isComment && comments >= 0 && number - 1 > comments)
+                ranges.Add(new FoldingRange(comments, number - 1) { Kind = FoldingRangeKind.Comment, CollapsedText = "; ..." });
+            comments = isComment ? (comments < 0 ? number : comments) : -1;
+
+            if (text.StartsWith('['))
+            {
+                if (section >= 0 && number - 1 > section)
+                    ranges.Add(new FoldingRange(section, number - 1));
+                section = number;
+            }
+        }
+
+        return Task.FromResult<IReadOnlyList<FoldingRange>?>(ranges);
+    }
+}
+```
+
+## Semantic tokens
+
+Export an `ISemanticTokensProvider` to classify tokens by what they mean, such as a name that refers to a parameter. The editor draws them
+over the TextMate highlighting. Each `SemanticToken` has a span within one line, a type from `SemanticTokenTypes` and
+`SemanticTokenModifiers`. The first provider that answers is used. Runesmith asks for the tokens of the whole document when it opens and a
+moment after typing stops; for a long document it first asks for the lines on screen with the overload that takes a span, which by default
+filters the whole document's tokens. Until the answer comes, the tokens it has move with the edits, so colors do not flicker.
+
+```csharp title="IniSemanticTokens.cs"
+[Export(typeof(ISemanticTokensProvider))]
+[Languages("ini")]
+public sealed partial class IniSemanticTokens : ISemanticTokensProvider
+{
+    public Task<IReadOnlyList<SemanticToken>?> GetSemanticTokensAsync(IDocument document, TextSnapshot snapshot, CancellationToken cancellationToken)
+    {
+        var tokens = Reference().Matches(snapshot.GetText())
+            .Select(match => new SemanticToken(new TextSpan(match.Index + 2, match.Length - 3), SemanticTokenTypes.Variable, SemanticTokenModifiers.Readonly))
+            .ToList();
+        return Task.FromResult<IReadOnlyList<SemanticToken>?>(tokens);
+    }
+
+    [GeneratedRegex(@"\$\{\w+\}")]
+    private static partial Regex Reference();
+}
+```
+
+The syntax color scheme colors each token through TextMate scopes, tried in order; the first scope the scheme has a rule for gives the color
+and the font style. A type the editor does not know keeps its TextMate color.
+
+| Type | Scopes |
+| --- | --- |
+| `namespace` | `entity.name.namespace` |
+| `type` | `entity.name.type`, `support.type` |
+| `class` | `entity.name.type.class`, `entity.name.type` |
+| `enum`, `interface`, `struct` | `entity.name.type.enum`, `entity.name.type.interface` or `entity.name.type.struct`, then `entity.name.type` |
+| `typeParameter` | `entity.name.type.parameter`, `entity.name.type` |
+| `parameter` | `variable.parameter` |
+| `variable` | `variable.other.readwrite`, `variable` |
+| `property` | `variable.other.property`, `variable` |
+| `enumMember` | `variable.other.enummember`, `constant.other.enum` |
+| `event` | `variable.other.event`, `variable.other.property` |
+| `function` | `entity.name.function` |
+| `method` | `entity.name.function.member`, `entity.name.function` |
+| `macro` | `entity.name.function.preprocessor`, `entity.name.function` |
+| `decorator` | `entity.name.function.decorator`, `entity.name.function` |
+| `label` | `entity.name.label` |
+| `keyword`, `modifier`, `comment`, `string`, `number`, `regexp`, `operator` | `keyword`, `storage.modifier`, `comment`, `string`, `constant.numeric`, `string.regexp`, `keyword.operator` |
+
+| Modifier | Effect |
+| --- | --- |
+| `Readonly` | A variable or parameter tries `variable.other.constant` first; a property tries `variable.other.constant.property`. |
+| `DefaultLibrary` | A class, struct, interface, enum or type tries `support.class` and `support.type` first; a function or method tries `support.function`. |
+| `Deprecated` | The token is struck through. |
+
+The other modifiers do not change the color. Runesmith's own color schemes have rules for these scopes; a [color
+scheme](./themes.mdx#syntax-color-schemes) of your own colors semantic tokens by adding rules for them.
+
+## Selection ranges
+
+Export an `ISelectionRangeProvider` for **Expand Selection** (<Keys>Shift+Alt+Right</Keys>) and **Shrink Selection**
+(<Keys>Shift+Alt+Left</Keys>). Return the spans around an offset from the smallest to the largest, such as the word, its expression, its
+statement and its block; each expand selects the next one that is larger than the selection. The first provider that answers is used;
+without one, the selection grows through the word, the text inside each pair of brackets, the brackets, the line and the document.
+
+```csharp title="IniSelectionRanges.cs"
+[Export(typeof(ISelectionRangeProvider))]
+[Languages("ini")]
+public sealed class IniSelectionRanges : ISelectionRangeProvider
+{
+    public Task<IReadOnlyList<TextSpan>?> GetSelectionRangesAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken)
+    {
+        var line = snapshot.GetLineFromPosition(offset);
+        var text = snapshot.GetText(line.Span);
+        var equals = text.IndexOf('=');
+        var side = equals < 0 ? line.Span
+            : offset - line.Start <= equals ? new TextSpan(line.Start, equals)
+            : TextSpan.FromBounds(line.Start + equals + 1, line.End);
+        TextSpan[] spans = [WordBoundaries.GetWordAt(snapshot, offset), side, line.Span, new TextSpan(0, snapshot.Length)];
+        return Task.FromResult<IReadOnlyList<TextSpan>?>([.. spans.Where(span => !span.IsEmpty).Distinct()]);
+    }
+}
+```
+
+## Call and type hierarchies
+
+Export an `ICallHierarchyProvider` for **Show Call Hierarchy** (<Keys>Ctrl+Alt+H</Keys>) and an `ITypeHierarchyProvider` for **Show Type
+Hierarchy** (<Keys>Ctrl+Alt+Shift+H</Keys>). Both start with `Prepare...Async`, which returns the function or type at an offset as a
+`HierarchyItem`: a name, a `SymbolKind`, the `Location` of the declaration, the `SelectionLocation` of its name, and `Data` you need later.
+The first provider that prepares an item answers for it and for the items it returns, through `HierarchyItem.Provider`, which Runesmith
+sets. The **Hierarchy** panel asks for each level when the user opens it.
+
+A `HierarchyCall` is the other function and its `CallSites`: in the caller's file for incoming calls, and in the original function's file
+for outgoing calls. This provider treats an INI file's `include=` lines as calls:
+
+```csharp title="IniIncludes.cs"
+[Export(typeof(ICallHierarchyProvider))]
+[Languages("ini")]
+public sealed class IniIncludes : ICallHierarchyProvider
+{
+    public Task<IReadOnlyList<HierarchyItem>> PrepareCallHierarchyAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken)
+    {
+        if (document.FilePath is not { } path)
+            return Task.FromResult<IReadOnlyList<HierarchyItem>>([]);
+
+        var whole = new DocumentLocation(path, new TextPosition(0, 0), snapshot.GetPosition(snapshot.Length));
+        return Task.FromResult<IReadOnlyList<HierarchyItem>>([new HierarchyItem(Path.GetFileName(path), SymbolKind.File, whole)]);
+    }
+
+    public Task<IReadOnlyList<HierarchyCall>> GetIncomingCallsAsync(HierarchyItem item, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<HierarchyCall>>([]);
+
+    public Task<IReadOnlyList<HierarchyCall>> GetOutgoingCallsAsync(HierarchyItem item, CancellationToken cancellationToken)
+    {
+        var lines = File.ReadAllLines(item.Location.FilePath);
+        var calls = new List<HierarchyCall>();
+        for (var line = 0; line < lines.Length; line++)
+        {
+            if (!lines[line].StartsWith("include=", StringComparison.Ordinal))
+                continue;
+
+            var target = Path.Combine(Path.GetDirectoryName(item.Location.FilePath)!, lines[line]["include=".Length..].Trim());
+            var site = new DocumentLocation(item.Location.FilePath, new TextPosition(line, 0), new TextPosition(line, lines[line].Length));
+            calls.Add(new HierarchyCall(new HierarchyItem(Path.GetFileName(target), SymbolKind.File, new DocumentLocation(target, new TextPosition(0, 0))), [site]));
+        }
+
+        return Task.FromResult<IReadOnlyList<HierarchyCall>>(calls);
+    }
+}
+```
+
+A type hierarchy provider returns the types an item derives from in `GetSupertypesAsync` and those that derive from it in
+`GetSubtypesAsync`:
+
+```csharp title="IniSectionHierarchy.cs"
+[Export(typeof(ITypeHierarchyProvider))]
+[Languages("ini")]
+public sealed class IniSectionHierarchy : ITypeHierarchyProvider
+{
+    public Task<IReadOnlyList<HierarchyItem>> PrepareTypeHierarchyAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken)
+    {
+        var line = snapshot.GetLineFromPosition(offset);
+        var text = snapshot.GetText(line.Span);
+        if (document.FilePath is not { } path || !text.StartsWith('[') || text.IndexOf(']') is not (> 1 and var close))
+            return Task.FromResult<IReadOnlyList<HierarchyItem>>([]);
+
+        var location = new DocumentLocation(path, snapshot.GetPosition(line.Start), snapshot.GetPosition(line.End));
+        return Task.FromResult<IReadOnlyList<HierarchyItem>>([new HierarchyItem(text[1..close], SymbolKind.Namespace, location) { Data = text[1..close] }]);
+    }
+
+    // A section named "a.b" derives from the section "a".
+    public Task<IReadOnlyList<HierarchyItem>> GetSupertypesAsync(HierarchyItem item, CancellationToken cancellationToken)
+    {
+        var name = (string)item.Data!;
+        var dot = name.LastIndexOf('.');
+        return Task.FromResult<IReadOnlyList<HierarchyItem>>(dot < 0 ? [] : [item with { Name = name[..dot], Data = name[..dot], Provider = null }]);
+    }
+
+    public Task<IReadOnlyList<HierarchyItem>> GetSubtypesAsync(HierarchyItem item, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<HierarchyItem>>([]);
+}
+```
+
+## Use the merged answers
+
+Import `INavigationFeatures` or `ISyntaxFeatures` to ask every provider of a document's language the way the editor does, such as from a
+command. `INavigationFeatures` merges references, implementations and workspace symbols and picks the first answer for occurrences,
+symbols and hierarchies; `ISyntaxFeatures` does the same for folding ranges, selection ranges and semantic tokens. A provider that throws is
+logged to the **Language features** channel and left out.
+
+```csharp title="CountReferences.cs"
+[Export(typeof(ICommandContributor))]
+[method: ImportingConstructor]
+public sealed class CountReferences(INavigationFeatures navigation, IEditorService editors, INotificationService notifications) : ICommandContributor
+{
+    public void Contribute(ICommandRegistry registry) =>
+        registry.Add(new CommandDefinition("ini.countReferences", "Count References", "INI"), async _ =>
+        {
+            if (editors.ActiveEditor is not { } editor)
+                return;
+
+            var snapshot = editor.Document.Buffer.Current;
+            var found = await navigation.GetReferencesAsync(editor.Document, snapshot, editor.CaretOffset, includeDeclaration: false, CancellationToken.None);
+            notifications.Notify(NotificationKind.Info, $"{found.Count} references");
+        });
+}
+```
+
 ## Keyboard hooks
 
 Export an `IEditorKeyHook` to see keys in every editor before the editor handles them, such as for modal editing or recording macros.
@@ -217,10 +603,18 @@ A [language server](./api.mdx#languages) gets these features from the requests i
 | Inlay hints | `textDocument/inlayHint`, and `workspace/inlayHint/refresh` from the server |
 | Code lens | `textDocument/codeLens`, `codeLens/resolve`, and `workspace/codeLens/refresh` from the server |
 | Edits the server makes | `workspace/applyEdit`, applied like any workspace edit |
+| References and implementations | `textDocument/references`, `textDocument/implementation` |
+| Occurrence highlights | `textDocument/documentHighlight` |
+| Symbols | `textDocument/documentSymbol`, as a tree or a flat list that Runesmith nests by range, and `workspace/symbol` of every running server |
+| Folding | `textDocument/foldingRange`, and `workspace/foldingRange/refresh` from the server |
+| Semantic tokens | `textDocument/semanticTokens/full` and `/range` with the server's legend, and `workspace/semanticTokens/refresh` from the server |
+| Selection ranges | `textDocument/selectionRange` |
+| Call and type hierarchies | `textDocument/prepareCallHierarchy`, `callHierarchy/incomingCalls` and `/outgoingCalls`, `textDocument/prepareTypeHierarchy`, `typeHierarchy/supertypes` and `/subtypes` |
 | Files a rename or code action creates, renames or deletes | The `create`, `rename` and `delete` resource operations in a workspace edit's `documentChanges` |
 
 A [language analyzer](./api.mdx#language-analyzers) implements any of these interfaces of `Runesmith.LanguageServices` next to
-`ILanguageAnalyzer`:
+`ILanguageAnalyzer`; for references, symbols, folding, semantic tokens, selection ranges and hierarchies, its plugin exports the providers
+above next to it:
 
 | Interface | Members |
 | --- | --- |
@@ -236,5 +630,6 @@ all four: the compiler's code fixes and refactorings, renamer and formatter, and
 ## Related
 
 - [API overview](./api.mdx)
-- [Language features](/guide/language-features), as users see them.
+- [Language features](/guide/language-features), as users see them, with [References](/guide/references), [Outline](/guide/outline),
+  [Folding](/guide/folding) and [Hierarchies](/guide/hierarchies).
 - [Create a plugin](./create-a-plugin.mdx)

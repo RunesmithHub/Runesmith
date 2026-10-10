@@ -183,7 +183,18 @@ public sealed partial class TextArea
         else
             target = Step(snapshot, selection.Caret, direction);
 
-        MoveTo(target, extend);
+        MoveTo(SkipFolded(snapshot, target, direction), extend);
+    }
+
+    // An offset in lines folding hides moves past them, the way the caret moved.
+    private int SkipFolded(TextSnapshot snapshot, int offset, int direction)
+    {
+        var line = snapshot.GetLineFromPosition(offset).LineNumber;
+        if (!IsHiddenLine(line))
+            return offset;
+
+        var next = Folding.NextVisible(line, snapshot.LineCount);
+        return direction > 0 && next < snapshot.LineCount ? snapshot.GetLine(next).Start : snapshot.GetLine(Folding.VisibleLineOf(line)).End;
     }
 
     private void MoveVertically(int lines, bool extend)
@@ -193,11 +204,18 @@ public sealed partial class TextArea
         var position = snapshot.GetPosition(selection.Caret);
         var x = preferredX ?? GetVisualLine(position.Line).GetX(position.Column);
         var targetLine = position.Line + lines;
+        if (Folding.HasHiddenLines)
+        {
+            targetLine = position.Line;
+            for (var step = 0; step < Math.Abs(lines) && targetLine >= 0 && targetLine < snapshot.LineCount; step++)
+                targetLine = lines > 0 ? Folding.NextVisible(targetLine, snapshot.LineCount) : Folding.PreviousVisible(targetLine);
+        }
+
         int offset;
         if (targetLine < 0)
             offset = 0;
         else if (targetLine >= snapshot.LineCount)
-            offset = snapshot.Length;
+            offset = IsHiddenLine(snapshot.LineCount - 1) ? snapshot.GetLine(Folding.VisibleLineOf(snapshot.LineCount - 1)).End : snapshot.Length;
         else
             offset = snapshot.GetLine(targetLine).Start + GetVisualLine(targetLine).GetColumn(x);
 

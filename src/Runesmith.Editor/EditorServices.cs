@@ -16,6 +16,8 @@ public sealed class EditorServices(
     IDiagnosticService diagnostics,
     ILanguageRegistry languages,
     IEditorFeatures editorFeatures,
+    INavigationFeatures navigation,
+    ISyntaxFeatures syntax,
     EditorKeyHooks keyHooks,
     Lazy<IWorkspaceEditService> workspaceEdits,
     Lazy<ICommandService> commands)
@@ -30,6 +32,12 @@ public sealed class EditorServices(
 
     /// <summary>Gets the code actions, rename, formatting and decorations of the providers.</summary>
     public IEditorFeatures EditorFeatures { get; } = editorFeatures;
+
+    /// <summary>Gets the references, implementations, occurrences, symbols and hierarchies of the providers.</summary>
+    public INavigationFeatures Navigation { get; } = navigation;
+
+    /// <summary>Gets the folding ranges, selection ranges and semantic tokens of the providers.</summary>
+    public ISyntaxFeatures Syntax { get; } = syntax;
 
     public EditorKeyHooks KeyHooks { get; } = keyHooks;
 

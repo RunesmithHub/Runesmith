@@ -1,0 +1,36 @@
+---
+title: Hierarchies
+description: The Hierarchy panel shows the callers and callees of a function, and the base and derived types of a type, as trees you open level by level.
+---
+
+The **Hierarchy** panel shows who calls a function and what it calls, or which types a type derives from and which derive from it. Each
+level of the tree loads when you open it, so you can follow calls and types as far as you need.
+
+## Show a call hierarchy
+
+<Steps>
+
+1. Put the caret on a function or method and press <Keys>Ctrl+Alt+H</Keys>, or right-click it and choose **Show Call Hierarchy**.
+2. The **Hierarchy** panel opens with the function at the top and its callers below. Open a caller to see its own callers.
+3. Click **Callees** to see the functions it calls instead, and **Callers** to go back.
+
+</Steps>
+
+Each row shows the function's name, its detail, such as the type it belongs to, and its file and line. A caller that calls more than once
+shows how many calls. Selecting a row with the keyboard shows the call in the editor; <Keys>Enter</Keys> or a click goes there.
+
+## Show a type hierarchy
+
+Put the caret on a type and press <Keys>Ctrl+Alt+Shift+H</Keys>, or right-click it and choose **Show Type Hierarchy**. The panel lists the
+types that derive from it or implement it. Click **Supertypes** to see the types it derives from and the interfaces it implements, and
+**Subtypes** to go back.
+
+## Where hierarchies come from
+
+Hierarchies come from the language's server and from plugins. When the language has none for the caret's place, a short message beside the
+caret says so. The [Editor extensions](/plugins/language-features#call-and-type-hierarchies) page shows how a plugin adds them.
+
+## Related
+
+- [References](./references.mdx)
+- [Navigation](./navigation.mdx)

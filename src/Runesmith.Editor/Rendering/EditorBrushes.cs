@@ -62,6 +62,12 @@ internal sealed class EditorBrushes
 
     public required IPen Filler { get; init; }
 
+    public required IBrush FoldMarker { get; init; }
+
+    public required IBrush FoldPlaceholder { get; init; }
+
+    public required IBrush FoldPlaceholderText { get; init; }
+
     private IBrush[] DiffLines { get; init; } = [];
 
     private IBrush[] DiffSpans { get; init; } = [];
@@ -115,6 +121,9 @@ internal sealed class EditorBrushes
             ModifiedMarker = new ImmutableSolidColorBrush(info),
             DeletedMarker = new ImmutableSolidColorBrush(danger),
             Filler = new ImmutablePen(new ImmutableSolidColorBrush(border, 0.45), 1),
+            FoldMarker = new ImmutableSolidColorBrush(muted),
+            FoldPlaceholder = new ImmutableSolidColorBrush(accent, 0.16),
+            FoldPlaceholderText = new ImmutableSolidColorBrush(Color.FromArgb(255, (byte)((accent.R + text.R) / 2), (byte)((accent.G + text.G) / 2), (byte)((accent.B + text.B) / 2))),
             DiffLines = [new ImmutableSolidColorBrush(success, 0.12), new ImmutableSolidColorBrush(danger, 0.12), new ImmutableSolidColorBrush(info, 0.12)],
             DiffSpans = [new ImmutableSolidColorBrush(success, 0.3), new ImmutableSolidColorBrush(danger, 0.3), new ImmutableSolidColorBrush(info, 0.3)],
         };

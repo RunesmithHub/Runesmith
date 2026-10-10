@@ -99,6 +99,7 @@ public sealed partial class TextArea
     {
         base.OnPointerMoved(e);
         var position = e.GetPosition(this);
+        TrackGutterHover(position);
         Cursor = new Cursor(ChangeMarkerAt(position) is not null || IsOverClickableDecoration(position) ? StandardCursorType.Hand : position.X < GutterWidth ? StandardCursorType.Arrow : Link is null ? StandardCursorType.Ibeam : StandardCursorType.Hand);
         if (dragUnit == DragUnit.None)
             return;
@@ -116,6 +117,12 @@ public sealed partial class TextArea
         {
             StopAutoScroll();
         }
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        TrackGutterHover(null);
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
