@@ -16,6 +16,7 @@ const sidebars: SidebarsConfig = {
     'problems',
     'running',
     'debugging',
+    'test-explorer',
     'terminal',
     'building',
     'version-control',

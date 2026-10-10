@@ -1,0 +1,100 @@
+---
+title: Test Explorer
+description: Find, run and debug the tests of the open folder, read their results and output, and see failures in the editor and the Problems panel.
+---
+
+The **Test Explorer** lists the tests of the open folder, runs and debugs them, and shows each test's result, failure and output. The
+tests come from plugins for your languages, such as the C# plugin; without one, the panel says that no plugin finds tests. This page
+covers running tests from the Test Explorer and the editor, reading results, and the settings.
+
+## Run tests
+
+<Steps>
+
+1. Open a folder with tests. The Test Explorer, on the bottom stripe or with <Keys>Ctrl+Shift+J</Keys>, lists them by project, namespace
+   and class as the plugin finds them.
+2. Click **Run All Tests** at the left of its toolbar, or press <Keys>Ctrl+Alt+U</Keys>.
+3. Watch each test's icon change as it runs. The counts at the right of the toolbar add up the results.
+
+</Steps>
+
+To run some tests, right-click a test, a class or any group and choose **Run** or **Debug**. In the editor, click the run marker beside a
+test or class, or the **Run** and **Debug** code lenses above it, or put the caret in a test and press <Keys>Ctrl+Shift+F10</Keys> to run it
+or <Keys>Ctrl+Shift+F9</Keys> to debug it. Starting a run while another one goes on stops the other one.
+
+| Button | Command | What it does |
+| --- | --- | --- |
+| Run all | **Run All Tests** | Runs every test. |
+| Debug all | **Debug All Tests** | Runs every test under a debugger. It shows when a plugin can debug its tests. |
+| Rerun failed | **Rerun Failed Tests** | Runs the tests that failed or errored again (<Keys>Ctrl+Alt+Shift+U</Keys>). |
+| Rerun | **Rerun Last Tests** | Runs the last run's tests again, in the same way. |
+| Stop | **Stop Tests** | Stops the run. Tests that got no result keep the one they had. |
+| Refresh | **Refresh Tests** | Finds the folder's tests again. |
+| Collapse | | Collapses every group. |
+
+The **Run** menu has these commands too, with **Run Tests at Caret** and **Debug Tests at Caret**. **Run Tests in File** in the command
+palette runs the tests of the file in the editor.
+
+## Read the results
+
+| Icon | Meaning |
+| --- | --- |
+| Grey ring | Not run yet. |
+| Grey clock | Waiting to run. |
+| Turning arc | Running. |
+| Green ring with a tick | Passed. |
+| Red ring with a cross | Failed, or could not run. |
+| Grey ring with a bar | Skipped. |
+
+A group shows the most telling state of its tests: a failure before a test that runs, before a pass. Each row shows how long the test
+took. Select a test to see beside the list:
+
+- its result, its path and a link to it,
+- for a failure, the message, the expected and actual values side by side, and the stack trace, whose frames with a file are links,
+- what the test wrote while it ran.
+
+Select a group, or nothing, to see the last run's counts and output. Double-click a test, or press <Keys>Enter</Keys>, to open it in the
+editor. The **Test Explorer** button on the stripe counts the failed tests.
+
+### In the editor
+
+The editor marks each test and class it knows:
+
+| Mark | Meaning |
+| --- | --- |
+| Green triangle in the gutter | Not run yet. Click it to run the test or the class. |
+| A ring with a tick, a cross or a bar in the gutter | The last result. Click it to run the test again. |
+| **Run**, **Debug** and the result above the test | Code lenses that run or debug the test, and the last result, such as **Passed in 12 ms**. Click the result to select the test in the Test Explorer. |
+| Red line with the message after it | The line a test failed on. |
+
+A failed test is also a problem in the [Problems](./problems.mdx) panel, at the line it failed on, under the source `tests`. Its next
+pass removes it. As you edit a test file, the marks follow the tests, and new tests appear a moment after you stop typing.
+
+## Filter and group
+
+Type in the filter to show the tests whose names contain the words, such as `parser empty`. A word starting with `@` matches tags, such as
+`@slow`. The filter button next to it shows only failed tests.
+
+| Choice | Shows |
+| --- | --- |
+| **Group by project** | The tests as the plugin arranges them: projects, namespaces, classes, tests and cases. |
+| **Group by file** | The tests by the file they are declared in. |
+| **Group by status** | The tests under **Failed**, **Running**, **Passed**, **Skipped** and **Not run**. |
+| **Group by tag** | The tests by tag; a test with several tags shows under each, and tests without one under **No tag**. |
+
+## Run tests on save
+
+Turn on **Run tests on save** (`testing.autoRunOnSave`, off by default) to run a file's tests each time you save it. Saving a file without
+tests, such as the code under test, runs the last run's tests again.
+
+## Debug tests
+
+**Debug** runs tests under the debugger that the plugin asks for, as debugging a [run configuration](./debugging.mdx) does: breakpoints
+stop the tests, and the **Debug** panel shows the call stack and variables. It needs a plugin that provides that debugger.
+
+## Related
+
+- [Debugging](./debugging.mdx)
+- [Problems](./problems.mdx)
+- [Keyboard shortcuts](./keyboard-shortcuts.mdx#tests)
+- [Test providers](/plugins/testing), for plugins

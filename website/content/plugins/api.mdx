@@ -409,6 +409,31 @@ Starting a debugger needs the `process` [capability](./index.mdx#capabilities). 
 `CommandIds` has the debugger's commands, such as `ToggleBreakpoint`, `Continue`, `StepOver`, `StepInto`, `StepOut` and `StopDebugging`,
 for plugins that place them in menus.
 
+## Tests
+
+Export an `ITestProvider` to find and run the tests of a kind of project. `DiscoverAsync` returns the folder's tests as a tree of
+`TestItem`s, `DiscoverDocumentAsync` the tests of one file as it changes, and `RunAsync` runs a `TestRunRequest`, reporting each test to an
+`ITestRun`. Runesmith shows the tests in the [Test Explorer](/guide/test-explorer), puts run markers and results beside them in the editor,
+and turns failed assertions into problems. [Test providers](./testing.mdx) has a complete provider.
+
+```csharp
+public async Task RunAsync(TestRunRequest request, ITestRun run, CancellationToken cancellationToken)
+{
+    foreach (var test in request.Tests)
+    {
+        run.Started(test.Id);
+        var outcome = await host.RunAsync(test.Id, cancellationToken);
+        if (outcome.Passed)
+            run.Passed(test.Id, outcome.Duration);
+        else
+            run.Failed(test.Id, new TestFailure(outcome.Message) { Expected = outcome.Expected, Actual = outcome.Actual }, outcome.Duration);
+    }
+}
+```
+
+A provider whose `CanDebug` is true debugs tests by calling `ITestRun.DebugAsync` with a `LaunchPlan` whose `Debug` names a debugger;
+Runesmith starts it with the [debug engine](./debug-engines.mdx) that serves it, as it does for run configurations.
+
 ## Terminals
 
 Import `ITerminalService` to start a program, or the user's shell, in a tab of the [Terminal](/guide/terminal) panel. The returned
@@ -630,6 +655,7 @@ A plugin that uses anything added in 0.1.2 declares `"runesmithApi": "^0.1.2"` i
 
 | Added in 0.1.2 | What it is |
 | --- | --- |
+| `ITestProvider`, `ITestRun`, `TestItem`, `TestItemKind`, `TestDiscoveryContext`, `TestDocumentContext`, `TestsChangedEventArgs`, `TestRunRequest`, `TestFailure`, `TestStackFrame` | [Test providers](./testing.mdx). |
 | `ITerminalService`, `ITerminal`, `TerminalOptions`, `TerminalDataEventArgs`, `TerminalExitedEventArgs` | [Terminals](./terminal.mdx). |
 | `ThemeColors.TerminalColors` | The terminal's ANSI colors in a [color theme](./themes.mdx). |
 
@@ -638,6 +664,6 @@ A plugin that uses anything added in 0.1.2 declares `"runesmithApi": "^0.1.2"` i
 - [Create a plugin](./create-a-plugin.mdx)
 - [Editor extensions](./language-features.mdx): decorations, code actions, rename, formatting and keyboard hooks.
 - [Custom editors](./custom-editors.mdx) and [Web views](./web-views.mdx)
-- [Terminals](./terminal.mdx)
+- [Test providers](./testing.mdx) and [Terminals](./terminal.mdx)
 - [C# support](./csharp.mdx), a complete plugin.
 - [Git](./git.mdx) and [GitHub](./github.mdx), the version control plugins.

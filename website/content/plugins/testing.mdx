@@ -1,0 +1,184 @@
+---
+title: Test providers
+description: Find the tests of a folder and of a file with ITestProvider, run and debug them, and report each test's result, output and failure.
+---
+
+A test provider finds the tests of a kind of project, such as .NET test projects, and runs them. Runesmith shows what it finds in the
+[Test Explorer](/guide/test-explorer), puts run markers and results beside the tests in the editor, and turns failed assertions into
+problems at the line they failed on. This page shows a provider, how discovery and runs work, and what Runesmith does with the results.
+`ITestProvider` and the types on this page were added in plugin API 0.1.2.
+
+## Write a provider
+
+Export an `ITestProvider`. It returns its tests as a tree of `TestItem`s, and runs a request by reporting each test to the `ITestRun` it
+gets:
+
+```csharp title="AcmeTestProvider.cs"
+using System.Composition;
+using Runesmith.Sdk.Testing;
+using Runesmith.Text;
+
+namespace AcmeTests;
+
+[Export(typeof(ITestProvider))]
+[Shared]
+public sealed class AcmeTestProvider : ITestProvider
+{
+    public string Name => "Acme";
+
+    public Task<IReadOnlyList<TestItem>> DiscoverAsync(TestDiscoveryContext context, CancellationToken cancellationToken)
+    {
+        var file = Path.Combine(context.RootPath, "tests", "MathTests.acme");
+        var add = new TestItem("MathTests.Add", "Add", TestItemKind.Test) { FilePath = file, Start = new TextPosition(2, 4) };
+        var tests = new TestItem("MathTests", "MathTests", TestItemKind.Class) { FilePath = file, Start = new TextPosition(0, 0), Children = [add] };
+        return Task.FromResult<IReadOnlyList<TestItem>>([tests]);
+    }
+
+    public async Task RunAsync(TestRunRequest request, ITestRun run, CancellationToken cancellationToken)
+    {
+        foreach (var test in request.Tests.SelectMany(Tests))
+        {
+            run.Started(test.Id);
+            run.AppendOutput($"Running {test.Label}\n", test.Id);
+            await Task.Delay(50, cancellationToken);
+            run.Passed(test.Id, TimeSpan.FromMilliseconds(50));
+        }
+    }
+
+    private static IEnumerable<TestItem> Tests(TestItem item) => item.Children.Count == 0 ? [item] : item.Children.SelectMany(Tests);
+}
+```
+
+The provider runs the tests in its own process or in the test framework's, so it needs the `process`
+[capability](./index.mdx#capabilities) when it starts one. Declare `"runesmithApi": "^0.1.2"` in `plugin.json`, so an older Runesmith lists
+the plugin as needing a newer API.
+
+## The test tree
+
+A `TestItem` is a test or a group of tests. Its `Id` must be unique among the provider's items and stay the same between discoveries, such
+as a test's full name: results, runs and the Test Explorer's selection follow it.
+
+| Member | What it is |
+| --- | --- |
+| `Id` | The item's id, unique among the provider's items. |
+| `Label` | The name shown, such as the method's name. |
+| `Kind` | `Project`, `Namespace`, `Class`, `Test` or `Case`, one case of a parameterized test. |
+| `FilePath` | The file the item is declared in, or null. Items with a file and a `Start` get a run marker and code lenses in the editor. |
+| `Start`, `End` | Where the declaration starts and ends, counted from 0. The marker goes on `Start`'s line; **Run Tests at Caret** picks the innermost item whose lines hold the caret. |
+| `Description` | A short text after the label, such as a case's arguments. |
+| `Tags` | Tags or categories, such as `slow`. The filter finds them with `@slow`. |
+| `Children` | The items it holds. An item without children is a test that runs on its own. |
+
+## Keep the tests up to date
+
+Runesmith asks for the tests of the whole folder with `DiscoverAsync` when the folder opens. Afterwards it asks for one file's tests with
+`DiscoverDocumentAsync` when the file is saved, changes on disk, or changes in an open editor, a moment after typing stops.
+`TestDocumentContext.Snapshot` has the file's text, with changes not saved yet.
+
+`DiscoverDocumentAsync` returns top items with the same ids `DiscoverAsync` gives them, holding only that file's tests. Runesmith merges
+them into the tree: the file's tests that are gone are removed, groups left empty are removed, and tests that are still there keep their
+results. Return an empty list for a file without tests. Return null, which the default implementation does, when the provider cannot tell
+from one file, and Runesmith discovers the whole folder again instead.
+
+```csharp
+public Task<IReadOnlyList<TestItem>?> DiscoverDocumentAsync(TestDocumentContext context, CancellationToken cancellationToken)
+{
+    if (!context.FilePath.EndsWith(".acme", StringComparison.Ordinal))
+        return Task.FromResult<IReadOnlyList<TestItem>?>([]);
+
+    var text = context.Snapshot.GetText();
+    return Task.FromResult<IReadOnlyList<TestItem>?>(Parse(context.FilePath, text));
+}
+```
+
+When the provider knows its tests changed for another reason, such as after a build, it raises `TestsChanged`: with a file's path,
+Runesmith discovers that file again, and with null, the whole folder.
+
+## Report a run
+
+`RunAsync` gets a `TestRunRequest`: the items to run, which are tests, cases or whole groups, whether to run or debug them, and the open
+folder. When the user runs every test, the items are the provider's top items. Report each test to the `ITestRun` as it runs:
+
+| Member | What it reports |
+| --- | --- |
+| `Started(id)` | The test runs now. |
+| `Passed(id, duration)` | The test passed. |
+| `Failed(id, failure, duration)` | An assertion did not hold. |
+| `Errored(id, failure, duration)` | The test could not run, or threw something other than a failed assertion. |
+| `Skipped(id, reason)` | The test was skipped, such as by an attribute. |
+| `AppendOutput(text, id)` | Text for the run's output, and for a test's own output when the id is given. |
+| `AddItem(parentId, item)` | An item found while running, such as a case of a parameterized test, under its test. |
+| `DebugAsync(plan, cancellationToken)` | Starts a launch plan under a debugger; see [Debug tests](#debug-tests). |
+
+Tests of the request are queued until they start. Reports about ids the run does not know, and reports after `RunAsync` returned, are
+ignored. A test that gets no result keeps the one it had. Canceling the token stops the run; the user does that with **Stop**, or by
+starting another run.
+
+### Failures
+
+A `TestFailure` carries what went wrong:
+
+```csharp
+run.Failed(test.Id, new TestFailure("Assert.Equal() Failure: Values differ")
+{
+    Expected = "4",
+    Actual = "5",
+    StackTrace =
+    [
+        new TestStackFrame("at MathTests.Add() in /src/MathTests.cs:line 12")
+        {
+            FilePath = "/src/MathTests.cs",
+            Position = new TextPosition(11, 8),
+        },
+    ],
+}, TimeSpan.FromMilliseconds(3));
+```
+
+| Member | What it is |
+| --- | --- |
+| `Message` | What went wrong. |
+| `Expected`, `Actual` | The values an assertion compared, shown side by side. |
+| `StackTrace` | `TestStackFrame`s, innermost first; frames with a `FilePath` and `Position` are links in the Test Explorer. |
+| `FilePath`, `Position` | Where the test failed. When they are null, the first frame with a file inside the open folder is used. |
+
+Runesmith reports the failure in the **Problems** panel under the source `tests`, at the line it failed on, and highlights that line in
+the editor with the message after it. The next result of the test, such as a pass, takes the problem away.
+
+## Debug tests
+
+A provider whose `CanDebug` returns true gets requests in `RunMode.Debug` when the user debugs tests. It starts the tests the way a run
+configuration starts a program under a debugger: it calls `ITestRun.DebugAsync` with a `LaunchPlan` whose `Debug` names the debugger, and
+Runesmith starts it with the [debug engine](./debug-engines.mdx) that serves that debugger. The **Debug** panel, breakpoints and stepping
+work as for any session. `DebugAsync` returns when the session ends, with the program's exit code, and the provider then reports the
+results, such as from a results file the test host wrote:
+
+```csharp
+public bool CanDebug => true;
+
+private async Task DebugAsync(TestRunRequest request, ITestRun run, CancellationToken cancellationToken)
+{
+    var results = Path.Combine(Path.GetTempPath(), "acme-results.json");
+    var plan = new LaunchPlan("dotnet", ["acme-host.dll", "--results", results], request.RootPath)
+    {
+        Debug = new DebugLaunch("dotnet", new Dictionary<string, string> { ["program"] = "acme-host.dll" }),
+    };
+    if (await run.DebugAsync(plan, cancellationToken) is null)
+        return;
+
+    foreach (var result in await AcmeResults.ReadAsync(results, cancellationToken))
+        run.Passed(result.Id, result.Duration);
+}
+```
+
+When no installed plugin provides the debugger, the run's output says so and `DebugAsync` returns null.
+
+## Threads
+
+Every member of `ITestProvider` is called on a background thread. `ITestRun` can be called from any thread, and `TestsChanged` can be
+raised from any thread.
+
+## Related
+
+- [Test Explorer](/guide/test-explorer), for users
+- [Debug engines](./debug-engines.mdx)
+- [API overview](./api.mdx#tests)

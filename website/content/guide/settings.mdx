@@ -95,11 +95,12 @@ saves the file. When a file is not valid JSON, Runesmith uses the other scopes a
 | Menus | `window.menuBar` | `toolbar` | Where the menus are: `toolbar`, behind the menu button at the left of the toolbar, or `separate`, in a menu bar of their own under it. |
 | Title bar | `window.titleBar` | `custom` | `custom` makes the toolbar the window's title bar on Windows and Linux; `system` keeps the system's title bar above it. Applies when Runesmith starts. |
 
-## Run and terminal
+## Run, tests and terminal
 
 | Setting | Key | Default | What it does |
 | --- | --- | --- | --- |
 | Run in the terminal | `run.useTerminal` | `false` | Runs a configuration's program in a tab of the Terminal panel instead of the **Run** panel's console. See [Run configurations in the terminal](./terminal.mdx#run-configurations-in-the-terminal). |
+| Run tests on save | `testing.autoRunOnSave` | `false` | Runs a file's tests when you save it, or the last run's tests when it has none. See [Test Explorer](./test-explorer.mdx#run-tests-on-save). |
 | Shell | `terminal.shell` | empty | The program new terminals start, such as `/bin/zsh`. Empty is your default shell. |
 | Font family | `terminal.fontFamily` | empty | The terminal's font. Empty uses the editor's. |
 | Font size | `terminal.fontSize` | `0` | The terminal's font size in pixels, up to 40. `0` uses the editor's. |

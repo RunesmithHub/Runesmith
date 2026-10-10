@@ -2,7 +2,8 @@
 
 The API for Runesmith plugins. A plugin is a contracts project and an implementation project that reference this package, and a
 `plugin.json` manifest. The implementation exports parts with the `System.Composition` attributes: commands, tool windows, languages,
-language servers, completion and hover providers, build providers, settings, and color themes, syntax colors and file icons.
+language servers, completion and hover providers, build providers, test providers, settings, and color themes, syntax colors and file
+icons.
 
 Create a plugin from the template:
 
