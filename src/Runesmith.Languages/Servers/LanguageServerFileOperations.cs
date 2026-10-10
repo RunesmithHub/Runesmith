@@ -70,8 +70,12 @@ public sealed class LanguageServerFileOperations : IFileOperationParticipant
 
     public Task DidApplyAsync(IReadOnlyList<FileOperation> operations, CancellationToken cancellationToken)
     {
+        var running = sessions();
+        if (running.Count == 0)
+            return Task.CompletedTask;
+
         var changes = Describe(operations, before: false);
-        foreach (var session in sessions())
+        foreach (var session in running)
         {
             foreach (var (kind, targets) in changes)
                 session.DidChangeFiles(kind, targets);
