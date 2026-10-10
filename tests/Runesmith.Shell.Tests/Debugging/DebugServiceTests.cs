@@ -143,8 +143,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
         breakpoints.Toggle(program.ProgramPath, 4);
         var configuration = new RunConfiguration(type.Id, "App", new OptionValues()) { BeforeLaunch = [] };
 
-        var run = await runs.RunAsync(configuration, RunMode.Debug);
-        Assert.NotNull(run);
+        var run = await runs.RunAsync(configuration, RunMode.Debug) ?? throw new InvalidOperationException("The run did not start.");
         await WaitAsync(() => service.Current is { State: DebugState.Running } && run.State == RunState.Running);
         Assert.Equal(RunMode.Debug, type.Modes.Single());
 
