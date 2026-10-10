@@ -84,7 +84,9 @@ public sealed class TestDecorations : IDecorationProvider
                     ShowsInOverviewRuler = true,
                     ToolTip = $"**{node.Item.Label} failed**\n\n{failure.Message}",
                 });
-                decorations.Add(new InlayHint(line.End, $"  {node.Item.Label}: {summary}") { Side = InlayHintSide.After });
+                var inside = PathKey.Equals(node.Item.FilePath, path) && node.Item.Start is { } start && start.Line <= location.Position.Line
+                    && (node.Item.End ?? start).Line >= location.Position.Line;
+                decorations.Add(new InlayHint(line.End, inside ? $"  {summary}" : $"  {node.Item.Label}: {summary}") { Side = InlayHintSide.After });
             }
         }
 

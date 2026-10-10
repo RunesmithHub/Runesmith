@@ -69,7 +69,7 @@ internal sealed class TestExplorerView : DockPanel
         var collapse = SmallButton(Icons.ChevronsUp, "Collapse All", rows.CollapseAll);
         tools.Children.AddRange([refresh, collapse]);
 
-        filter = new TextBox { PlaceholderText = "Filter by name, or @tag", Classes = { "small" }, Width = 240, VerticalAlignment = VerticalAlignment.Center };
+        filter = new TextBox { PlaceholderText = "Filter by name, or @tag", Classes = { "small" }, Width = 220, VerticalAlignment = VerticalAlignment.Center };
         filter.TextChanged += (_, _) => MarkDirty();
         failedOnly = new ToggleButton { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.Filter, Size = 14 }, VerticalAlignment = VerticalAlignment.Center };
         ToolTip.SetTip(failedOnly, "Show only failed tests");
@@ -95,6 +95,7 @@ internal sealed class TestExplorerView : DockPanel
         summary.HorizontalAlignment = HorizontalAlignment.Right;
         summary.Margin = new Thickness(12, 0, 8, 0);
         bar.Children.AddRange([left, tools, summary]);
+        bar.SizeChanged += (_, _) => FitSummary();
         DockPanel.SetDock(bar, Dock.Top);
 
         tree = new TreeView
@@ -245,6 +246,27 @@ internal sealed class TestExplorerView : DockPanel
         if (tests.CurrentRun is { } run)
             text += run.State == TestRunState.Running ? $"  ·  running {TestDecorations.Format(run.Elapsed)}" : $"  ·  last run {TestDecorations.Format(run.Elapsed)}";
         summary.Children.Add(new TextBlock { Text = text, Classes = { "caption", "muted" }, VerticalAlignment = VerticalAlignment.Center });
+        FitSummary();
+    }
+
+    // A narrow panel drops the summary's text first, then its counts, rather than letting them run into the buttons.
+    private void FitSummary()
+    {
+        if (summary.Parent is not DockPanel bar || bar.Bounds.Width <= 0)
+            return;
+
+        var available = bar.Bounds.Width - bar.Margin.Left - bar.Margin.Right - bar.Children[0].Bounds.Width - tools.Bounds.Width - summary.Margin.Left - summary.Margin.Right;
+        foreach (var child in summary.Children)
+            child.IsVisible = true;
+        summary.IsVisible = true;
+        summary.Measure(Size.Infinity);
+        if (summary.DesiredSize.Width > available && summary.Children.Count > 0)
+        {
+            summary.Children[^1].IsVisible = false;
+            summary.Measure(Size.Infinity);
+        }
+
+        summary.IsVisible = summary.DesiredSize.Width <= available;
     }
 
     private static string Tests(int count) => count == 1 ? "1 test" : $"{count} tests";

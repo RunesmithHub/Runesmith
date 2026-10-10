@@ -113,8 +113,21 @@ public sealed class TestFeedbackTests
         var hint = Assert.Single(decorations.OfType<InlayHint>());
         Assert.Equal(snapshot.GetLine(6).End, hint.Offset);
         Assert.Equal(InlayHintSide.After, hint.Side);
-        Assert.Contains("Add: Expected 4", hint.Text, StringComparison.Ordinal);
+        Assert.Equal("  Expected 4", hint.Text);
         Assert.Contains(decorations.OfType<CodeLens>(), l => l.Text == "Failed: Expected 4");
+    }
+
+    [Fact]
+    public void AFailureInAnotherFileNamesItsTest()
+    {
+        var tree = new TestTree();
+        tree.ReplaceAll(provider, Items.Calculator("Add"));
+        var failure = new TestFailure("Index out of range") { FilePath = Items.OtherFile, Position = new TextPosition(2, 0) };
+        tree.SetResults([(tree.Find(provider, Items.Id("Add"))!, new TestResult(TestState.Errored) { Failure = failure })]);
+
+        var hint = Assert.Single(TestDecorations.Decorate(Items.OtherFile, Snapshot(5), tree, "/src").OfType<InlayHint>());
+
+        Assert.Equal("  Add: Index out of range", hint.Text);
     }
 
     [Fact]
