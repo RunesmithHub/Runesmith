@@ -259,6 +259,16 @@ public sealed class TestRunTests
         Assert.Null(service.Tree.Find(provider, Items.Id("Add")));
     }
 
+    [Fact]
+    public async Task ManyChangedFilesDiscoverTheWholeFolderOnce()
+    {
+        var service = await DiscoveredAsync();
+
+        await Task.WhenAll(Enumerable.Range(0, 20).Select(i => service.DiscoverFileAsync($"/src/File{i}.cs", TextSnapshot.Create("x"), Token)));
+
+        Assert.Equal(2, provider.Discoveries);
+    }
+
     private async Task<TestService> DiscoveredAsync()
     {
         var service = Items.Service(provider);

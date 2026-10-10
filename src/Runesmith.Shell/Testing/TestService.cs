@@ -38,6 +38,7 @@ public sealed class TestService : IDisposable
     private readonly Func<DebugService?> debugger;
     private readonly Lock gate = new();
     private readonly Dictionary<string, CancellationTokenSource> pendingFiles = new(PathKey.Comparer);
+    private readonly Dictionary<ITestProvider, CancellationTokenSource> pendingWhole = [];
     private readonly HashSet<string> reportedFiles = new(PathKey.Comparer);
     private readonly List<IDisposable> subscriptions = [];
     private IReadOnlyList<ITestProvider>? providers;
@@ -185,7 +186,38 @@ public sealed class TestService : IDisposable
         }
 
         foreach (var provider in whole)
-            await DiscoverAsync(provider, root, cancellationToken).ConfigureAwait(false);
+            await DiscoverWholeAsync(provider, root).ConfigureAwait(false);
+    }
+
+    // Many files can change at once, such as on a checkout; a provider that needs the whole folder discovers it once for all of them.
+    private async Task DiscoverWholeAsync(ITestProvider provider, string root)
+    {
+        CancellationTokenSource cancel;
+        lock (gate)
+        {
+            if (pendingWhole.TryGetValue(provider, out var pending))
+                pending.Cancel();
+            pendingWhole[provider] = cancel = new CancellationTokenSource();
+        }
+
+        try
+        {
+            await Task.Delay(FileDelay, cancel.Token).ConfigureAwait(false);
+            await DiscoverAsync(provider, root, cancel.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            lock (gate)
+            {
+                if (pendingWhole.TryGetValue(provider, out var current) && current == cancel)
+                    pendingWhole.Remove(provider);
+            }
+
+            cancel.Dispose();
+        }
     }
 
     /// <summary>Runs or debugs tests, stopping the run that goes on first.</summary>
