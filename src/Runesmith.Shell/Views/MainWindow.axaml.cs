@@ -95,8 +95,7 @@ public partial class MainWindow : Window
         commands.Initialize();
         toolWindows.SetGestures(commands.GetKeyBinding);
 
-        Workspace.ContentProvider = layout;
-        Workspace.Layout = layout.Layout;
+        layout.Attach(Workspace);
         Workspace.PanelClosing += OnPanelClosing;
         Workspace.WindowOpened += OnDockWindowOpened;
         Body.Children.Remove(EditorArea);

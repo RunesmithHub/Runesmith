@@ -15,7 +15,9 @@ public sealed class ShellLayout : IDockContentProvider
     private const string DocumentPrefix = "doc:";
 
     private readonly Dictionary<string, IDockPanel> panels = new(StringComparer.Ordinal);
+    private readonly HashSet<string> served = new(StringComparer.Ordinal);
     private readonly List<Func<string, IDockPanel?>> factories = [];
+    private DockHost? host;
     private string? lastEditorGroup;
 
     public ShellLayout()
@@ -32,29 +34,40 @@ public sealed class ShellLayout : IDockContentProvider
 
     public static bool IsDocumentPanel(string panelId) => panelId.StartsWith(DocumentPrefix, StringComparison.Ordinal);
 
+    /// <summary>Shows the layout and its panels in a dock host.</summary>
+    public void Attach(DockHost dockHost)
+    {
+        host = dockHost;
+        dockHost.ContentProvider = new Provider(this);
+        dockHost.Layout = Layout;
+    }
+
     /// <summary>Adds a way to create panels by id, such as Runesmith's pages.</summary>
     public void AddFactory(Func<string, IDockPanel?> factory) => factories.Add(factory);
 
     /// <summary>Makes a panel known by its id, such as a document's.</summary>
-    public void Register(IDockPanel panel) => panels[panel.Id] = panel;
+    public void Register(IDockPanel panel)
+    {
+        panels[panel.Id] = panel;
+        // HammerUI 0.1.0 keeps the first panel it got for an id; a new provider makes it ask again.
+        if (served.Remove(panel.Id) && host is not null)
+            host.ContentProvider = new Provider(this);
+    }
 
     public void Unregister(string panelId) => panels.Remove(panelId);
 
     public IDockPanel? GetPanel(string panelId)
     {
-        if (panels.TryGetValue(panelId, out var panel))
-            return panel;
-
-        foreach (var factory in factories)
+        if (!panels.TryGetValue(panelId, out var panel))
         {
-            if (factory(panelId) is { } created)
-            {
-                panels[panelId] = created;
-                return created;
-            }
+            panel = factories.Select(factory => factory(panelId)).FirstOrDefault(created => created is not null);
+            if (panel is null)
+                return null;
+            panels[panelId] = panel;
         }
 
-        return null;
+        served.Add(panelId);
+        return panel;
     }
 
     /// <summary>Shows a document or page in the editor area: in the group of the editor used last, or the first group of the window.</summary>
@@ -80,5 +93,10 @@ public sealed class ShellLayout : IDockContentProvider
     {
         if (Layout.FocusedGroup is { } group && group.Panels.Count > 0)
             lastEditorGroup = group.Id;
+    }
+
+    private sealed class Provider(ShellLayout layout) : IDockContentProvider
+    {
+        public IDockPanel? GetPanel(string panelId) => layout.GetPanel(panelId);
     }
 }
