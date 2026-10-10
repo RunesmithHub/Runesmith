@@ -1,10 +1,13 @@
+using System.IO.Compression;
 using System.Net;
 using System.Net.Sockets;
 using Runesmith.Hub.Enforcement;
 using Runesmith.Hub.Installing;
 using Runesmith.Hub.Network;
 using Runesmith.Tests.Hub;
+using RunesmithHub.Protocol;
 using RunesmithHub.Protocol.Index;
+using RunesmithHub.Protocol.Packaging;
 using RunesmithHub.Protocol.Resolution;
 using RunesmithHub.Protocol.Updating;
 
@@ -93,6 +96,36 @@ public sealed class InstallTests : IDisposable
     }
 
     [Fact]
+    public async Task APackageWithAWebFolderInstallsItsPagesWithThePlugin()
+    {
+        var resolver = fixture.CreateClient();
+        await resolver.RefreshAsync(Token);
+        var operation = resolver.Resolve(ResolutionRequest.Install("ember.themes"), HubPreferences.Default).Plan!.Find("ember.themes")!;
+        var published = operation.Record!.Package!;
+        using var original = new MemoryStream();
+        await new FixtureDownloader(fixture.Index).DownloadAsync(new Uri(published.Urls[0]), published.Length, original, Token);
+        var package = PackageWriter.Write([.. Entries(original),
+            new PackageFile("web/index.html", "<!doctype html><script src=\"app.js\"></script>"u8.ToArray()),
+            new PackageFile("web/app.js", "document.title = 'Ember';"u8.ToArray())]);
+        var plan = new InstallPlan([operation with
+        {
+            Record = operation.Record with { Package = published with { Sha256 = Hashes.Sha256(package), Length = package.Length } },
+        }]);
+        var client = fixture.CreateClient(new BytesDownloader(package));
+        await client.RefreshAsync(Token);
+
+        await client.ApplyAsync(plan, cancellationToken: Token);
+        var report = HubStartup.Run(fixture.Configuration, fixture.Paths, hubEnabled: true, fixture.Time);
+
+        Assert.Empty(report.Problems);
+        Assert.Equal(["ember.themes"], report.HubPlugins);
+        var web = Path.Combine(fixture.Paths.PluginFolder("ember.themes"), "web");
+        Assert.Equal("document.title = 'Ember';", File.ReadAllText(Path.Combine(web, "app.js")));
+        Assert.True(File.Exists(Path.Combine(web, "index.html")));
+        Assert.Contains(client.State.Find("ember.themes")!.Files, file => file.Path == "web/app.js");
+    }
+
+    [Fact]
     public async Task RemovingAPluginTakesItsFolderAwayAtTheNextStart()
     {
         var client = fixture.CreateClient();
@@ -139,9 +172,31 @@ public sealed class InstallTests : IDisposable
         await Assert.ThrowsAsync<DownloadException>(() => new HttpFileDownloader(http).DownloadAsync(new Uri("http://example.com/x.rsplugin"), 10, Stream.Null, Token));
     }
 
+    private static List<PackageFile> Entries(MemoryStream package)
+    {
+        package.Position = 0;
+        using var archive = new ZipArchive(package, ZipArchiveMode.Read, leaveOpen: true);
+        return [.. archive.Entries.Where(entry => !entry.FullName.EndsWith('/')).Select(entry =>
+        {
+            using var stream = entry.Open();
+            using var content = new MemoryStream();
+            stream.CopyTo(content);
+            return new PackageFile(entry.FullName, content.ToArray());
+        })];
+    }
+
     private sealed class SyncProgress(Action<InstallProgress> report) : IProgress<InstallProgress>
     {
         public void Report(InstallProgress value) => report(value);
+    }
+
+    private sealed class BytesDownloader(byte[] bytes) : IFileDownloader
+    {
+        public async Task<long> DownloadAsync(Uri url, long maxBytes, Stream destination, CancellationToken cancellationToken)
+        {
+            await destination.WriteAsync(bytes, cancellationToken);
+            return bytes.Length;
+        }
     }
 
     private sealed class FailingDownloader : IFileDownloader
