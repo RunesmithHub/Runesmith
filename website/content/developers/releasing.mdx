@@ -32,8 +32,8 @@ Follow [semantic versioning](https://semver.org) for Runesmith. The plugin API h
 Before 1.0, raise its patch version when the SDK gains something and its minor version when a change breaks plugins; from 1.0 on, raise
 the minor and major versions. When a change breaks plugins, set `RunesmithApi.OldestSupported` to the start of the new line.
 
-The packages plugins build against (`Runesmith.Sdk`, `Runesmith.Text`, `Runesmith.LanguageServices`, the `Runesmith.Languages.*` engines
-and `Runesmith.Templates`) have the API's version, `RunesmithSdkVersion` in `Directory.Build.props`, not the app's. When the API changes,
+The packages plugins build against (`Runesmith.Sdk`, `Runesmith.Text` and `Runesmith.LanguageServices`) and the plugin template
+(`Runesmith.Templates`) have the API's version, `RunesmithSdkVersion` in `Directory.Build.props`, not the app's. When the API changes,
 raise `RunesmithApi.Version`, `RunesmithSdkVersion`, and the template's `sdkVersion` default and `runesmithApi` range together; a test
 checks that they agree. Then push a tag such as `sdk/v0.1.1`, which packs and pushes only the packages. The workflow stops when the tag
 does not match `RunesmithSdkVersion`. An app tag packs them too, and the feed skips a version it already has.
@@ -42,7 +42,9 @@ does not match `RunesmithSdkVersion`. An app tag packs them too, and the feed sk
 
 | Job | Runs | What it does |
 | --- | --- | --- |
-| Publish | Every run, once per system | Publishes `src/Runesmith.App` self-contained in Release for `linux-x64`, `win-x64` and `osx-arm64`, with the plugins `bundled-plugins.json` pins, checks that each is in the output and no other plugin is, and archives it as `runesmith-<version>-<system>.tar.gz`, or `.zip` for Windows. |
+| Publish | Every run, once per system | Publishes `src/Runesmith.App` self-contained in Release for `linux-x64`, `win-x64` and `osx-arm64`, checks that the output has no plugins, since Runesmith ships with none, and archives it as `runesmith-<version>-<system>.tar.gz`, or `.zip` for Windows. |
+| Packages | Every run | Packs `Runesmith.Text`, `Runesmith.Sdk`, `Runesmith.LanguageServices` and `Runesmith.Templates`. |
+| Hub feed | Version and `sdk/v*` tags only | Pushes the packages to the hub feed, skipping versions it already has. |
 | Release | Version tags only | Creates the GitHub release with the three archives. |
 
 Pull requests that change the workflow, and runs started by hand, build the archives with a `-ci.` version and release nothing, so the

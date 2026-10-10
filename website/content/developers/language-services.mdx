@@ -4,9 +4,8 @@ description: How Runesmith's language analyzers run, how requests are scheduled 
 ---
 
 Runesmith answers completion, hover, go to definition, signature help and problems through its own language services: one shared core
-that keeps documents, schedules requests and measures them, and one analyzer per language, such as the C# analyzer. This page describes
-the core, the bridge that runs analyzers in the editor's process, the language server executable that serves the same analyzers over the
-Language Server Protocol, and how to measure all of it. To write an analyzer in a plugin, see
+that keeps documents, schedules requests and measures them, and one analyzer per language, such as the C# plugin's. This page describes
+the core, the bridge that runs analyzers in the editor's process, and how to measure both. To write an analyzer in a plugin, see
 [ILanguageAnalyzer](/plugins/api#language-analyzers).
 
 ## The projects
@@ -14,10 +13,9 @@ Language Server Protocol, and how to measure all of it. To write an analyzer in 
 | Project | What it holds |
 | --- | --- |
 | `src/Runesmith.LanguageServices` | The core: `ILanguageAnalyzer` and `AnalyzerContext`, `LanguageServiceHost`, the request scheduler, document versions, `CompletionSink` and `CompletionMatcher`, and the metrics. Depends only on `Runesmith.Text`. |
-| `src/Runesmith.Languages.CSharp` | `CSharpAnalyzer`, on the C# compiler (Roslyn 5.9). The only project that carries the compiler. |
 | `src/Runesmith.Languages` | `AnalyzerBridge`, which runs the analyzers plugins export inside Runesmith, and the providers that give their answers to the editor. |
-| `src/Runesmith.LanguageServer` | `runesmith-language-server`, which serves analyzers over the Language Server Protocol on standard input and output. |
-| The C# plugin | Exports the C# analyzer, and ships it and the compiler in the plugin's folder. Its source is in [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp). |
+| The C# plugin | Exports the C# analyzer, on the C# compiler, and ships both in the plugin's folder. Its source is in [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp). |
+| The Java plugin | Exports the Java analyzer and its parser. Its source is in [RunesmithHub/plugin-java](https://github.com/RunesmithHub/plugin-java). |
 
 ## The host
 
@@ -109,20 +107,6 @@ providers for every language, and ask the host for documents whose language has 
 column into workspace edits, moving edits of an older version through the changes made since. `ShellStartup.OnShownAsync` creates the
 bridge once the window shows.
 
-## The language server executable
-
-`runesmith-language-server` serves the same analyzers over the Language Server Protocol on standard input and output, so other tools can
-use them. It runs every analyzer in `AnalyzerCatalog`, which is the C# analyzer today.
-
-```bash
-dotnet run --project src/Runesmith.LanguageServer
-```
-
-It opens the workspace at the client's `rootUri` on `initialize`, keeps documents in sync with incremental changes, answers
-`textDocument/completion`, `completionItem/resolve`, `textDocument/hover`, `textDocument/definition` and `textDocument/signatureHelp`,
-publishes problems with `textDocument/publishDiagnostics`, and sends the analyzers' logs as `window/logMessage`. It keeps its caches in a
-`runesmith/language-server` folder in the user's local application data.
-
 ## Metrics
 
 Every request records its time under the meter `Runesmith.LanguageServices`:
@@ -149,11 +133,10 @@ dotnet-counters monitor --process-id <pid> --counters Runesmith.Editor,Runesmith
 ## Benchmarks
 
 `benchmarks/Runesmith.Benchmarks` has BenchmarkDotNet benchmarks for the language services. `CompletionRankingBenchmarks` filters and ranks
-2,000 suggestions, and `CSharpBenchmarks` measures the C# analyzer through the host on a generated project and on the Runesmith solution:
-completion after a dot, at a statement start and for the same word again, hover, signature help and applying an edit.
+2,000 suggestions:
 
 ```bash
-dotnet run --project benchmarks/Runesmith.Benchmarks --configuration Release -- --filter '*CSharpBenchmarks*'
+dotnet run --project benchmarks/Runesmith.Benchmarks --configuration Release -- --filter '*CompletionRankingBenchmarks*'
 ```
 
 ## The typing benchmark

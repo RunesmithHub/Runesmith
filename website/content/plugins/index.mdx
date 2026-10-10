@@ -26,11 +26,12 @@ itself. It cannot load another plugin's implementation.
 
 ## Where plugins live
 
-Runesmith looks in three places when it starts. Each plugin is a subfolder that holds a `plugin.json`, named after its id.
+Runesmith ships with no plugins: install the ones you want from **Tools › Plugins** or [hub.runesmith.dev](https://hub.runesmith.dev),
+and Runesmith suggests the official ones when what you open needs them. It looks in two places when it starts. Each plugin is a subfolder
+that holds a `plugin.json`, named after its id.
 
 | Folder | What is there |
 | --- | --- |
-| `plugins` next to the Runesmith executable | The plugins that ship with Runesmith: Git and GitHub. |
 | The hub's plugins folder | The plugins you install from the [plugin hub](/guide/plugins). Runesmith manages this folder. |
 | Your plugins folder | The plugins you put there yourself, such as with `dotnet build -t:InstallPlugin`. Runesmith marks them as local. |
 
@@ -89,7 +90,7 @@ You write `plugin.json` at the root of the plugin, next to the two projects:
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `schemaVersion` | Yes | The manifest format, `1`. |
-| `id` | Yes | `publisher.name`, each part lowercase letters, digits and hyphens, starting with a letter, such as `acme.todo`. Two plugins with the same id cannot both load; the built-in one wins. |
+| `id` | Yes | `publisher.name`, each part lowercase letters, digits and hyphens, starting with a letter, such as `acme.todo`. Two plugins with the same id cannot both load; the one from the hub wins unless `plugins.allowLocalOverrides` lets a local copy replace it. |
 | `name` | Yes | The name shown to the user, 2 to 40 characters. |
 | `version` | Yes | The plugin's [semantic version](https://semver.org), such as `1.2.0`. |
 | `summary` | Yes | One sentence about what the plugin does, at most 120 characters. |

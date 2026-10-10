@@ -81,7 +81,7 @@ A fork, a company build or a single user can sign in with a GitHub App of their 
 
 - **For a build of the plugin:** replace `src/Runesmith.GitHub/github-app.json` in the plugin's repository with your app's values and
   build the plugin, so every user of that build signs in with it without setting anything. Ship it as a plugin of your own, or install it
-  as a local plugin, which runs instead of the bundled one once `plugins.allowLocalOverrides` is on.
+  as a local plugin, which runs instead of the one from the hub once `plugins.allowLocalOverrides` is on.
 
 The app name is optional with the settings: once the app is installed anywhere, Runesmith learns it from the installation. Until then,
 **Add an organization** is not offered and **Manage Access** opens GitHub's list of installed apps.

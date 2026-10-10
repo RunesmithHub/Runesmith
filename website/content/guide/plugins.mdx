@@ -32,7 +32,7 @@ Every hub plugin has a tier, shown as a badge:
 | **Unverified** | Checked automatically, but no person at Runesmith has read the code. |
 | **Local** | A plugin you put in your plugins folder yourself. It is never updated or reported to the hub. |
 
-A plugin in your plugins folder with the id of a plugin that comes with Runesmith or from the hub is a local copy of it. It does not load,
+A plugin in your plugins folder with the id of a plugin from the hub is a local copy of it. It does not load,
 and the plugin manager marks it **Not loaded**, unless you turn on **Local copies replace plugins** (`plugins.allowLocalOverrides`) in
 your own settings. Then it runs in place of the other plugin, marked **Replaces the installed plugin**, with its own secrets and storage.
 
@@ -43,27 +43,28 @@ you put there, so a plugin you build and install yourself, such as with `dotnet 
 The setting **Allowed plugins** (`plugins.hub.allowedTiers`) can limit installs to official and verified plugins, or to official ones; the
 others are then hidden from **Browse**.
 
-## Plugins that ship with Runesmith
+## Official plugins
 
-Runesmith ships with the official Git and GitHub plugins. They are the packages the hub published, at the versions this Runesmith was built
-with. The plugin manager offers newer versions from the hub; a newer version runs in place of the shipped one, which stays as the fallback
-when the newer one cannot load. **Installed** shows which copy runs.
-
-The other official plugins, **C#**, **C# templates**, **Java**, **Java templates**, and **Gitea and Forgejo**, install from the hub like
-any other plugin. Find them in **Browse**, or on [hub.runesmith.dev](https://hub.runesmith.dev).
+Runesmith ships with no plugins. The official ones, **Git**, **GitHub**, **C#**, **C# templates**, **Java**, **Java templates**, and
+**Gitea and Forgejo**, install from the hub like any other plugin: find them in **Browse**, or on
+[hub.runesmith.dev](https://hub.runesmith.dev). Runesmith suggests the ones that fit what you open.
 
 ## Suggested plugins
 
-When you open a file of a language whose official plugin is not installed, a line over the editor suggests it, such as **Install the C#
-plugin for completion, problems and builds.** It shows once per language each time Runesmith runs, and never while the hub is turned off.
+When what you open needs an official plugin that is not installed, Runesmith suggests it. Opening a file of a language shows a line over
+the editor, such as **Install the C# plugin for completion, problems and builds.** Opening a folder that is a Git repository shows a line
+over the editor area that suggests the Git plugin, and once you close it, one for the GitHub plugin when the repository has a remote on
+github.com. Each plugin is suggested once each time Runesmith runs, and never while it is installed or the hub is turned off.
 
-| Language | Plugin | Files |
-| --- | --- | --- |
-| C# | `runesmith.csharp` | `.cs`, `.csproj`, `.sln`, `.slnx` and `.razor` |
-| Java | `runesmith.java` | `.java`, `pom.xml`, `build.gradle` and `build.gradle.kts` |
+| Plugin | Suggested for |
+| --- | --- |
+| C#, `runesmith.csharp` | `.cs`, `.csproj`, `.sln`, `.slnx` and `.razor` files |
+| Java, `runesmith.java` | `.java`, `pom.xml`, `build.gradle` and `build.gradle.kts` files |
+| Git, `runesmith.git` | A folder with a `.git` folder or file at its top |
+| GitHub, `runesmith.github` | A Git repository with a remote whose address is on `github.com`, read from its `.git/config` |
 
 **Install** opens the plugin's page in the plugin manager, where you install it. **Don't suggest again** stops the suggestion for that
-language and keeps the choice in your settings, as **Plugins not to suggest** (`plugins.hub.declinedSuggestions`). The close button
+plugin and keeps the choice in your settings, as **Plugins not to suggest** (`plugins.hub.declinedSuggestions`). The close button
 hides the line for now.
 
 ## Install a plugin
@@ -148,14 +149,14 @@ Runesmith refuses any other link and says why. When more than three links arrive
 
 | Setting | Key | Default | What it does |
 | --- | --- | --- | --- |
-| Use the plugin hub | `plugins.hub.enabled` | `true` | Off: only the plugins that come with Runesmith and the ones in your plugins folder load. |
+| Use the plugin hub | `plugins.hub.enabled` | `true` | Off: only the plugins in your plugins folder load. |
 | Allowed plugins | `plugins.hub.allowedTiers` | `all-with-warnings` | `all-with-warnings`, `official-and-verified` or `official-only`. |
 | Update automatically | `plugins.hub.autoUpdate` | `true` | Lets official and verified plugins update by themselves. |
 | Check for changes every | `plugins.hub.checkInterval` | `6` | Hours between checks, from 1 to 24. |
 | Open runesmith:// links | `plugins.hub.registerLinks` | `true` | Registers Runesmith for links on Windows. |
 | Pre-releases | `plugins.hub.preReleases` | empty | Ids of the plugins you want pre-releases of, separated by semicolons. |
-| Plugins not to suggest | `plugins.hub.declinedSuggestions` | empty | Ids of the language plugins Runesmith no longer suggests when you open their files, separated by semicolons. **Don't suggest again** writes it. |
-| Local copies replace plugins | `plugins.allowLocalOverrides` | `false` | Lets a plugin in your plugins folder run in place of the plugin with the same id that comes with Runesmith or from the hub. Takes effect at the next start. |
+| Plugins not to suggest | `plugins.hub.declinedSuggestions` | empty | Ids of the official plugins Runesmith no longer suggests, separated by semicolons. **Don't suggest again** writes it. |
+| Local copies replace plugins | `plugins.allowLocalOverrides` | `false` | Lets a plugin in your plugins folder run in place of the plugin with the same id from the hub. Takes effect at the next start. |
 
 ## Related
 

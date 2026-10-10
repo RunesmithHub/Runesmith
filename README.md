@@ -31,11 +31,11 @@ cd Runesmith
 dotnet run --project src/Runesmith.App
 ```
 
-Its UI library, [HammerUI](https://github.com/RunesmithHub/HammerUI), comes from the Runesmith Hub feed, with no sign-in. The official
-plugins live in their own repositories. Runesmith ships with Git and GitHub: the build fetches the versions `bundled-plugins.json` pins
-from the plugin hub and checks them against its signed index (see
-[Bundled plugins](website/content/developers/building.mdx#bundled-plugins)). The others, such as C#, Java, and Gitea and Forgejo, are
+Its UI library, [HammerUI](https://github.com/RunesmithHub/HammerUI), comes from the Runesmith Hub feed, with no sign-in. Runesmith ships
+with no plugins. The official plugins, such as Git, GitHub, C#, Java, and Gitea and Forgejo, live in their own repositories and are
 installed from the plugin hub by those who want them: open **Tools › Plugins**, or start from [hub.runesmith.dev](https://hub.runesmith.dev).
+Runesmith suggests the official plugin that fits when you open a folder that is a Git repository, one with a remote on GitHub, or a C# or
+Java file.
 
 With the C# plugin installed, C# completion, hover and problems work without installing anything else. Loading your C# projects uses
 MSBuild, which needs the .NET SDK, as building does.

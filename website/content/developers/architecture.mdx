@@ -26,10 +26,6 @@ graph TD
   Composition --> Sdk
   Sdk --> Text[Runesmith.Text]
   Services --> Text
-  CSharpAnalyzer[Runesmith.Languages.CSharp] --> Services
-  Server[Runesmith.LanguageServer] --> Services
-  Server --> Lsp
-  Server --> CSharpAnalyzer
 ```
 
 | Project | What it holds |
@@ -41,18 +37,15 @@ graph TD
 | `src/Runesmith.Composition` | Finds and checks plugins, loads each in its own load context and composes everything with VS-MEF, with a cache. |
 | `src/Runesmith.Hub` | The plugin hub client: the verified index, search, install plans, installs and updates, and what the hub's states mean for installed plugins. No user interface. |
 | `src/Runesmith.Workspace` | The open folder, its file index and watcher, the Explorer's tree, documents on disk, settings, Quick Open and find in files. |
-| `src/Runesmith.LanguageServices` | The language services core: open documents and their versions, the request scheduler, the completion sink and ranking, and metrics. Only `Runesmith.Text`. See [Language services](./language-services.mdx). |
-| `src/Runesmith.Languages.CSharp` | The C# analyzer, on the C# compiler (Roslyn): completion, hover, go to definition, signature help and problems. |
-| `src/Runesmith.LanguageServer` | `runesmith-language-server`, which serves the same analyzers over the Language Server Protocol. |
+| `src/Runesmith.LanguageServices` | The language services core: open documents and their versions, the request scheduler, the completion sink and ranking, and metrics. Only `Runesmith.Text`. Published as a package, which language plugins build their analyzers on. See [Language services](./language-services.mdx). |
 | `src/Runesmith.Languages` | The language registry, TextMate highlighting, problems, merged language features, the bridge that runs analyzers in Runesmith's process and the bridge to language servers. |
 | `src/Runesmith.Editor` | The editor control: drawing, input, editing operations, completion, signature help, hover and the find bar. |
 | `src/Runesmith.Shell` | The window: menus, commands and key bindings, docking, panels, pages, the command palette, sessions and builds. |
 | `src/Runesmith.App` | The executable: the command line, one running instance, crash logs and startup. |
-| `tools/Runesmith.BundledPlugins` | Fetches the plugins `bundled-plugins.json` pins from the plugin hub during the app's build, checks them against the signed index and unpacks them into `plugins/<id>`. See [Bundled plugins](./building.mdx#bundled-plugins). |
 | `templates/Runesmith.Templates` | The `dotnet new runesmith-plugin` template. |
 
 `tests/` has a test project for each project in `src/` except the SDK and the app, and `benchmarks/Runesmith.Benchmarks` holds the
-benchmarks.
+benchmarks. The solution has no plugin code: the official plugins, with the C# and Java analyzers, live in their own repositories.
 
 ## Startup
 
@@ -89,7 +82,7 @@ says otherwise.
 
 ## Language support
 
-Language features come from two places. Language analyzers, such as the C# analyzer, run in Runesmith's process through
+Language features come from two places. Language analyzers, such as the C# plugin's, run in Runesmith's process through
 `AnalyzerBridge` and the language services core; [Language services](./language-services.mdx) describes them. Language servers that
 plugins declare with `LanguageServerDefinition` run as child processes, and `Runesmith.Languages` talks to them through `Runesmith.Lsp`.
 

@@ -3,8 +3,8 @@ title: Building and testing
 description: Install the tools, build Runesmith without warnings with or without a HammerUI checkout, and run the tests, benchmarks and documentation site.
 ---
 
-Runesmith is one solution, `Runesmith.slnx`, with the projects in `src/`, the build tools in `tools/`, the template in `templates/`,
-the test projects in `tests/` and the benchmarks in `benchmarks/`. The official plugins live in their own repositories in the
+Runesmith is one solution, `Runesmith.slnx`, with the projects in `src/`, the template in `templates/`, the test projects in `tests/`
+and the benchmarks in `benchmarks/`. The official plugins live in their own repositories in the
 [RunesmithHub](https://github.com/RunesmithHub) organization. This page covers the tools you need and the commands CI runs, so a change
 that passes here passes there.
 
@@ -60,62 +60,39 @@ dotnet build Runesmith.slnx -warnaserror
 The build has no warnings, and CI treats any warning as an error. Analyzers run at the `latest-recommended` level, and `BannedSymbols.txt`
 rejects calls that are easy to get wrong; each entry says why and what to use instead.
 
-Building `src/Runesmith.App` also brings in the bundled plugins; see [Bundled plugins](#bundled-plugins).
+## Official plugins
 
-## Bundled plugins
-
-Runesmith ships the official Git and GitHub plugins as published on the plugin hub; the other official plugins, such as C# and Java, are
-installed from the hub by the users who want them. `bundled-plugins.json` at the repository root pins each shipped plugin by id, version
-and the SHA-256 of its package:
-
-```json title="bundled-plugins.json"
-{
-  "index": "https://runesmithhub.github.io/registry/",
-  "plugins": [
-    { "id": "runesmith.git", "version": "0.1.0", "sha256": "aa827f72..." }
-  ]
-}
-```
-
-After `src/Runesmith.App` builds, `tools/Runesmith.BundledPlugins` runs. It updates its copy of the hub's signed index, starting from the
-root in `src/Runesmith.App/Hub/root.json`, and checks that each pinned version is published, not blocked or frozen, and published with the
-pinned SHA-256. It downloads each package, checks its length and hash, and unpacks it into `plugins/<id>` next to the executable, in the
-same layout as a plugin the hub installs. Publishing copies the same folders.
-
-The index and the packages are kept under `src/Runesmith.App/obj/bundled-plugins`, packages by their hash, so later builds work without a
-network connection. Without a connection and without that cache, Debug builds warn and leave the plugins out; Release builds and
-publishing fail. The tool never uses a package the signed index does not pin.
-
-To update a bundled plugin, set its `version` and `sha256` to those of a published version in the hub's index. The build checks both
-and fails when they do not match.
+Runesmith ships with no plugins, and building it fetches none. The official plugins, such as Git, GitHub, C# and Java, live in their own
+repositories and are published to the plugin hub. Users install them from **Tools › Plugins** or
+[hub.runesmith.dev](https://hub.runesmith.dev), and Runesmith suggests the one that fits the folder or file they open.
 
 ### Work on an official plugin
 
 Each official plugin has its own repository, such as [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp), built
-against the SDK and language packages from the hub feed. To run your changes in Runesmith, build the plugin and install it as a local
-plugin from the plugin's repository:
+against the SDK packages from the hub feed. To run your changes in Runesmith, build the plugin and install it as a local plugin from the
+plugin's repository:
 
 ```bash
 dotnet build src/Runesmith.CSharp -t:InstallPlugin
 ```
 
-`InstallPlugin` writes the plugin into the user's plugins folder, under `RUNESMITH_HOME` when it is set. Bundled plugins live next to the
-executable and updates from the hub in `hub/plugins` in Runesmith's data folder, so the local copy sits beside them and never changes
-their files (see [Where plugins live](/plugins#where-plugins-live)). A local copy of a plugin that comes with Runesmith or from the hub
-does not load until you allow it; until then the plugin manager marks it **Not loaded** and says why. To run the local copy:
+`InstallPlugin` writes the plugin into the user's plugins folder, under `RUNESMITH_HOME` when it is set. Plugins from the hub live in
+`hub/plugins` in Runesmith's data folder, so the local copy sits beside them and never changes their files (see
+[Where plugins live](/plugins#where-plugins-live)). A local copy of a plugin from the hub does not load until you allow it; until then the
+plugin manager marks it **Not loaded** and says why. To run the local copy:
 
 <Steps>
 
 1. Turn on **Local copies replace plugins** in **Settings**, under **Plugins**, or add `"plugins.allowLocalOverrides": true` to your
    own `settings.json`. A folder's `.runesmith/settings.json` cannot turn it on.
-2. Restart Runesmith. The local copy runs in place of the bundled or hub copy, whatever its version.
-3. Sign in again where the plugin asks. The local copy has its own secrets and storage, so it never sees the bundled copy's sign-ins or
+2. Restart Runesmith. The local copy runs in place of the hub copy, whatever its version.
+3. Sign in again where the plugin asks. The local copy has its own secrets and storage, so it never sees the hub copy's sign-ins or
    files, and they stay as they were.
 
 </Steps>
 
 While a local copy runs, Runesmith shows a notice at each start, and the plugin manager's **Installed** tab marks it **Replaces the
-installed plugin**. Remove the local copy, or turn the setting off, to go back to the bundled or hub copy, which stayed as it was.
+installed plugin**. Remove the local copy, or turn the setting off, to go back to the hub copy, which stayed as it was.
 
 ## Test
 
@@ -128,8 +105,7 @@ no tests yet ends with exit code 8, which `--ignore-exit-code 8` accepts.
 
 ## Benchmarks
 
-`benchmarks/Runesmith.Benchmarks` is a BenchmarkDotNet project, with benchmarks such as completion ranking and the C# analyzer's answer
-times. Run it in Release:
+`benchmarks/Runesmith.Benchmarks` is a BenchmarkDotNet project, with the completion ranking benchmarks. Run it in Release:
 
 ```bash
 dotnet run --project benchmarks/Runesmith.Benchmarks --configuration Release

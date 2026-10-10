@@ -31,9 +31,10 @@ These are signs that code should stay where it is:
 - It always changes together with another project.
 - Splitting it out would need many `internal` members to become `public`.
 
-The official plugins, such as C# and Java support, are not projects in this repository. Each lives in its own repository in the
-[RunesmithHub](https://github.com/RunesmithHub) organization, builds against the published packages, and reaches Runesmith through the
-plugin hub like a third-party plugin, which proves that pipeline works. See [Bundled plugins](./building.mdx#bundled-plugins).
+The official plugins, such as Git, GitHub, C# and Java, are not projects in this repository, and neither is their code, such as the C#
+and Java analyzers. Each lives in its own repository in the [RunesmithHub](https://github.com/RunesmithHub) organization, builds against
+the published packages, and reaches Runesmith through the plugin hub like a third-party plugin, which proves that pipeline works.
+Runesmith ships with no plugins. See [Official plugins](./building.mdx#official-plugins).
 
 ## The projects
 
@@ -50,16 +51,10 @@ graph TD
   Languages --> Sdk
   Languages --> Lsp[Runesmith.Lsp]
   Languages --> LanguageServices[Runesmith.LanguageServices]
-  LanguageServer[Runesmith.LanguageServer] --> LanguageServices
-  LanguageServer --> Lsp
-  LanguageServer --> CSharpAnalyzer
   Workspace --> Sdk
   Composition --> Sdk
   Sdk --> Text[Runesmith.Text]
   LanguageServices --> Text
-  CSharpAnalyzer[Runesmith.Languages.CSharp] --> LanguageServices
-  JavaAnalyzer[Runesmith.Languages.Java] --> JavaSyntax[Runesmith.Languages.Java.Syntax]
-  JavaAnalyzer --> LanguageServices
 ```
 
 | Project | Responsibility | Why it is its own project |
@@ -71,16 +66,11 @@ graph TD
 | `Runesmith.Composition` | Finding, validating and loading plugins, and composing them with VS-MEF, including the composition cache | The only project that depends on VS-MEF. It runs headless, so plugin loading can be tested without a window. |
 | `Runesmith.Hub` | The plugin hub client: the verified index, search, install plans, installs, updates and the hub's states for installed plugins | It decides what plugins run, so it is built into the host, and it runs headless: the app uses it before any window exists, and its tests run against a signed sample index. The only project besides the composition that uses `RunesmithHub.Protocol`. |
 | `Runesmith.Workspace` | Folders, solutions, the file tree and watcher, the file index for quick open, documents on disk and find in files | Pure file system and text work with no UI dependency, testable headless. |
-| `Runesmith.LanguageServices` | The core of the language analyzers: documents and their versions, request lanes, completion ranking and metrics | Shared by the editor and `runesmith-language-server`, so it depends on neither; only `Runesmith.Text`. |
+| `Runesmith.LanguageServices` | The core of the language analyzers: documents and their versions, request lanes, completion ranking and metrics | Shared by the editor and the language plugins, which build on its package, so it depends on neither; only `Runesmith.Text`. |
 | `Runesmith.Languages` | The language registry, TextMate highlighting, and the bridges that turn language servers and in-process analyzers into editor features | The only project that carries TextMateSharp and that uses `Runesmith.Lsp`. |
-| `Runesmith.Languages.CSharp` | The C# analyzer, on the C# compiler | It carries the compiler, which only the C# plugin and the language server should load. |
-| `Runesmith.Languages.Java.Syntax` | A lexer and parser for Java 8 to 25 | No dependencies, so it can be tested against the JDK's sources and benchmarked on its own. |
-| `Runesmith.Languages.Java` | The Java analyzer: class files, the JDK's API per release, projects and the semantic model | Only the Java plugin loads it. |
-| `Runesmith.LanguageServer` | `runesmith-language-server`, the analyzers served over the Language Server Protocol | An executable for other tools; the editor itself runs the analyzers in its own process. |
 | `Runesmith.Editor` | The text editor control: layout, rendering, input, completion, hover, diagnostics and the find bar | The largest UI component. It depends on the SDK contracts only, not on TextMate or language servers, so it can be developed and tested on its own. |
 | `Runesmith.Shell` | The IDE window: docking, commands, menus, the command palette, settings, the status bar and the tool windows | It wires everything together; nothing depends on it except the application. |
 | `Runesmith.App` | The executable: the command line, the single running instance and the desktop platform | Keeps the desktop backend out of the shell, so the shell can run headless. |
-| `tools/Runesmith.BundledPlugins` | Fetches, checks and unpacks the bundled plugins during the app's build | A build tool, run by `src/Runesmith.App`; nothing ships it. |
 
 Each project has a matching project in `tests/`. `benchmarks/Runesmith.Benchmarks` holds the benchmarks, and
 `benchmarks/Runesmith.TypingBenchmark` the typing benchmark.

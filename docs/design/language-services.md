@@ -47,7 +47,8 @@ everything but the C# analyzer; the Java syntax has no dependencies and is teste
 
 The C# and Java plugins, in [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp) and
 [RunesmithHub/plugin-java](https://github.com/RunesmithHub/plugin-java), export the language definitions, the analyzers and the build
-providers. The C# plugin no longer starts an external server.
+providers. The C# plugin no longer starts an external server. The analyzer projects and `runesmith-language-server` have since left this
+repository: the analyzers live in those plugins' repositories, and this one keeps only the core and the bridge.
 
 ### In process or out of process
 
