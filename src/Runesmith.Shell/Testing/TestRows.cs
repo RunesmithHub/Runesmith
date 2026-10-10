@@ -119,6 +119,9 @@ public sealed class TestRows
     /// <summary>Finds a row by key.</summary>
     public TestRow? Find(string key) => rows.GetValueOrDefault(key);
 
+    /// <summary>Finds a row that shows a node, in whatever grouping the rows have.</summary>
+    public TestRow? FindByNode(TestNode node) => rows.Values.FirstOrDefault(r => r.Node == node);
+
     /// <summary>Gets the key of the row that shows a node in <see cref="TestGrouping.Structure"/>.</summary>
     public static string KeyOf(TestNode node) => $"{node.Provider.GetHashCode()}/{node.Id}";
 
@@ -156,7 +159,7 @@ public sealed class TestRows
         Sync(Roots, top);
         var filtering = words.Length > 0 || failedOnly;
         foreach (var row in top)
-            Expand(row, 0, filtering, grouping);
+            Expand(row, 0, filtering, grouping, Shown <= 100);
     }
 
     /// <summary>Collapses every row.</summary>
@@ -262,7 +265,7 @@ public sealed class TestRows
             var row = Row($"status/{label}", used);
             row.Node = null;
             row.Nodes = tests;
-            Fill(row, label, null, tests, [.. tests.Select(t => Leaf(t, $"status/{label}/", used))]);
+            Fill(row, label, null, tests, [.. tests.Select(t => Leaf(t, $"status/{label}/", used))], countFailures: false);
             top.Add(row);
         }
 
@@ -303,10 +306,10 @@ public sealed class TestRows
         return row;
     }
 
-    private static void Fill(TestRow row, string label, string? description, List<TestNode> tests, List<TestRow> children)
+    private static void Fill(TestRow row, string label, string? description, List<TestNode> tests, List<TestRow> children, bool countFailures = true)
     {
         row.Label = label;
-        var failed = tests.Count(t => t.State is TestState.Failed or TestState.Errored);
+        var failed = countFailures ? tests.Count(t => t.State is TestState.Failed or TestState.Errored) : 0;
         row.Description = description is null ? Count(tests.Count, failed) : $"{description}  {Count(tests.Count, failed)}";
         row.State = TestNode.Aggregate([.. tests.Select(t => t.State)]);
         var durations = tests.Select(t => t.Result?.Duration).OfType<TimeSpan>().ToList();
@@ -354,21 +357,21 @@ public sealed class TestRows
         return row;
     }
 
-    // Opens groups down to the classes, groups with failures, and everything that matches a filter, unless the user chose otherwise.
-    private void Expand(TestRow row, int depth, bool filtering, TestGrouping grouping)
+    // Opens groups down to the classes, failing groups, and everything for few tests or a filter, unless the user chose otherwise.
+    private void Expand(TestRow row, int depth, bool filtering, TestGrouping grouping, bool few)
     {
         if (row.Children.Count == 0)
             return;
 
         var wanted = expanded.TryGetValue(row.Key, out var chosen) && !filtering
             ? chosen
-            : filtering || row.State is TestState.Failed or TestState.Errored || grouping != TestGrouping.Structure || depth < 2
+            : filtering || few || row.State is TestState.Failed or TestState.Errored || grouping != TestGrouping.Structure || depth < 2
               || row.Node?.Item.Kind is TestItemKind.Project or TestItemKind.Namespace;
         row.HasExpansion = true;
         row.IsExpanded = wanted;
         row.HasExpansion = false;
         foreach (var child in row.Children)
-            Expand(child, depth + 1, filtering, grouping);
+            Expand(child, depth + 1, filtering, grouping, few);
     }
 
     private static void Sync(ObservableCollection<TestRow> target, List<TestRow> wanted)

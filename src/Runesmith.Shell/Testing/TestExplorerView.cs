@@ -178,10 +178,14 @@ internal sealed class TestExplorerView : DockPanel
 
     private void Update()
     {
-        var selected = (tree.SelectedItem as TestRow)?.Key;
+        var selected = tree.SelectedItem as TestRow;
         rows.Update(tests.Tree, (TestGrouping)Math.Max(0, grouping.SelectedIndex), filter.Text ?? "", failedOnly.IsChecked == true, root());
-        if (selected is not null && rows.Find(selected) is { } row && tree.SelectedItem != row)
-            tree.SelectedItem = row;
+        if (selected is not null)
+        {
+            var row = rows.Find(selected.Key) ?? (selected.Node is { } node ? rows.FindByNode(node) : null);
+            if (row != tree.SelectedItem)
+                tree.SelectedItem = row;
+        }
 
         var hasTests = tests.Tree.AllRoots.Count > 0;
         empty.IsVisible = rows.Roots.Count == 0;
