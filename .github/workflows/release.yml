@@ -108,15 +108,21 @@ jobs:
         with:
           global-json-file: global.json
 
+      # The packages have RunesmithSdkVersion, the plugin API's version, not the app's: an sdk/v* tag must name it, and a v* tag
+      # repacks it, which the feed skips once it is there.
       - name: Take the version from the tag
         run: |
-          base=$(dotnet msbuild src/Runesmith.Sdk -getProperty:RunesmithVersion)
+          base=$(dotnet msbuild src/Runesmith.Sdk -getProperty:RunesmithSdkVersion)
           case "$GITHUB_REF" in
             refs/tags/sdk/v*) version="${GITHUB_REF_NAME#sdk/v}" ;;
-            refs/tags/v*) version="${GITHUB_REF_NAME#v}" ;;
+            refs/tags/v*) version="$base" ;;
             *) version="$base-ci.$GITHUB_RUN_NUMBER" ;;
           esac
-          echo "RunesmithVersion=$version" >> "$GITHUB_ENV"
+          if [[ "${version%%-*}" != "$base" ]]; then
+            echo "::error::The tag $GITHUB_REF_NAME does not match RunesmithSdkVersion $base in Directory.Build.props."
+            exit 1
+          fi
+          echo "RunesmithSdkVersion=$version" >> "$GITHUB_ENV"
 
       # Plugins build against the SDK package, which depends on the text package, and the language plugins against the language engines;
       # the template creates such plugins.

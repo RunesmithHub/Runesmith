@@ -7,7 +7,7 @@
   "authors": ["You"],
   "license": "MIT",
   "repository": "https://github.com/OWNER/MyPlugin",
-  "runesmithApi": "^0.1.0",
+  "runesmithApi": "^0.1.1",
   "projects": {
     "contracts": "MyPlugin.Contracts/MyPlugin.Contracts.csproj",
     "implementation": "MyPlugin/MyPlugin.csproj"

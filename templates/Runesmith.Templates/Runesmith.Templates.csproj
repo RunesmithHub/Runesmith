@@ -2,6 +2,7 @@
   <PropertyGroup>
     <PackageType>Template</PackageType>
     <PackageId>Runesmith.Templates</PackageId>
+    <Version>$(RunesmithSdkVersion)</Version>
     <Title>Runesmith templates</Title>
     <Description>Templates for Runesmith plugins: dotnet new runesmith-plugin.</Description>
     <PackageTags>runesmith;plugin;template;dotnet-new</PackageTags>

@@ -32,6 +32,12 @@ Follow [semantic versioning](https://semver.org) for Runesmith. The plugin API h
 Before 1.0, raise its patch version when the SDK gains something and its minor version when a change breaks plugins; from 1.0 on, raise
 the minor and major versions. When a change breaks plugins, set `RunesmithApi.OldestSupported` to the start of the new line.
 
+The packages plugins build against (`Runesmith.Sdk`, `Runesmith.Text`, `Runesmith.LanguageServices`, the `Runesmith.Languages.*` engines
+and `Runesmith.Templates`) have the API's version, `RunesmithSdkVersion` in `Directory.Build.props`, not the app's. When the API changes,
+raise `RunesmithApi.Version`, `RunesmithSdkVersion`, and the template's `sdkVersion` default and `runesmithApi` range together; a test
+checks that they agree. Then push a tag such as `sdk/v0.1.1`, which packs and pushes only the packages. The workflow stops when the tag
+does not match `RunesmithSdkVersion`. An app tag packs them too, and the feed skips a version it already has.
+
 ## What the workflow does
 
 | Job | Runs | What it does |

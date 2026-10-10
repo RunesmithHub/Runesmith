@@ -376,7 +376,7 @@ icons come through the same contributors.
 | Export | Returns | What it is |
 | --- | --- | --- |
 | `IColorThemeContributor` | `ColorTheme` | A named theme, dark or light, with `ThemeColors` for the window, panels, menus and editor, and optionally the id of its `ColorScheme`. |
-| `IColorSchemeContributor` | `ColorScheme` | A TextMate theme file that colors the editor's tokens. |
+| `IColorSchemeContributor` | `ColorScheme` | A TextMate theme, as JSON or a file, that colors the editor's tokens. |
 | `IFileIconThemeContributor` | `FileIconTheme` | `FileIcon`s by file name, extension, language and folder name, drawn from vector path data with a color. |
 
 [Themes, syntax colors and icons](./themes.mdx) shows each with an example, and what Runesmith checks.
@@ -595,6 +595,23 @@ public sealed class AcmeCredentials(AcmeHost host) : IGitCredentialSource
   then loads the repositories again.
 - To offer **+ Organization** in the clone dialog, register a command named `<host id>.addOrganization`, such as
   `github.addOrganization`; the dialog shows the chip while the command can run, and loads the list again when the window is activated.
+
+## API versions
+
+The SDK package's version is the plugin API version, `RunesmithApi.Version`. Before 1.0, additions come in patch versions: a plugin built
+for `^0.1.0` loads in a Runesmith with API 0.1.1, and a plugin that uses anything added in 0.1.1 declares `"runesmithApi": "^0.1.1"` and
+references `Runesmith.Sdk` 0.1.1, so an older Runesmith lists it as needing a newer API instead of failing when it calls a member it lacks.
+New plugins start at `^0.1.1`. See [API versions](./index.mdx#api-versions) for how Runesmith checks the range.
+
+| Added in 0.1.1 | What it is |
+| --- | --- |
+| `IEditorProvider`, `CustomEditor`, `EditorProviderDefinition`, `EditorPriority`, `CustomEditorContext`, `ICustomEditorService`, `EditorChoice` | [Custom editors](./custom-editors.mdx). |
+| `IWebViewService`, `IWebView`, `WebViewMessageEventArgs`, `WebViewNavigationBlockedEventArgs` | [Web views](./web-views.mdx). |
+| `IDebugAdapterProvider`, `DebugAdapterContext`, `DebugAdapterDescriptor`, `DebugAdapterExecutable`, `DebugAdapterServer`, `DebugAdapterRequest`, `DebugRequestKind` | [Debug engines](./debug-engines.mdx). |
+| `CommandIds.ToggleBreakpoint`, `Continue`, `Pause`, `StepOver`, `StepInto`, `StepOut`, `RestartDebugging`, `StopDebugging` | The debugger's commands. |
+| `GutterMarker.IsFilled` | Gutter markers filled with their tone, such as a breakpoint's dot. |
+| `ColorScheme(id, name, json)` and `ColorScheme.Json` | A [syntax color scheme](./themes.mdx#syntax-color-schemes) given as JSON instead of a file. |
+| `RunesmithPaths.Hub` | The folder Runesmith manages for the plugin hub. |
 
 ## Related
 

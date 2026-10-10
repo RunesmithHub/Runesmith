@@ -23,7 +23,7 @@
       "type": "parameter",
       "datatype": "text",
       "description": "The version of the Runesmith.Sdk package to build against.",
-      "defaultValue": "0.1.0",
+      "defaultValue": "0.1.1",
       "replaces": "RUNESMITH_SDK_VERSION"
     },
     "nameLower": {
