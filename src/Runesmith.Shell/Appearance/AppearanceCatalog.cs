@@ -1,4 +1,5 @@
 using System.Composition;
+using System.Text.Json;
 using Avalonia.Media;
 using HammerUI.Theming;
 using Runesmith.Composition;
@@ -105,10 +106,31 @@ public sealed class AppearanceCatalog
 
     private bool CheckScheme(ColorScheme scheme)
     {
+        if (!scheme.Json.IsEmpty)
+            return CheckSchemeJson(scheme);
+
         if (!string.IsNullOrWhiteSpace(scheme.FilePath) && Path.IsPathFullyQualified(scheme.FilePath) && File.Exists(scheme.FilePath))
             return true;
 
         problems.Add($"The syntax color scheme {scheme.Name} ({scheme.Id}) is left out: its file {scheme.FilePath} does not exist.");
+        return false;
+    }
+
+    private bool CheckSchemeJson(ColorScheme scheme)
+    {
+        try
+        {
+            using var json = JsonDocument.Parse(scheme.Json, new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
+            if (json.RootElement.ValueKind == JsonValueKind.Object)
+                return true;
+
+            problems.Add($"The syntax color scheme {scheme.Name} ({scheme.Id}) is left out: its JSON is not an object.");
+        }
+        catch (JsonException exception)
+        {
+            problems.Add($"The syntax color scheme {scheme.Name} ({scheme.Id}) is left out: its JSON cannot be read: {exception.Message}");
+        }
+
         return false;
     }
 

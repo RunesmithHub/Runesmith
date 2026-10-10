@@ -80,7 +80,7 @@ internal sealed class TextMateHighlighter : ISyntaxHighlighter
     public void Reset()
     {
         var language = provider.Registry.Find(document.LanguageId);
-        var themed = provider.Grammars.GetRegistry(provider.Scheme.FilePath);
+        var themed = provider.Grammars.GetRegistry(provider.Scheme);
         var newGrammar = language?.ScopeName is { } scope ? themed.GetGrammar(scope) : null;
         lock (gate)
         {

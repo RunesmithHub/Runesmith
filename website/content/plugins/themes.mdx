@@ -60,16 +60,29 @@ The user's accent color, when set, replaces the theme's on every theme.
 
 ## Syntax color schemes
 
-Export an `IColorSchemeContributor`. A `ColorScheme` names a TextMate theme file in JSON format, the format Runesmith's own schemes use.
-Ship the file with the plugin, next to its assembly, and give its full path. `IsDark` says which backgrounds the scheme is made for.
+Export an `IColorSchemeContributor`. A `ColorScheme` holds a TextMate theme in JSON format, the format Runesmith's own schemes use. Give
+it the theme's JSON, or the full path of a theme file shipped with the plugin. `IsDark` says which backgrounds the scheme is made for.
+
+The JSON form needs plugin API 0.1.1, so a plugin that uses it declares `"runesmithApi": "^0.1.1"`. Embed the theme in the implementation
+assembly and pass its bytes; the plugin writes no files:
+
+```xml
+<EmbeddedResource Include="dusk.json" LogicalName="dusk.json" />
+```
 
 ```csharp title="EmberSchemes.cs"
 [Export(typeof(IColorSchemeContributor))]
 public sealed class EmberSchemes : IColorSchemeContributor
 {
-    private static readonly string Folder = Path.GetDirectoryName(typeof(EmberSchemes).Assembly.Location)!;
+    public IEnumerable<ColorScheme> Schemes => [new ColorScheme("ember.dusk", "Ember Dusk", Read("dusk.json"))];
 
-    public IEnumerable<ColorScheme> Schemes => [new ColorScheme("ember.dusk", "Ember Dusk", Path.Combine(Folder, "dusk.json"))];
+    private static byte[] Read(string name)
+    {
+        using var stream = typeof(EmberSchemes).Assembly.GetManifestResourceStream(name)!;
+        using var bytes = new MemoryStream();
+        stream.CopyTo(bytes);
+        return bytes.ToArray();
+    }
 }
 ```
 
@@ -85,6 +98,15 @@ public sealed class EmberSchemes : IColorSchemeContributor
     { "scope": ["entity.name.type", "support.type"], "settings": { "foreground": "#E4A23C" } }
   ]
 }
+```
+
+With plugin API 0.1.0, ship the theme as a file next to the assembly and give its full path. `FilePath` is empty for a scheme given as
+JSON.
+
+```csharp
+private static readonly string Folder = Path.GetDirectoryName(typeof(EmberSchemes).Assembly.Location)!;
+
+public IEnumerable<ColorScheme> Schemes => [new ColorScheme("ember.dusk", "Ember Dusk", Path.Combine(Folder, "dusk.json"))];
 ```
 
 To copy the file into the build output, add it to the implementation project:
@@ -144,7 +166,8 @@ pair included, are added the same way and pass the same checks without a warning
 | `IsDark` disagrees with how dark `Background` is | The theme is left out. |
 | `TextPrimary` has a contrast below 3:1 with `Background`, `Surface`, `SurfaceRaised` or `SurfaceSunken` | The theme is left out: its text would be too faint to read. |
 | `TextPrimary` below 4.5:1, `TextSecondary` below 3:1 with `Surface`, or `AccentForeground` below 3:1 with `Accent` | The theme is listed, with a warning that it may be hard to read. |
-| A scheme's file does not exist, or cannot be read as a TextMate theme with token colors | The scheme is left out, or, when chosen, Runesmith's own scheme shows instead. |
+| A scheme's file does not exist, or its JSON is not a JSON object | The scheme is left out. |
+| A scheme's file or JSON cannot be read as a TextMate theme with token colors | When chosen, Runesmith's own scheme shows instead. |
 | An icon has no path data, or a color that is not a hex color | The icon theme is left out. |
 | An icon's path data cannot be drawn | That icon falls back to Runesmith's own. |
 

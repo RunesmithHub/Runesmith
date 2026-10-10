@@ -101,6 +101,24 @@ public sealed class AppearanceCatalogTests
         Assert.Equal(2, catalog.Problems.Count);
     }
 
+    [Fact]
+    public void ListsSchemesGivenAsJsonAndLeavesOutJsonThatCannotBeRead()
+    {
+        var plugin = new FakeAppearance(schemes:
+        [
+            new ColorScheme("ember.json", "Ember Json", """{ "tokenColors": [ { "scope": "keyword", "settings": { "foreground": "#FF8800" } } ] }"""u8.ToArray()),
+            new ColorScheme("ember.broken", "Ember Broken", "{ not json"u8.ToArray()),
+            new ColorScheme("ember.list", "Ember List", "[]"u8.ToArray()),
+        ]);
+
+        var catalog = FakeAppearance.Catalog(plugin);
+
+        Assert.NotNull(catalog.FindScheme("ember.json"));
+        Assert.Null(catalog.FindScheme("ember.broken"));
+        Assert.Null(catalog.FindScheme("ember.list"));
+        Assert.Equal(2, catalog.Problems.Count(p => p.Contains("is left out: its JSON", StringComparison.Ordinal)));
+    }
+
     [Theory]
     [InlineData(BuiltInAppearance.LowContrastDarkTheme, BuiltInColorSchemes.LowContrastDarkId, true)]
     [InlineData(BuiltInAppearance.LowContrastLightTheme, BuiltInColorSchemes.LowContrastLightId, false)]

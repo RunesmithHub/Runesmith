@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Composition;
+using Runesmith.Sdk.Appearance;
 using Runesmith.Sdk.Languages;
 using TextMateSharp.Grammars;
 using TextMateSharp.Internal.Grammars.Reader;
@@ -18,7 +19,7 @@ namespace Runesmith.Languages;
 [Shared]
 public sealed class TextMateGrammars
 {
-    private readonly ConcurrentDictionary<string, Lazy<ThemedRegistry>> registries = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<object, Lazy<ThemedRegistry>> registries = new();
     private readonly GrammarLocator locator;
 
     [ImportingConstructor]
@@ -32,16 +33,20 @@ public sealed class TextMateGrammars
     /// <summary>Gets the grammars and language configurations TextMateSharp ships.</summary>
     internal RegistryOptions BuiltIn { get; }
 
-    /// <summary>Gets the registry that colors tokens with the TextMate theme in a file.</summary>
-    /// <exception cref="InvalidDataException">The file cannot be read as a TextMate theme; asking again throws again.</exception>
-    internal ThemedRegistry GetRegistry(string themePath) =>
-        registries.GetOrAdd(themePath, path => new Lazy<ThemedRegistry>(() => new ThemedRegistry(locator, ReadTheme(path)))).Value;
+    /// <summary>Gets the registry that colors tokens with a scheme's TextMate theme, read from its JSON or its file.</summary>
+    /// <exception cref="InvalidDataException">The theme cannot be read as a TextMate theme; asking again throws again.</exception>
+    internal ThemedRegistry GetRegistry(ColorScheme scheme)
+    {
+        ArgumentNullException.ThrowIfNull(scheme);
+        object key = scheme.Json.IsEmpty ? scheme.FilePath : scheme.Json;
+        return registries.GetOrAdd(key, _ => new Lazy<ThemedRegistry>(() => new ThemedRegistry(locator, ReadTheme(scheme)))).Value;
+    }
 
-    private static IRawTheme ReadTheme(string path)
+    private static IRawTheme ReadTheme(ColorScheme scheme)
     {
         try
         {
-            using var reader = new StreamReader(path);
+            using var reader = scheme.Json.IsEmpty ? new StreamReader(scheme.FilePath) : new StreamReader(new MemoryStream(scheme.Json.ToArray(), writable: false));
             var theme = ThemeReader.ReadThemeSync(reader);
             if (theme?.GetTokenColors() is not { Count: > 0 } && theme?.GetSettings() is not { Count: > 0 })
                 throw new InvalidDataException("It has no token colors.");
@@ -49,7 +54,8 @@ public sealed class TextMateGrammars
         }
         catch (Exception exception)
         {
-            throw new InvalidDataException($"{Path.GetFileName(path)} is not a TextMate theme Runesmith can read: {exception.Message}", exception);
+            var source = scheme.Json.IsEmpty ? Path.GetFileName(scheme.FilePath) : "Its JSON";
+            throw new InvalidDataException($"{source} is not a TextMate theme Runesmith can read: {exception.Message}", exception);
         }
     }
 
