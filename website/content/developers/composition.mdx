@@ -44,7 +44,7 @@ the plugins that could not load to the standard error output and the shell lists
 `PluginCallers.Current` finds the plugin that called a service from the load context of the calling code: the nearest frame on the call
 stack outside the service's own assembly and .NET. The secret store, the launcher, the settings service and `IPluginStorage` use it to
 check capabilities and to keep each plugin's data under its own id. A local copy keeps its secrets under `local/` and its id, and its
-storage in `plugins/local/<id>`, so it never reaches the data of the plugin it replaces. Runesmith's own code is never refused. Plugins
+storage in `plugin-data/local/<id>`, so it never reaches the data of the plugin it replaces. Runesmith's own code is never refused. Plugins
 with older manifests declare no capabilities and pass the capability checks, but keep to their own data like every plugin.
 
 ## The cache

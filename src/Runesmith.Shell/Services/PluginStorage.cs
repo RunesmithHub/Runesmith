@@ -6,8 +6,8 @@ using RunesmithHub.Protocol;
 
 namespace Runesmith.Shell.Services;
 
-/// <summary>Gives each plugin the folder <c>plugins/&lt;id&gt;</c> in Runesmith's data folder, and a local copy of a plugin Runesmith ships or
-/// the hub installed <c>plugins/local/&lt;id&gt;</c>, apart from that plugin's.</summary>
+/// <summary>Gives each plugin the folder <c>plugin-data/&lt;id&gt;</c> in Runesmith's data folder, and a local copy of a plugin Runesmith ships or
+/// the hub installed <c>plugin-data/local/&lt;id&gt;</c>, apart from that plugin's.</summary>
 [Export(typeof(IPluginStorage))]
 [Shared]
 public sealed class PluginStorage : IPluginStorage
@@ -19,7 +19,7 @@ public sealed class PluginStorage : IPluginStorage
     private readonly Func<PluginInfo?> caller;
 
     public PluginStorage()
-        : this(Path.Combine(RunesmithPaths.Data, "plugins"), PluginCallers.Current)
+        : this(Path.Combine(RunesmithPaths.Data, "plugin-data"), PluginCallers.Current)
     {
     }
 

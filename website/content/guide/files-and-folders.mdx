@@ -32,6 +32,7 @@ When the `RUNESMITH_HOME` environment variable is set, the settings folder is th
 | Data: `hub/plugins/` | The plugins you install from the [plugin hub](./plugins.mdx). Runesmith manages this folder and turns off a plugin whose files changed. |
 | Data: `hub/` | The hub's installed state, the quarantine of plugins it blocked, its verified index and the plugin icons. |
 | Data: `sdks/` | The [SDKs](./sdks.mdx) Runesmith installs. |
+| Data: `plugin-data/` | Each plugin's own files, one folder per plugin, and `local/` for local copies of plugins Runesmith ships. |
 | Cache: `logs/` | A file for each error Runesmith did not expect, such as `error-20261008-101829-221.log`. |
 | Cache: `composition/` | The [composition cache](/developers/composition), which makes starting faster. |
 
