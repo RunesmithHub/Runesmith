@@ -16,7 +16,7 @@ The guide, the plugin documentation and the developer reference for Runesmith, b
 ## Publishing
 
 `.github/workflows/website.yml` builds the site on every pull request that changes `website/` and publishes it to GitHub Pages from `main`.
-The build reads its address from `SITE_URL` and `BASE_URL`; without them it builds for `https://runesmithhub.github.io/Runesmith/`.
+The build reads its address from `SITE_URL` and `BASE_URL`; without them it builds for `https://docs.runesmith.dev/`.
 
 ## Structure
 

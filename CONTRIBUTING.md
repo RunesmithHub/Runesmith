@@ -20,7 +20,7 @@ git clone https://github.com/RunesmithHub/Runesmith.git
 
 On NixOS, work in the development shell from `flake.nix` (`nix develop`, or direnv with `.envrc`), and start your IDE from it, such as
 `nix develop -c <editor> Runesmith.slnx`; otherwise the app cannot load its font and X11 libraries. See
-[Building and testing](https://runesmithhub.github.io/Runesmith/developers/building) for details.
+[Building and testing](https://docs.runesmith.dev/developers/building) for details.
 
 ## Working on the plugin hub client
 

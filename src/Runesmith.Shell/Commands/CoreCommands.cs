@@ -46,7 +46,7 @@ public sealed class CoreCommands(
     public const string ShowChanges = "editor.showChanges";
 
     /// <summary>The address of Runesmith's documentation.</summary>
-    public const string DocumentationUrl = "https://runesmithhub.github.io/Runesmith/";
+    public const string DocumentationUrl = "https://docs.runesmith.dev/";
 
     private TextEditor? Editor => editors.Active;
 
