@@ -1,0 +1,59 @@
+---
+title: Open With and images
+description: Choose the editor a file opens in, change the default editor for a kind of file, and view images with zoom and pan.
+---
+
+Some files open in an editor other than the text editor: images open in the image viewer, and plugins can add editors of their own, such
+as for diagrams. **Open With** chooses the editor for one file, and **Set Default Editor** chooses it for every file of that kind.
+
+## Open a file in another editor
+
+<Steps>
+
+1. Right-click the file in the Explorer or in the editor and choose **Open With...**, or run **File › Open With...** for the file of the
+   active tab.
+2. Pick an editor. The list shows the text editor and every editor that can open the file; the default one says so, and the one the file is
+   open in says **Open**.
+
+</Steps>
+
+The file opens in the editor you picked, in place of its tab in the other editor. A file is open in one editor at a time. When the other
+editor has unsaved changes, Runesmith asks first.
+
+A file that looks binary, such as an image, opens read-only in the text editor, each byte shown as one character.
+
+## Change the default editor
+
+Choose **Set Default Editor for \*.png...** at the end of the **Open With** list, or run **Set Default Editor...** from the command
+palette, and pick the editor. Runesmith keeps the choice for every file with that extension, or for every file with that name when it has
+no extension, in `editor-associations.json` in your [settings folder](./files-and-folders.mdx). Delete a line of that file to go back to
+the usual default.
+
+Without a choice of yours, a file opens in a plugin's editor made for it, else in Runesmith's own, else in the text editor.
+
+## The image viewer
+
+PNG, JPEG, WebP, GIF, BMP and ICO files open in the image viewer. It shows the image on a checkerboard where it is transparent, and its
+format, size in pixels and file size above it. A GIF shows its first frame.
+
+| Action | Mouse | Keys |
+| --- | --- | --- |
+| Zoom in or out at the pointer | Wheel | <Keys>+</Keys> and <Keys>-</Keys>, at the center |
+| Fit the image in the tab | **Fit** | <Keys>0</Keys> |
+| Show the image at its actual size | **1:1** | <Keys>1</Keys> |
+| Switch between fitted and actual size | Double-click | |
+| Move a zoomed image | Drag | |
+
+A fitted image is never shown larger than its actual size, and it follows the tab's size. Pixels show as sharp squares from 200% up. When
+the file changes on disk, the viewer shows the new version.
+
+## Saving and other commands
+
+**Save**, **Undo**, **Redo** and **Close Editor** work on the active tab, whatever its editor. **File › Revert File** reads the file from
+disk again and drops unsaved changes. Files open in other editors come back in them when you open the folder again.
+
+## Related
+
+- [The editor](./editor.mdx)
+- [Plugins](./plugins.mdx)
+- [Custom editors](/plugins/custom-editors), for plugin authors

@@ -1,8 +1,10 @@
 using System.Composition;
+using Runesmith.Sdk.Editors;
 using Runesmith.Sdk.Settings;
 using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.Workspace;
 using Runesmith.Shell.Editors;
+using Runesmith.Shell.Editors.Custom;
 using Runesmith.Shell.Session;
 using Runesmith.Text;
 using Runesmith.Workspace.Files;
@@ -16,6 +18,7 @@ namespace Runesmith.Shell.Services;
 public sealed class Workbench(
     IWorkspace workspace,
     EditorService editors,
+    CustomEditorService customEditors,
     RecentFolders recent,
     ISettingsService settings,
     INotificationService notifications)
@@ -61,9 +64,10 @@ public sealed class Workbench(
 
         var files = editors.Editors
             .Where(e => e.Document.FilePath is not null)
-            .Select(e => new SessionFile(e.Document.FilePath!, e.CaretOffset))
+            .Select(e => new SessionFile(e.Document.FilePath!, e.CaretOffset) { Editor = customEditors.Catalog.DefaultFor(e.Document.FilePath!) == EditorProviderDefinition.TextEditorId ? null : EditorProviderDefinition.TextEditorId })
+            .Concat(customEditors.Panels.Select(p => new SessionFile(p.FilePath, 0) { Editor = p.Entry.Definition.Id }))
             .ToList();
-        SessionStore.SaveWorkspace(root, new WorkspaceSession(files, editors.ActiveEditor?.Document.FilePath));
+        SessionStore.SaveWorkspace(root, new WorkspaceSession(files, customEditors.Active?.FilePath ?? editors.ActiveEditor?.Document.FilePath));
     }
 
     /// <summary>Opens what the command line names: a folder, or files with an optional <c>:line</c> or <c>:line:column</c>.</summary>
@@ -117,8 +121,17 @@ public sealed class Workbench(
             if (!File.Exists(file.Path))
                 continue;
 
-            if (await editors.OpenAsync(file.Path, activate: false) is { } editor)
-                editor.CaretOffset = Math.Clamp(file.Caret, 0, editor.Document.Buffer.Current.Length);
+            if (file.Editor is { } editor && editor != EditorProviderDefinition.TextEditorId && customEditors.GetChoices(file.Path).Any(c => c.Id == editor))
+            {
+                await customEditors.OpenWithAsync(file.Path, editor, activate: false);
+                continue;
+            }
+
+            var opened = file.Editor == EditorProviderDefinition.TextEditorId
+                ? await editors.OpenInTextEditorAsync(file.Path, activate: false, anyContent: true)
+                : await editors.OpenAsync(file.Path, activate: false);
+            if (opened is { } text)
+                text.CaretOffset = Math.Clamp(file.Caret, 0, text.Document.Buffer.Current.Length);
         }
 
         if (session.Active is { } active && File.Exists(active))

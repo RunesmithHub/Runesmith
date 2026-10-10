@@ -14,7 +14,11 @@ internal sealed record WorkspaceSession(IReadOnlyList<SessionFile> Files, string
 
 /// <param name="Path">The file's full path.</param>
 /// <param name="Caret">The caret's offset when the folder closed.</param>
-internal sealed record SessionFile(string Path, int Caret);
+internal sealed record SessionFile(string Path, int Caret)
+{
+    /// <summary>Gets the id of the custom editor the file was open in, or null for the text editor.</summary>
+    public string? Editor { get; init; }
+}
 
 /// <summary>The size and place of the main window, and the folder that was open, for the next start.</summary>
 internal sealed record WindowSession(double X, double Y, double Width, double Height, bool IsMaximized, string? LastFolder);

@@ -11,8 +11,9 @@ public interface IEditorService
     /// <summary>Gets the open editors.</summary>
     IReadOnlyList<IEditorView> Editors { get; }
 
-    /// <summary>Opens a file in an editor, or switches to its editor, and moves the caret to <paramref name="position"/> when it is given.</summary>
-    /// <returns>The editor, or null when the file could not be opened; the user has been told why.</returns>
+    /// <summary>Opens a file in its default editor, or switches to its editor, and moves the caret to <paramref name="position"/> when it is given;
+    /// with a position, a file that is not open in a custom editor opens in the text editor.</summary>
+    /// <returns>The text editor, or null when the file opened in a custom editor, or could not be opened and the user has been told why.</returns>
     Task<IEditorView?> OpenAsync(string filePath, TextPosition? position = null, bool activate = true);
 
     /// <summary>Opens a document that is open already, such as a new untitled one, in an editor.</summary>

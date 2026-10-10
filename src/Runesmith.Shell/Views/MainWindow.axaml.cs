@@ -15,6 +15,7 @@ using Runesmith.Shell.Commands;
 using Runesmith.Shell.Diffs;
 using Runesmith.Shell.Docking;
 using Runesmith.Shell.Editors;
+using Runesmith.Shell.Editors.Custom;
 using Runesmith.Shell.Pages;
 using Runesmith.Shell.Services;
 using Runesmith.Shell.Session;
@@ -37,6 +38,7 @@ public partial class MainWindow : Window
     private readonly CommandService? commands;
     private readonly EditorService? editors;
     private readonly DiffService? diffs;
+    private readonly CustomEditorService? customEditors;
     private readonly IWorkspace? workspace;
     private readonly ShellLayout? layout;
     private readonly Workbench? workbench;
@@ -67,6 +69,7 @@ public partial class MainWindow : Window
         commands = exports.GetExportedValue<CommandService>();
         editors = exports.GetExportedValue<EditorService>();
         diffs = exports.GetExportedValue<DiffService>();
+        customEditors = exports.GetExportedValue<CustomEditorService>();
         workspace = exports.GetExportedValue<IWorkspace>();
         layout = exports.GetExportedValue<ShellLayout>();
         workbench = exports.GetExportedValue<Workbench>();
@@ -193,7 +196,7 @@ public partial class MainWindow : Window
         if (e.Handled || commands is null || Dialogs.IsOpen)
             return;
 
-        if (commands.FindByGesture(e) is not { } id || TextCommands.Contains(id))
+        if (commands.FindByGesture(e) is not { } id || (TextCommands.Contains(id) && !(customEditors?.Active is not null && id is CommandIds.Undo or CommandIds.Redo)))
             return;
 
         // In a text box, plain typing belongs to the box; only gestures with a modifier or a function key run commands.
@@ -223,6 +226,11 @@ public partial class MainWindow : Window
         {
             e.Cancel = true;
             _ = editors!.ClosePanelAsync(e.PanelId);
+        }
+        else if (CustomEditorPanel.IsCustomEditorPanel(e.PanelId))
+        {
+            e.Cancel = true;
+            _ = customEditors!.CloseAsync(e.PanelId);
         }
     }
 

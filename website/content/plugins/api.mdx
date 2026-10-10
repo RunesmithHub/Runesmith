@@ -29,6 +29,7 @@ Runesmith creates a part the first time something needs it. Services can be impo
 | `IToolWindowManager` | Shows and hides panels, and sets the badge on a panel's stripe button. |
 | `IDocumentService` | Opens, saves and closes documents; one document per file. |
 | `IEditorService` | Opens documents in editors, and gives the active editor. |
+| `ICustomEditorService` | Lists the editors that can open a file and opens it in one of them. |
 | `IWorkspace` | The open folder, its solutions and its files. |
 | `ILanguageRegistry` | Every language, and the language of a file. |
 | `ILanguageFeatures` | Completion, hover, definitions and signature help, merged from every provider. |
@@ -394,6 +395,9 @@ what that source reported for the file.
 from any thread. `IEditorService` opens a file in an editor at a position, gives the active editor, and tells when it changes. An
 `IEditorView` moves the caret, selects, scrolls and sets its `CaretStyle` (`Line`, `Block` or `Underline`).
 
+Export an `IEditorProvider` to open files that are not text, such as images, in an editor tab of your own; `IEditorService.OpenAsync`
+returns null when a file opens in one. See [Custom editors](./custom-editors.mdx).
+
 Export an `IEditorKeyHook` to see keys in editors before the editor handles them, such as for modal editing. See
 [Keyboard hooks](./language-features.mdx#keyboard-hooks).
 
@@ -572,5 +576,6 @@ public sealed class AcmeCredentials(AcmeHost host) : IGitCredentialSource
 
 - [Create a plugin](./create-a-plugin.mdx)
 - [Editor extensions](./language-features.mdx): decorations, code actions, rename, formatting and keyboard hooks.
+- [Custom editors](./custom-editors.mdx)
 - [C# support](./csharp.mdx), a complete plugin.
 - [Git](./git.mdx) and [GitHub](./github.mdx), the version control plugins.
