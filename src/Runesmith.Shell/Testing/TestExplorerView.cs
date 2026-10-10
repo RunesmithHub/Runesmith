@@ -424,22 +424,33 @@ internal sealed class TestExplorerView : DockPanel
             return;
         }
 
-        if (run is not null && run.Output.Count > 0 && (row is null || row.Nodes.Any(n => run.Nodes.Contains(n) || run.Nodes.Any(r => IsWithin(n, r)))))
+        if (row is null)
         {
-            details.Children.Add(Heading("Run output"));
-            details.Children.Add(Output(run.Output.GetText()));
-        }
-    }
+            if (run is not null && run.Output.Count > 0)
+            {
+                details.Children.Add(Heading("Run output"));
+                details.Children.Add(Output(run.Output.GetText()));
+            }
 
-    private static bool IsWithin(TestNode node, TestNode ancestor)
-    {
-        for (var at = node; at is not null; at = at.Parent)
-        {
-            if (at == ancestor)
-                return true;
+            return;
         }
 
-        return false;
+        var outputs = new System.Text.StringBuilder();
+        lock (tests.Tree.Gate)
+        {
+            foreach (var test in row.Nodes.SelectMany(n => n.Tests()).Distinct())
+            {
+                var text = run?.OutputOf(test) is { Length: > 0 } live ? live : test.Result?.Output ?? "";
+                if (text.Length > 0)
+                    outputs.Append(text.EndsWith('\n') ? text : text + "\n");
+            }
+        }
+
+        if (outputs.Length > 0)
+        {
+            details.Children.Add(Heading("Output"));
+            details.Children.Add(Output(outputs.ToString()));
+        }
     }
 
     private static FontFamily Mono => new(EditorOptions.BundledFontFamily);
