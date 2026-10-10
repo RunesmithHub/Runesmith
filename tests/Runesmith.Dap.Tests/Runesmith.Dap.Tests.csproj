@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Runesmith.Dap\Runesmith.Dap.csproj" />
+  </ItemGroup>
+  <!-- The in-process debug adapter the client's tests and the debugger's tests talk to. -->
+  <ItemGroup>
+    <Compile Include="..\Shared\Dap\*.cs" LinkBase="Shared" />
+  </ItemGroup>
+</Project>

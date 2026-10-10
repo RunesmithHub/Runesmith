@@ -45,6 +45,7 @@ graph TD
   Shell --> Workspace[Runesmith.Workspace]
   Shell --> Composition[Runesmith.Composition]
   Shell --> Hub[Runesmith.Hub]
+  Shell --> Dap[Runesmith.Dap]
   Editor --> Sdk[Runesmith.Sdk]
   Languages --> Sdk
   Languages --> Lsp[Runesmith.Lsp]
@@ -65,6 +66,7 @@ graph TD
 | --- | --- | --- |
 | `Runesmith.Text` | The text buffer: a piece table with immutable snapshots, line lookup, edits, undo history and text search | Every other part uses it; it has no dependencies at all, so it can be tested and benchmarked in isolation. |
 | `Runesmith.Lsp` | A Language Server Protocol client: JSON-RPC over streams, the protocol types and a server's lifecycle | It knows nothing about Runesmith, so it stays reusable and testable against any server; only `System.Text.Json`. |
+| `Runesmith.Dap` | A Debug Adapter Protocol client: the base protocol over streams, the protocol types and a debug adapter's process | It knows nothing about Runesmith, so it can be tested against any adapter, and only the shell carries it; only `System.Text.Json`. |
 | `Runesmith.Sdk` | The plugin API: plugin lifecycle, the service contracts plugins use and the extension points they export | Plugins reference only this project. It must stay small and stable, and must not carry the shell, VS-MEF or TextMate. |
 | `Runesmith.Composition` | Finding, validating and loading plugins, and composing them with VS-MEF, including the composition cache | The only project that depends on VS-MEF. It runs headless, so plugin loading can be tested without a window. |
 | `Runesmith.Hub` | The plugin hub client: the verified index, search, install plans, installs, updates and the hub's states for installed plugins | It decides what plugins run, so it is built into the host, and it runs headless: the app uses it before any window exists, and its tests run against a signed sample index. The only project besides the composition that uses `RunesmithHub.Protocol`. |

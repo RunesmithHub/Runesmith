@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Runesmith.Text/Runesmith.Text.csproj" />
     <Project Path="src/Runesmith.Lsp/Runesmith.Lsp.csproj" />
+    <Project Path="src/Runesmith.Dap/Runesmith.Dap.csproj" />
     <Project Path="src/Runesmith.LanguageServices/Runesmith.LanguageServices.csproj" />
     <Project Path="src/Runesmith.Languages.CSharp/Runesmith.Languages.CSharp.csproj" />
     <Project Path="src/Runesmith.Languages.Java.Syntax/Runesmith.Languages.Java.Syntax.csproj" />
@@ -26,6 +27,7 @@
     <Project Path="tests/Runesmith.Text.Tests/Runesmith.Text.Tests.csproj" />
     <Project Path="tests/Runesmith.Sdk.Tests/Runesmith.Sdk.Tests.csproj" />
     <Project Path="tests/Runesmith.Lsp.Tests/Runesmith.Lsp.Tests.csproj" />
+    <Project Path="tests/Runesmith.Dap.Tests/Runesmith.Dap.Tests.csproj" />
     <Project Path="tests/Runesmith.LanguageServices.Tests/Runesmith.LanguageServices.Tests.csproj" />
     <Project Path="tests/Runesmith.Languages.CSharp.Tests/Runesmith.Languages.CSharp.Tests.csproj" />
     <Project Path="tests/Runesmith.Languages.Java.Syntax.Tests/Runesmith.Languages.Java.Syntax.Tests.csproj" />

@@ -17,6 +17,7 @@ graph TD
   Shell --> Workspace[Runesmith.Workspace]
   Shell --> Composition[Runesmith.Composition]
   Shell --> Hub[Runesmith.Hub]
+  Shell --> Dap[Runesmith.Dap]
   Editor --> Sdk[Runesmith.Sdk]
   Languages --> Sdk
   Languages --> Lsp[Runesmith.Lsp]
@@ -35,6 +36,7 @@ graph TD
 | --- | --- |
 | `src/Runesmith.Text` | The text buffer: a persistent piece tree with immutable snapshots, line lookup, changes, undo history, search and word boundaries. No dependencies. |
 | `src/Runesmith.Lsp` | A Language Server Protocol client: JSON-RPC over a server's standard input and output, the protocol types and the server's lifecycle. Only `System.Text.Json`. |
+| `src/Runesmith.Dap` | A Debug Adapter Protocol client: requests, responses and events over a debug adapter's standard streams or a socket, and the protocol types. Only `System.Text.Json`. |
 | `src/Runesmith.Sdk` | The plugin API: the contracts plugins export and the services they import. Published as a package for plugins. |
 | `src/Runesmith.Composition` | Finds and checks plugins, loads each in its own load context and composes everything with VS-MEF, with a cache. |
 | `src/Runesmith.Hub` | The plugin hub client: the verified index, search, install plans, installs and updates, and what the hub's states mean for installed plugins. No user interface. |
