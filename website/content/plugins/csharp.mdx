@@ -3,7 +3,7 @@ title: C# support
 description: "How Runesmith edits, builds and runs C#: highlighting, Runesmith's own C# analyzer on the C# compiler, building with dotnet build, and run configurations."
 ---
 
-Runesmith supports C# through an official plugin that ships with it, `runesmith.csharp`, developed in
+Runesmith supports C# through an official plugin you install from the plugin hub, `runesmith.csharp`, developed in
 [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp). It highlights `.cs` and `.csx` files, gives completion, hover,
 go to definition, signature help, problems, quick fixes, rename, formatting and inlay hints from Runesmith's own C# analyzer, and builds
 solutions and projects with `dotnet build`. This page covers what the analyzer does, how it finds your projects, how fast it is and what it
@@ -11,14 +11,17 @@ does not do yet.
 
 ## Set up
 
-There is nothing to install for completion and the other language features: the analyzer is built on the C# compiler (Roslyn 5.9), ships
-with the plugin and runs inside Runesmith. Nothing is downloaded.
+Beyond the plugin, there is nothing to install for completion and the other language features: the analyzer is built on the C# compiler
+(Roslyn 5.9), ships with the plugin and runs inside Runesmith.
 
 <Steps>
 
-1. Install the [.NET SDK](https://dot.net), or download one in **File › SDKs...**. The analyzer needs it to load your projects, and
+1. Install the **C#** plugin: open **Tools › Plugins**, find **C#** in **Browse** and click **Install**, or start from its page on
+   [hub.runesmith.dev](https://hub.runesmith.dev). Restart Runesmith when it offers to. When you open a C# file without the plugin,
+   Runesmith offers it in a line over the editor, whose **Install** opens the plugin's page.
+2. Install the [.NET SDK](https://dot.net), or download one in **File › SDKs...**. The analyzer needs it to load your projects, and
    **Build** needs `dotnet` on the `PATH` or a default SDK that Runesmith installed.
-2. Open a folder with a solution or project in Runesmith and open a `.cs` file.
+3. Open a folder with a solution or project in Runesmith and open a `.cs` file.
 
 </Steps>
 
@@ -139,10 +142,10 @@ When the default .NET SDK is one Runesmith installed, **Build** runs the `dotnet
 ## Templates
 
 **File › New Project** lists the project templates of every .NET SDK Runesmith finds and of every template package you installed with
-`dotnet new install`, so a package you install shows up the next time the dialog opens. They come from a separate plugin that ships with
-Runesmith, **C# templates** (`runesmith.csharp-templates`, developed in
-[RunesmithHub/plugin-csharp-templates](https://github.com/RunesmithHub/plugin-csharp-templates)); turn it off in **Settings › Plugins** to
-hide them and keep the rest of C# support.
+`dotnet new install`, so a package you install shows up the next time the dialog opens. They come from a separate plugin, **C# templates**
+(`runesmith.csharp-templates`, developed in
+[RunesmithHub/plugin-csharp-templates](https://github.com/RunesmithHub/plugin-csharp-templates)), which you install from the plugin hub as
+you install the C# plugin; turn it off in **Settings › Plugins** to hide them and keep the rest of C# support.
 
 The plugin reads the packages without unpacking them:
 

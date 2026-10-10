@@ -3,7 +3,7 @@ title: Java support
 description: "How Runesmith edits and builds Java: highlighting, completion, hover, go to definition and problems from its own Java analyzer, and building with Maven or Gradle."
 ---
 
-Runesmith supports Java through an official plugin that ships with it, `runesmith.java`, developed in
+Runesmith supports Java through an official plugin you install from the plugin hub, `runesmith.java`, developed in
 [RunesmithHub/plugin-java](https://github.com/RunesmithHub/plugin-java). It highlights `.java` files, understands them with Runesmith's own
 Java analyzer, and builds projects with Maven or Gradle. The analyzer is written in C# and runs inside Runesmith: it needs no JVM, no
 language server and no build to answer, so completion appears within milliseconds of a key press.
@@ -12,11 +12,14 @@ language server and no build to answer, so completion appears within millisecond
 
 <Steps>
 
-1. Install a JDK. Runesmith reads the JDK's API for each Java release from it, so a recent JDK serves projects of every older release
+1. Install the **Java** plugin: open **Tools › Plugins**, find **Java** in **Browse** and click **Install**, or start from its page on
+   [hub.runesmith.dev](https://hub.runesmith.dev). Restart Runesmith when it offers to. When you open a `.java` file, `pom.xml` or
+   `build.gradle` without the plugin, Runesmith offers it in a line over the editor, whose **Install** opens the plugin's page.
+2. Install a JDK. Runesmith reads the JDK's API for each Java release from it, so a recent JDK serves projects of every older release
    too. It finds JDKs through `JAVA_HOME`, `java` on the `PATH`, and the usual install folders, such as `~/.sdkman/candidates/java`,
    `~/.jdks`, `/usr/lib/jvm` and `/Library/Java/JavaVirtualMachines`, and the JDKs Runesmith installed. [SDKs](/guide/sdks) downloads one
    for you.
-2. Open a folder with a Maven or Gradle project, or any folder with Java files, and open a `.java` file.
+3. Open a folder with a Maven or Gradle project, or any folder with Java files, and open a `.java` file.
 
 </Steps>
 
@@ -110,9 +113,10 @@ from the default JDK you pick there when it serves the project's release, and fi
 
 ## Templates
 
-**File › New Project** offers four Java templates. They come from a separate plugin that ships with Runesmith, **Java templates**
+**File › New Project** offers four Java templates. They come from a separate plugin, **Java templates**
 (`runesmith.java-templates`, developed in [RunesmithHub/plugin-java-templates](https://github.com/RunesmithHub/plugin-java-templates)),
-which you can turn off in **Settings › Plugins** without losing Java support.
+which you install from the plugin hub as you install the Java plugin, and can turn off in **Settings › Plugins** without losing Java
+support.
 
 | Template | What it creates |
 | --- | --- |

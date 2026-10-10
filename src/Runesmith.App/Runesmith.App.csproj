@@ -63,12 +63,21 @@
     <Error Condition="'$(_BundledPluginsExitCode)' != '0' and '$(_BundledPluginsExitCode)' != '1'" Text="Runesmith.BundledPlugins stopped with exit code $(_BundledPluginsExitCode)." />
     <ItemGroup>
       <_BundledPluginFile Include="$(BundledPluginsCache)/plugins/**/*" />
+      <_BundledPluginFolder Include="$([System.IO.Directory]::GetDirectories('$(BundledPluginsCache)/plugins'))" Condition="Exists('$(BundledPluginsCache)/plugins')" />
       <_StaleBundledPluginFile Include="$(OutDir)plugins/**/*" Exclude="@(_BundledPluginFile->'$(OutDir)plugins/%(RecursiveDir)%(Filename)%(Extension)')" />
+      <_StaleBundledPluginFolder Include="$([System.IO.Directory]::GetDirectories('$(OutDir)plugins'))" Condition="Exists('$(OutDir)plugins')"
+                                 Exclude="@(_BundledPluginFolder->'$(OutDir)plugins/%(Filename)%(Extension)')" />
     </ItemGroup>
     <Delete Files="@(_StaleBundledPluginFile)" />
+    <RemoveDir Directories="@(_StaleBundledPluginFolder)" />
     <Copy SourceFiles="@(_BundledPluginFile)" DestinationFiles="@(_BundledPluginFile->'$(OutDir)plugins/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="PublishBundledPlugins" AfterTargets="Publish" DependsOnTargets="BundlePlugins">
+    <ItemGroup>
+      <_StalePublishedPluginFolder Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)plugins'))" Condition="Exists('$(PublishDir)plugins')"
+                                   Exclude="@(_BundledPluginFolder->'$(PublishDir)plugins/%(Filename)%(Extension)')" />
+    </ItemGroup>
+    <RemoveDir Directories="@(_StalePublishedPluginFolder)" />
     <Copy SourceFiles="@(_BundledPluginFile)" DestinationFiles="@(_BundledPluginFile->'$(PublishDir)plugins/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 </Project>

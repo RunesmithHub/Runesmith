@@ -64,10 +64,15 @@ jobs:
       - name: Publish
         run: dotnet publish src/Runesmith.App --configuration Release --runtime ${{ matrix.rid }} --self-contained --output "artifacts/runesmith" -warnaserror
 
-      - name: Check that every bundled plugin is in the output
+      - name: Check that the output has every bundled plugin and no other
         run: |
-          for id in $(jq -r ".plugins[].id" bundled-plugins.json | tr -d "\r"); do
+          pinned=$(jq -r ".plugins[].id" bundled-plugins.json | tr -d "\r")
+          for id in $pinned; do
             if [[ ! -f "artifacts/runesmith/plugins/$id/plugin.json" ]]; then echo "::error::The published app has no plugins/$id."; exit 1; fi
+          done
+          for folder in artifacts/runesmith/plugins/*/; do
+            id=$(basename "$folder")
+            if ! grep -qx "$id" <<< "$pinned"; then echo "::error::The published app has plugins/$id, which bundled-plugins.json does not pin."; exit 1; fi
           done
 
       - name: Archive

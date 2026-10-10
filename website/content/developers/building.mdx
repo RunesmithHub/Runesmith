@@ -64,14 +64,15 @@ Building `src/Runesmith.App` also brings in the bundled plugins; see [Bundled pl
 
 ## Bundled plugins
 
-Runesmith ships the official plugins as published on the plugin hub. `bundled-plugins.json` at the repository root pins each one by id,
-version and the SHA-256 of its package:
+Runesmith ships the official Git and GitHub plugins as published on the plugin hub; the other official plugins, such as C# and Java, are
+installed from the hub by the users who want them. `bundled-plugins.json` at the repository root pins each shipped plugin by id, version
+and the SHA-256 of its package:
 
 ```json title="bundled-plugins.json"
 {
   "index": "https://runesmithhub.github.io/registry/",
   "plugins": [
-    { "id": "runesmith.csharp", "version": "0.1.0", "sha256": "b985baa0..." }
+    { "id": "runesmith.git", "version": "0.1.0", "sha256": "aa827f72..." }
   ]
 }
 ```

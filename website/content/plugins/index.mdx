@@ -4,7 +4,7 @@ description: What Runesmith plugins are, where Runesmith looks for them, the plu
 ---
 
 A plugin adds features to Runesmith: commands, tool windows, languages, language servers, completion and hover, build providers and
-settings. Runesmith's own C# support is a plugin, loaded the same way as yours. This page covers what a plugin is made of, its manifest,
+settings. Runesmith's official plugins, such as Git and C# support, load the same way as yours. This page covers what a plugin is made of, its manifest,
 what it may do and which plugins Runesmith accepts.
 
 ## What a plugin is
@@ -30,7 +30,7 @@ Runesmith looks in three places when it starts. Each plugin is a subfolder that 
 
 | Folder | What is there |
 | --- | --- |
-| `plugins` next to the Runesmith executable | The plugins that ship with Runesmith, such as C#. |
+| `plugins` next to the Runesmith executable | The plugins that ship with Runesmith: Git and GitHub. |
 | The hub's plugins folder | The plugins you install from the [plugin hub](/guide/plugins). Runesmith manages this folder. |
 | Your plugins folder | The plugins you put there yourself, such as with `dotnet build -t:InstallPlugin`. Runesmith marks them as local. |
 

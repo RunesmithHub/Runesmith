@@ -14,6 +14,8 @@ internal sealed class DocumentPanel : IDockPanel, INotifyPropertyChanged, IDispo
 {
     private readonly FileIcons icons;
     private readonly PathBreadcrumbs breadcrumbs;
+    private readonly DockPanel layout;
+    private Control? notice;
     private string? description;
     private bool wasModified;
 
@@ -25,7 +27,8 @@ internal sealed class DocumentPanel : IDockPanel, INotifyPropertyChanged, IDispo
         this.breadcrumbs = breadcrumbs;
         var bar = new Border { Classes = { "breadcrumbs" }, Child = breadcrumbs };
         DockPanel.SetDock(bar, Dock.Top);
-        Content = new DockPanel { Children = { bar, editor } };
+        layout = new DockPanel { Children = { bar, editor } };
+        Content = layout;
         wasModified = editor.Document.IsModified;
         editor.Document.PropertyChanged += OnDocumentChanged;
         icons.Changed += OnIconsChanged;
@@ -75,6 +78,22 @@ internal sealed class DocumentPanel : IDockPanel, INotifyPropertyChanged, IDispo
             if (breadcrumbs.Parent is Control bar)
                 bar.IsVisible = value;
         }
+    }
+
+    /// <summary>Shows a line over the editor, under the path, in place of the one shown before.</summary>
+    public void ShowNotice(Control line)
+    {
+        HideNotice();
+        notice = line;
+        DockPanel.SetDock(line, Dock.Top);
+        layout.Children.Insert(1, line);
+    }
+
+    public void HideNotice()
+    {
+        if (notice is not null)
+            layout.Children.Remove(notice);
+        notice = null;
     }
 
     public void Dispose()

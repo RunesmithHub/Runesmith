@@ -25,7 +25,8 @@ public sealed class HubSettingsTests
         var settings = new HubSettings().Settings.ToList();
 
         Assert.Equal(
-            [HubSettings.Enabled, HubSettings.AllowedTiers, HubSettings.AutoUpdate, HubSettings.CheckInterval, HubSettings.RegisterLinks, HubSettings.PreReleases],
+            [HubSettings.Enabled, HubSettings.AllowedTiers, HubSettings.AutoUpdate, HubSettings.CheckInterval, HubSettings.RegisterLinks, HubSettings.PreReleases,
+                HubSettings.DeclinedSuggestions],
             settings.Select(s => s.Key));
         Assert.All(settings, s => Assert.Equal("Plugins", s.Category));
         var interval = settings.Single(s => s.Key == HubSettings.CheckInterval);

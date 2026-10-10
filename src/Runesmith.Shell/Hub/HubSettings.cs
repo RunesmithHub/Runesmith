@@ -29,6 +29,9 @@ public sealed class HubSettings : ISettingContributor
     /// <summary>The ids of the plugins the user gets pre-releases of, separated by semicolons.</summary>
     public const string PreReleases = "plugins.hub.preReleases";
 
+    /// <summary>The ids of the official language plugins Runesmith no longer suggests, separated by semicolons.</summary>
+    public const string DeclinedSuggestions = "plugins.hub.declinedSuggestions";
+
     public IEnumerable<SettingDefinition> Settings { get; } =
     [
         new(Enabled, "Use the plugin hub", Category, true)
@@ -50,6 +53,10 @@ public sealed class HubSettings : ISettingContributor
             Description = "Whether Runesmith registers itself on Windows to open runesmith:// links from the hub's website. Takes effect when Runesmith starts again.",
         },
         new(PreReleases, "Pre-releases", Category, "") { Description = "The ids of the plugins you get pre-releases of, separated by semicolons." },
+        new(DeclinedSuggestions, "Plugins not to suggest", Category, "")
+        {
+            Description = "The ids of the language plugins Runesmith no longer suggests when you open their files, separated by semicolons.",
+        },
     ];
 
     /// <summary>Reads the allowed tiers; anything unknown allows every tier, as the default does.</summary>

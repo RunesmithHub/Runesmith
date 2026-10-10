@@ -14,6 +14,7 @@ using Runesmith.Shell.Appearance;
 using Runesmith.Shell.Commands;
 using Runesmith.Shell.Docking;
 using Runesmith.Shell.Editors.Custom;
+using Runesmith.Shell.Hub;
 using Runesmith.Shell.Palette;
 using Runesmith.Shell.Services;
 using Runesmith.Shell.ToolWindows;
@@ -44,6 +45,7 @@ public sealed class EditorService : IEditorService
     private readonly Lazy<IDiffService> diffs;
     private readonly Lazy<CommandService> commands;
     private readonly Lazy<CustomEditorService> customEditors;
+    private readonly Lazy<PluginSuggestions> suggestions;
     private readonly Dictionary<IDocument, DocumentPanel> panels = [];
     private readonly Dictionary<IDocument, DispatcherTimer> autoSaveTimers = [];
     private readonly Dictionary<IDocument, int> borrowed = [];
@@ -68,7 +70,8 @@ public sealed class EditorService : IEditorService
         ChangeBases changeBases,
         Lazy<IDiffService> diffs,
         Lazy<CommandService> commands,
-        Lazy<CustomEditorService> customEditors)
+        Lazy<CustomEditorService> customEditors,
+        Lazy<PluginSuggestions> suggestions)
     {
         this.documents = documents;
         this.editorServices = editorServices;
@@ -84,6 +87,7 @@ public sealed class EditorService : IEditorService
         this.diffs = diffs;
         this.commands = commands;
         this.customEditors = customEditors;
+        this.suggestions = suggestions;
         options = ReadOptions();
         settings.Changed += OnSettingChanged;
         documents.ChangedOnDisk += OnChangedOnDisk;
@@ -144,6 +148,8 @@ public sealed class EditorService : IEditorService
             panels[document] = panel;
             layout.Register(panel);
             UpdateDescriptions();
+            if (suggestions.Value.For(document.FilePath) is { } plugin)
+                panel.ShowNotice(PluginSuggestionBar.Create(plugin, suggestions.Value, panel.HideNotice));
         }
 
         layout.AddToEditors(panel.Id);

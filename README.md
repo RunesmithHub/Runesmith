@@ -2,7 +2,7 @@
 
 Runesmith is a code editor built on .NET 10 and [Avalonia](https://avaloniaui.net), for Windows, Linux and macOS. It opens a folder, edits
 its files with highlighting for more than 60 languages, and gets completion, signature help, hover, go to definition and problems from
-its own C# analyzer and from language servers. This first version focuses on C#.
+language plugins, such as the official C# and Java plugins, and from language servers. This first version focuses on C#.
 
 Runesmith is a private MVP for now.
 
@@ -12,8 +12,9 @@ Runesmith is a private MVP for now.
   light and dark.
 - **An editor for code.** TextMate highlighting, brackets and quotes that close as you type, indentation that follows the code, line
   commands, and find and replace with regular expressions.
-- **C# analysis.** Completion, signature help, hover, go to definition and problems as you type, from Runesmith's own C# analyzer on
-  the C# compiler (Roslyn). It runs inside Runesmith, supports every C# version up to C# 14, and needs no install step.
+- **C# analysis.** Completion, signature help, hover, go to definition and problems as you type, from the official C# plugin's analyzer
+  on the C# compiler (Roslyn). It runs inside Runesmith and supports every C# version up to C# 14. Install the plugin from the plugin
+  manager or [hub.runesmith.dev](https://hub.runesmith.dev); Runesmith suggests it when you open a C# file.
 - **Language servers.** Plugins can add Language Server Protocol servers for other languages.
 - **Navigation.** Quick Open, a command palette for every command, go to line, back and forward, and find in files with globs.
 - **Building.** `dotnet build` with its errors and warnings in the **Problems** panel.
@@ -31,12 +32,13 @@ dotnet run --project src/Runesmith.App
 ```
 
 Its UI library, [HammerUI](https://github.com/RunesmithHub/HammerUI), comes from the Runesmith Hub feed, with no sign-in. The official
-plugins, such as C#, Java and Git support, live in their own repositories; the build fetches the versions `bundled-plugins.json` pins from
-the plugin hub and checks them against its signed index (see
-[Bundled plugins](website/content/developers/building.mdx#bundled-plugins)).
+plugins live in their own repositories. Runesmith ships with Git and GitHub: the build fetches the versions `bundled-plugins.json` pins
+from the plugin hub and checks them against its signed index (see
+[Bundled plugins](website/content/developers/building.mdx#bundled-plugins)). The others, such as C#, Java, and Gitea and Forgejo, are
+installed from the plugin hub by those who want them: open **Tools › Plugins**, or start from [hub.runesmith.dev](https://hub.runesmith.dev).
 
-C# completion, hover and problems work without installing anything else. Loading your C# projects uses MSBuild, which needs the .NET SDK,
-as building does.
+With the C# plugin installed, C# completion, hover and problems work without installing anything else. Loading your C# projects uses
+MSBuild, which needs the .NET SDK, as building does.
 
 ## Documentation
 

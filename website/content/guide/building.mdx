@@ -5,8 +5,9 @@ description: Build the selected run configuration or the open folder, read the o
 
 **Build › Build** (<Keys>Ctrl+Shift+B</Keys>) builds the [run configuration](./running.mdx) selected in the toolbar: only its project, when its
 kind knows how, such as a .NET project with `dotnet build` of that project. Otherwise, and when no configuration is selected, it builds the
-open folder with a build provider that knows how. Runesmith ships with providers for .NET, which runs `dotnet build`, and for Maven and
-Gradle; plugins can add others.
+open folder with a build provider that knows how. The [C# plugin](/plugins/csharp) adds a provider for .NET, which
+runs `dotnet build`, and the [Java plugin](/plugins/java) one for Maven and Gradle; install them from the plugin hub. Other plugins can
+add more.
 
 ## Build
 

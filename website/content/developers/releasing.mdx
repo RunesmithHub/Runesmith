@@ -36,7 +36,7 @@ the minor and major versions. When a change breaks plugins, set `RunesmithApi.Ol
 
 | Job | Runs | What it does |
 | --- | --- | --- |
-| Publish | Every run, once per system | Publishes `src/Runesmith.App` self-contained in Release for `linux-x64`, `win-x64` and `osx-arm64`, with the plugins `bundled-plugins.json` pins, checks that each is in the output, and archives it as `runesmith-<version>-<system>.tar.gz`, or `.zip` for Windows. |
+| Publish | Every run, once per system | Publishes `src/Runesmith.App` self-contained in Release for `linux-x64`, `win-x64` and `osx-arm64`, with the plugins `bundled-plugins.json` pins, checks that each is in the output and no other plugin is, and archives it as `runesmith-<version>-<system>.tar.gz`, or `.zip` for Windows. |
 | Release | Version tags only | Creates the GitHub release with the three archives. |
 
 Pull requests that change the workflow, and runs started by hand, build the archives with a `-ci.` version and release nothing, so the

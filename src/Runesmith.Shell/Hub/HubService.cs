@@ -129,6 +129,14 @@ public sealed class HubService
         RefreshIfStale();
     }
 
+    /// <summary>Shows a plugin's page in the plugin manager.</summary>
+    public void ShowPage(string pluginId)
+    {
+        Model.ShowPage(new PageTarget(pluginId));
+        ShowRequested?.Invoke(this, EventArgs.Empty);
+        RefreshIfStale();
+    }
+
     /// <summary>Shows the plugin manager.</summary>
     public void Show(PluginManagerTab? tab = null)
     {

@@ -39,9 +39,10 @@ both. The sample index expires three days after it is written; write a new one t
 
 ## Bundled plugins
 
-Runesmith ships the official plugins, each developed in its own repository in the [RunesmithHub](https://github.com/RunesmithHub)
-organization, such as [plugin-csharp](https://github.com/RunesmithHub/plugin-csharp). `bundled-plugins.json` pins each by id, version and
-package SHA-256, and the app's build fetches them from the plugin hub.
+Each official plugin is developed in its own repository in the [RunesmithHub](https://github.com/RunesmithHub) organization, such as
+[plugin-git](https://github.com/RunesmithHub/plugin-git). Runesmith ships two of them, Git and GitHub: `bundled-plugins.json` pins each by
+id, version and package SHA-256, and the app's build fetches them from the plugin hub. The others, such as C#, Java, and Gitea and Forgejo,
+are installed from the plugin hub by the users who want them.
 
 To update one, set its `version` to a published version and its `sha256` to that version's `package.sha256` in the plugin's
 record in the hub index (<https://runesmithhub.github.io/registry/>). The build checks both against the signed index and fails when they

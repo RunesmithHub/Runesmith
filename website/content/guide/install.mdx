@@ -1,10 +1,10 @@
 ---
 title: Install and run
-description: Download Runesmith or build it from source, and set up C#.
+description: Download Runesmith or build it from source, and add C# or Java from the plugin hub.
 ---
 
-Runesmith runs on Windows, Linux and macOS. Download a release archive, or build it from source with the .NET 10 SDK. C# completion, hover
-and problems need no install step; loading C# projects and building them need the .NET SDK.
+Runesmith runs on Windows, Linux and macOS. Download a release archive, or build it from source with the .NET 10 SDK. It comes with Git
+and GitHub support; languages such as C# and Java come from official plugins you install from the plugin hub.
 
 ## Download a release
 
@@ -61,13 +61,25 @@ a terminal when `~/.local/bin` is on your `PATH`.
 
 [Building and testing](/developers/building) has more about building, such as building without the HammerUI checkout.
 
-## Set up C#
+## Set up C# or Java
 
-Completion, signature help, hover, go to definition and problems for C# come from Runesmith's own C# analyzer, which runs inside
-Runesmith. There is no install step, and nothing is downloaded.
+Completion, signature help, hover, go to definition, problems and builds for C# and Java come from the official **C#** and **Java**
+plugins. Install the ones you need from the plugin hub:
 
-To load your solution and projects, with their references and C# version, the analyzer needs the [.NET SDK](https://dot.net) installed, as
-building does. **Build** also needs `dotnet` on the `PATH`. [C# support](/plugins/csharp) has the details.
+<Steps>
+
+1. Open **Tools › Plugins** and choose **Browse**, or start from the plugin's page on [hub.runesmith.dev](https://hub.runesmith.dev).
+2. Find **C#** or **Java**, and **C# templates** or **Java templates** for **File › New Project**, and click **Install**.
+3. Restart Runesmith when it offers to.
+
+</Steps>
+
+When you open a C# or Java file and its plugin is not installed, Runesmith offers it in a line over the editor; see
+[Suggested plugins](./plugins.mdx#suggested-plugins).
+
+To load your solution and projects, with their references and C# version, the C# plugin needs the [.NET SDK](https://dot.net) installed,
+as building does. **Build** also needs `dotnet` on the `PATH`. [C# support](/plugins/csharp) and [Java support](/plugins/java) have
+the details.
 
 ## Related
 

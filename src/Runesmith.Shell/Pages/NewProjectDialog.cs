@@ -193,7 +193,7 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
         var hasRows = list.ItemCount > 0;
         listStatus.IsVisible = !hasRows;
         listStatus.Text = entries.Count == 0 && pendingProviders > 0 ? "Loading templates..."
-            : entries.Count == 0 ? "No templates are installed. Template plugins, such as C# templates and Java templates, add them; check that they are on in Settings > Plugins."
+            : entries.Count == 0 ? "No templates are installed. Install a template plugin, such as C# templates or Java templates, from Tools > Plugins, or check that yours are on there."
             : "No templates match. Try other words or clear the filters.";
     }
 
