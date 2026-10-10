@@ -86,6 +86,9 @@ internal sealed class TerminalSession : ITerminal, IDisposable
     /// <summary>Raised when the program rings the bell.</summary>
     public event EventHandler? Bell;
 
+    /// <summary>Raised after the screen got a new number of columns and rows.</summary>
+    public event EventHandler<(int Columns, int Rows)>? Resized;
+
     /// <summary>Raised with the text the program writes; the first handler added also gets what it wrote before, up to 64 KB.</summary>
     public event EventHandler<TerminalDataEventArgs>? Data
     {
@@ -149,10 +152,12 @@ internal sealed class TerminalSession : ITerminal, IDisposable
             if (Screen.Columns == columns && Screen.Rows == rows)
                 return static point => point;
             moved = Screen.Resize(columns, rows);
+            (columns, rows) = (Screen.Columns, Screen.Rows);
         }
 
         pty.Resize(columns, rows);
         Changed?.Invoke(this, EventArgs.Empty);
+        Resized?.Invoke(this, (columns, rows));
         return moved;
     }
 

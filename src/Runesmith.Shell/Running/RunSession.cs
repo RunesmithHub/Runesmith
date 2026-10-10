@@ -55,6 +55,10 @@ public sealed class RunSession : IDisposable
     /// <summary>Gets whether the user stopped the run.</summary>
     public bool WasStopped { get; private set; }
 
+    /// <summary>Gets whether the program reads the lines <see cref="SendInputAsync"/> sends: not when it runs in a terminal or under a
+    /// debugger.</summary>
+    public bool ReadsInput { get; private set; } = true;
+
     /// <summary>Gets how long the run has taken, or took.</summary>
     public TimeSpan Elapsed => clock.Elapsed;
 
@@ -119,6 +123,7 @@ public sealed class RunSession : IDisposable
     internal void StartedElsewhere(Action stop)
     {
         Volatile.Write(ref stopDebugger, stop);
+        ReadsInput = false;
         State = RunState.Running;
         StateChanged?.Invoke(this, EventArgs.Empty);
         if (WasStopped)

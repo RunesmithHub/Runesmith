@@ -84,7 +84,8 @@ public sealed class RunProcess : IDisposable
         return start;
     }
 
-    private static string? FindTerminfo(string folders, string term) =>
+    /// <summary>Gets the first of the folders, as <c>TERMINFO_DIRS</c> lists them, that describes the terminal <paramref name="term"/>, or null.</summary>
+    internal static string? FindTerminfo(string folders, string term) =>
         folders.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault(folder =>
             File.Exists(Path.Combine(folder, term[..1], term)) || File.Exists(Path.Combine(folder, ((int)term[0]).ToString("x2", CultureInfo.InvariantCulture), term)));
 

@@ -39,6 +39,7 @@ public sealed class RunServiceTests : IDisposable
         Assert.Contains("hello from the program", text, StringComparison.Ordinal);
         Assert.Contains("exit code 0", text, StringComparison.Ordinal);
         Assert.Equal(["App"], configurations.Recent);
+        Assert.True(session.ReadsInput);
     }
 
     [Fact]
@@ -218,11 +219,42 @@ public sealed class RunServiceTests : IDisposable
             Assert.Equal(4, session.ExitCode);
             Assert.Contains("runs in the Terminal panel", session.Console.GetText(), StringComparison.Ordinal);
             Assert.Contains("exit code 4", session.Console.GetText(), StringComparison.Ordinal);
+            Assert.False(session.ReadsInput);
             var terminal = (TerminalSession)Assert.Single(terminals.Tabs);
             Assert.Equal("App", terminal.Name);
             lock (terminal.Gate)
                 Assert.Contains("in a terminal", terminal.Screen.GetAllText(), StringComparison.Ordinal);
             terminal.Close();
+        }, TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task RunningAgainInTheTerminalTakesTheTabOfTheRunThatEnded()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+
+        var terminals = new TerminalService(new FakeWorkspace(root), null, () => null, _ => { });
+        var inTerminal = new RunService(configurations, build, new FakeWorkspace(root), () => Task.CompletedTask, new FakeOutput(), new FakeDiagnostics(), notifications,
+            null, null, () => terminals);
+
+        await HeadlessSession.Value.Dispatch(async () =>
+        {
+            async Task RunAsync(string name, string command) => await (await inTerminal.RunAsync(Config(name, command, [])))!.Completion.WaitAsync(Timeout);
+
+            await RunAsync("App", "printf first");
+            var first = (TerminalSession)Assert.Single(terminals.Tabs);
+            await RunAsync("Other", "printf other");
+            await RunAsync("App", "printf second");
+
+            Assert.Equal(["App", "Other"], terminals.Tabs.Select(t => t.Name));
+            var second = (TerminalSession)terminals.Tabs[0];
+            Assert.NotSame(first, second);
+            Assert.DoesNotContain(first, terminals.Terminals);
+            lock (second.Gate)
+                Assert.Contains("second", second.Screen.GetAllText(), StringComparison.Ordinal);
+            foreach (var tab in terminals.Tabs.ToList())
+                tab.Close();
         }, TestContext.Current.CancellationToken);
     }
 

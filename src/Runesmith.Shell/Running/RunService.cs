@@ -31,6 +31,7 @@ public sealed class RunService
     private readonly IBackgroundTasks? tasks;
     private readonly Func<Debugging.IRunDebugger?> debugger;
     private readonly Func<Terminal.TerminalService?> terminals;
+    private readonly Dictionary<string, Terminal.TerminalSession> lastTerminals = new(StringComparer.Ordinal);
     private CancellationTokenSource? building;
 
     /// <summary>Creates the service.</summary>
@@ -253,11 +254,13 @@ public sealed class RunService
         }
     }
 
-    // The program runs in a tab of the Terminal panel, where it can use the whole terminal; its tab stays when it ends.
-    private static async Task<int?> RunInTerminalAsync(RunSession session, Terminal.TerminalService host, LaunchPlan plan)
+    // The program runs in a tab of the Terminal panel, where it can use the whole terminal; its tab stays when it ends, until the next run.
+    private async Task<int?> RunInTerminalAsync(RunSession session, Terminal.TerminalService host, LaunchPlan plan)
     {
         var console = session.Console;
-        var terminal = host.StartProgram(session.Configuration.Name, plan.Program, plan.Arguments, plan.WorkingDirectory, plan.Environment);
+        var name = session.Configuration.Name;
+        var terminal = host.StartProgram(name, plan.Program, plan.Arguments, plan.WorkingDirectory, plan.Environment, lastTerminals.GetValueOrDefault(name));
+        lastTerminals[name] = terminal;
         var exited = new TaskCompletionSource<int?>(TaskCreationOptions.RunContinuationsAsynchronously);
         terminal.Exited += (_, e) => exited.TrySetResult(e.ExitCode);
         if (terminal.HasExited)
