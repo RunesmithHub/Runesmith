@@ -65,7 +65,7 @@ public sealed class DebugSessionTests : IAsyncDisposable
         session.StateChanged += (_, _) => Interlocked.Increment(ref changes);
 
         await program.StopAtBreakpointAsync();
-        await WaitAsync(() => session.State == DebugState.Paused);
+        await WaitAsync(() => session.State == DebugState.Paused && Volatile.Read(ref changes) > 0);
 
         Assert.Equal("breakpoint", session.Stop!.Reason);
         Assert.Equal(1, session.ThreadId);
