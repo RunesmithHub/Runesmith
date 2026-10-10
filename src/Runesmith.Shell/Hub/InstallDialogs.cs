@@ -288,10 +288,12 @@ internal static class InstallDialogs
     /// <summary>A button that opens an address in the browser.</summary>
     public static Button Link(string text, string url)
     {
+        var arrow = new SymbolIcon { Data = HammerUI.Icons.ExternalLink, Size = 12, Margin = new Thickness(5, 0, 0, 0) };
+        DockPanel.SetDock(arrow, Dock.Right);
         var button = new Button
         {
             Classes = { "subtle", "small" },
-            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Children = { new TextBlock { Text = text }, new SymbolIcon { Data = HammerUI.Icons.ExternalLink, Size = 12 } } },
+            Content = new DockPanel { Children = { arrow, new TextBlock { Text = text, TextTrimming = TextTrimming.CharacterEllipsis } } },
         };
         HubVisuals.Themed(button, Button.ForegroundProperty, "AccentBrush");
         ToolTip.SetTip(button, url);

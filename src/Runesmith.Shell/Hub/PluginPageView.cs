@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using HammerUI.Controls;
+using Runesmith.Shell.Views;
 using RunesmithHub.Protocol.Index;
 
 namespace Runesmith.Shell.Hub;
@@ -100,7 +101,7 @@ internal sealed class PluginPageView : StackPanel
             VerticalAlignment = VerticalAlignment.Center,
             Children =
             {
-                new TextBlock { Text = record.Name, FontSize = 20, FontWeight = FontWeight.SemiBold },
+                new TextBlock { Text = record.Name, FontSize = 20, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
                 meta,
                 new TextBlock { Text = page.Version?.Summary ?? record.Summary, TextWrapping = TextWrapping.Wrap, Classes = { "secondary" }, Margin = new Thickness(0, 2, 0, 0) },
             },
@@ -124,9 +125,7 @@ internal sealed class PluginPageView : StackPanel
             return new StackPanel { Spacing = 10, Children = { line, actions } };
         }
 
-        DockPanel.SetDock(actions, Dock.Right);
-        actions.Margin = new Thickness(16, 0, 0, 0);
-        line.Children.AddRange([icon, actions, text]);
+        line.Children.AddRange([icon, new SideBySidePanel { MinMainWidth = 220, Spacing = 16, Children = { text, actions } }]);
         return line;
     }
 
@@ -168,9 +167,7 @@ internal sealed class PluginPageView : StackPanel
             row.Children.Add(automatic);
         }
 
-        var line = new DockPanel();
-        DockPanel.SetDock(row, Dock.Right);
-        row.Margin = new Thickness(12, 0, 0, 0);
+        row.VerticalAlignment = VerticalAlignment.Top;
         var ok = page.Problem is null || page.IsPending;
         var mark = HubVisuals.Symbol(ok ? "Check" : "AlertTriangle", 16, ok ? "SuccessBrush" : "WarningBrush");
         mark.VerticalAlignment = VerticalAlignment.Top;
@@ -179,23 +176,17 @@ internal sealed class PluginPageView : StackPanel
         DockPanel.SetDock(mark, Dock.Left);
         text.Margin = new Thickness(8, 0, 0, 0);
         status.Children.AddRange([mark, text]);
-        line.Children.AddRange([row, status]);
-        return PluginManagerView.Surface(line);
+        return PluginManagerView.Surface(new SideBySidePanel { MinMainWidth = 200, Spacing = 12, Children = { status, row } });
     }
 
     private Border Review(PluginRecord record)
     {
         var card = Card("Review");
-        card.Children.Add(new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 8,
-            Children =
-            {
-                HubVisuals.Symbol(page.IsReviewed ? "shield-check" : "AlertTriangle", 15, page.IsReviewed ? "SuccessBrush" : "WarningBrush"),
-                new TextBlock { Text = page.Review, TextWrapping = TextWrapping.Wrap },
-            },
-        });
+        var reviewMark = HubVisuals.Symbol(page.IsReviewed ? "shield-check" : "AlertTriangle", 15, page.IsReviewed ? "SuccessBrush" : "WarningBrush");
+        reviewMark.VerticalAlignment = VerticalAlignment.Top;
+        reviewMark.Margin = new Thickness(0, 2, 8, 0);
+        DockPanel.SetDock(reviewMark, Dock.Left);
+        card.Children.Add(new DockPanel { Children = { reviewMark, new TextBlock { Text = page.Review, TextWrapping = TextWrapping.Wrap } } });
 
         var facts = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,14,*"), Margin = new Thickness(0, 6, 0, 0) };
         var rows = new List<(string, Control)> { ("Source", InstallDialogs.Link(record.Repository.Url.Replace("https://", "", StringComparison.Ordinal), record.Repository.Url)) };
@@ -260,11 +251,11 @@ internal sealed class PluginPageView : StackPanel
             DockPanel.SetDock(icon, Dock.Left);
             DockPanel.SetDock(range, Dock.Right);
             icon.Margin = new Thickness(0, 0, 8, 0);
-            line.Children.AddRange([icon, range, new StackPanel
+            line.Children.AddRange([icon, range, new WrapPanel
             {
-                Orientation = Orientation.Horizontal,
-                Spacing = 8,
-                Children = { new TextBlock { Text = record?.Name ?? dependency.Id, VerticalAlignment = VerticalAlignment.Center }, HubVisuals.TierBadge(record?.Tier) },
+                ItemSpacing = 8,
+                LineSpacing = 4,
+                Children = { new TextBlock { Text = record?.Name ?? dependency.Id, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center }, HubVisuals.TierBadge(record?.Tier) },
             }]);
             card.Children.Add(line);
         }
@@ -278,7 +269,7 @@ internal sealed class PluginPageView : StackPanel
         foreach (var (version, state) in page.Versions)
         {
             var selected = version == page.Version;
-            var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            var title = new WrapPanel { ItemSpacing = 8, LineSpacing = 4 };
             title.Children.Add(new TextBlock { Text = version.Version.ToString(), FontWeight = selected ? FontWeight.SemiBold : FontWeight.Normal, Classes = { "mono" }, VerticalAlignment = VerticalAlignment.Center });
             if (HubVisuals.VersionBadge(state.State) is { } badge)
                 title.Children.Add(badge);

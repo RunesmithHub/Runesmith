@@ -197,8 +197,8 @@ internal static class HubVisuals
     public static Control Capability(CapabilityRow capability, bool showFrom = true)
     {
         var brush = capability.IsHighRisk ? "DangerBrush" : "TextSecondaryBrush";
-        var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-        title.Children.Add(Themed(new TextBlock { Text = capability.Label, FontWeight = FontWeight.SemiBold }, TextBlock.ForegroundProperty, capability.IsHighRisk ? "DangerBrush" : "TextPrimaryBrush"));
+        var title = new WrapPanel { ItemSpacing = 6, LineSpacing = 2 };
+        title.Children.Add(Themed(new TextBlock { Text = capability.Label, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap }, TextBlock.ForegroundProperty, capability.IsHighRisk ? "DangerBrush" : "TextPrimaryBrush"));
         if (capability.IsNew)
             title.Children.Add(StateBadge("New for you", "sparkles", "AccentBrush"));
 
