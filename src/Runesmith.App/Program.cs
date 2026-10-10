@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Runesmith.Composition;
 using Runesmith.Hub;
@@ -33,6 +34,9 @@ internal static class Program
     /// <summary>Gets or sets the arguments to start Runesmith with again once it closes, or null to not restart.</summary>
     public static IReadOnlyList<string>? RestartArguments { get; set; }
 
+    // Kept alive for the whole run; a collected registration stops handling its signal.
+    private static PosixSignalRegistration[] terminationSignals = [];
+
     [STAThread]
     public static int Main(string[] args)
     {
@@ -64,6 +68,7 @@ internal static class Program
                 Guard.Crashed(exception, assembly => PluginCallers.Of(assembly) is { } plugin ? new SuspectPlugin(plugin.Manifest.Id, plugin.Manifest.Name, plugin.Manifest.Version) : null);
             }
         };
+        terminationSignals = [.. new[] { PosixSignal.SIGTERM, PosixSignal.SIGINT, PosixSignal.SIGHUP }.Select(signal => PosixSignalRegistration.Create(signal, _ => Guard.Exited()))];
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
             CrashLog.Write(e.Exception, "A background task failed");
