@@ -378,9 +378,20 @@ public sealed class BreakpointService
 /// <summary>Compares file paths as the file system does: ignoring case on Windows and macOS.</summary>
 internal static class PathKey
 {
-    public static StringComparer Comparer { get; } = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+    private static readonly bool IgnoresCase = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS();
+
+    public static StringComparer Comparer { get; } = IgnoresCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
     public static bool Equals(string? a, string? b) => a is not null && b is not null && Comparer.Equals(Normalize(a), Normalize(b));
+
+    /// <summary>Gets whether a path is inside a folder, whichever separators the two use, such as <c>/</c> and <c>\</c> on Windows.</summary>
+    public static bool IsInside(string path, string folder)
+    {
+        var root = Normalize(folder);
+        if (!Path.EndsInDirectorySeparator(root))
+            root += Path.DirectorySeparatorChar;
+        return Normalize(path).StartsWith(root, IgnoresCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+    }
 
     private static string Normalize(string path)
     {
