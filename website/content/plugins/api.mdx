@@ -48,6 +48,9 @@ Runesmith creates a part the first time something needs it. Services can be impo
 | `ILauncher` | Opens links in the browser and shows files in the file manager. |
 | `IPluginStorage` | Gives the plugin a folder of its own for its files. |
 | `IWebViewService` | Creates web views that show the plugin's own web pages. |
+| `IQuickInputService` | Asks the user to pick from a list or type a value in the quick input box, also in steps. |
+| `ITreeViewService` | Gives the plugin its tree views, to refresh them, reveal items and read the selection. |
+| `IClipboard` | Reads and writes the clipboard's text. |
 | `IDialogService`, `IToastService` | HammerUI's dialogs and toasts, shown in the main window. |
 
 ## Startup work
@@ -164,6 +167,23 @@ call it, so update it a few times a second at most rather than after every chang
 `IToolWindowManager.SetAvailable(id, false)` takes a panel and its stripe button away while it does not apply, such as a version control
 panel outside a repository; its **Show** command is disabled meanwhile. `SetAvailable(id, true)` brings it back, open again if it was open
 when it went. Panels are available until you say otherwise, and any thread may call it.
+
+### Tree views
+
+Export an `ITreeViewProvider` to show a tree of your own in a tool window, without writing the control. Its `TreeViewDefinition` holds the
+window's `ToolWindowDefinition`, and `GetChildrenAsync` returns the `TreeItem`s under an item, or the top ones, when the user first expands
+it. Runesmith draws only the rows in view, filters the loaded items as the user types, and shows `EmptyMessage` while the tree is empty.
+
+```csharp
+public TreeViewDefinition Definition { get; } = new(new ToolWindowDefinition("acme.files", "Files", "list-tree", DockSide.Left))
+{
+    EmptyMessage = "Open a folder to see its files",
+};
+```
+
+`ITreeViewService.GetTreeView` gives your plugin its `ITreeView`, to refresh the tree or one item, reveal an item and follow the selection
+and checkboxes. Commands placed in `TreeViewMenus.Title(id)` show as buttons in the window's header, and those in `TreeViewMenus.Item(id)`
+in the items' context menu; they run with a `TreeViewTarget`. See [Tree views](./ui.mdx#tree-views).
 
 ## Toolbar widgets
 
@@ -421,6 +441,21 @@ returns null when a file opens in one. See [Custom editors](./custom-editors.mdx
 Export an `IEditorKeyHook` to see keys in editors before the editor handles them, such as for modal editing. See
 [Keyboard hooks](./language-features.mdx#keyboard-hooks).
 
+### Snippets
+
+`IEditorView.InsertSnippet` replaces the selection with a snippet, as one undo step, and the user moves between its tab stops with
+<Keys>Tab</Keys> and <Keys>Shift+Tab</Keys>. Build one with `SnippetString`, or write the syntax: `$1`, `${1:name}`, `${1|a,b|}`, `$0` and
+variables such as `$TM_FILENAME`. A completion item with `IsSnippet` inserts its text the same way. See [Snippets](./ui.mdx#snippets).
+
+```csharp
+editors.ActiveEditor?.InsertSnippet(new SnippetString()
+    .AppendText("public sealed class ")
+    .AppendPlaceholder("Name")
+    .AppendText("\n{\n\t")
+    .AppendFinalTabStop()
+    .AppendText("\n}\n"));
+```
+
 ### Change markers
 
 The editor marks lines that differ from a base version of the file in the gutter: added lines green, changed lines blue, and deleted lines
@@ -456,6 +491,22 @@ diffs.Open(
     "Program.cs (HEAD and working tree)",
     new DiffSide("HEAD", headText) { FilePath = path },
     new DiffSide("Working tree", File.ReadAllText(path)) { FilePath = path, IsEditable = true });
+```
+
+## Quick input
+
+Import `IQuickInputService` to ask the user something in the box the command palette uses. `PickAsync` and `PickManyAsync` show rows,
+grouped by separators, filtered as the user types or found by a search you run as they type; `InputAsync` asks for text and shows what your
+check says is wrong with it; `RunStepsAsync` asks several questions in steps with Back. Each returns null when the user cancels. See
+[Quick input](./ui.mdx#quick-input).
+
+```csharp
+var picked = await quickInput.PickAsync(
+[
+    PickItem.Separator<string>("Local branches"),
+    new PickItem<string>("main", "main") { Icon = "git-compare", Detail = "Merge pull request #42", IsSelected = true },
+    new PickItem<string>("feature/login", "feature/login") { Icon = "git-compare", Detail = "Add the sign-in form" },
+], new QuickPickOptions { Title = "Check out a branch", Placeholder = "Type a branch name" });
 ```
 
 ## Status bar, notifications and output
@@ -612,9 +663,17 @@ New plugins start at `^0.1.1`. See [API versions](./index.mdx#api-versions) for 
 | `ColorScheme(id, name, json)` and `ColorScheme.Json` | A [syntax color scheme](./themes.mdx#syntax-color-schemes) given as JSON instead of a file. |
 | `RunesmithPaths.Hub` | The folder Runesmith manages for the plugin hub. |
 
+| Added in 0.1.2 | What it is |
+| --- | --- |
+| `IQuickInputService`, `IQuickInput`, `IQuickInputStep`, `PickItem<T>`, `PickItem`, `PickItemKind`, `PickItemSource<T>`, `QuickPickOptions`, `InputBoxOptions` | [Quick input](./ui.mdx#quick-input). |
+| `ITreeViewProvider`, `ITreeView`, `ITreeViewService`, `TreeViewDefinition`, `TreeItem`, `TreeItemCollapsibleState`, `TreeItemCheckedEventArgs`, `TreeViewTarget`, `TreeViewMenus` | [Tree views](./ui.mdx#tree-views). |
+| `IEditorView.InsertSnippet`, `SnippetString`, `CompletionItem.IsSnippet` | [Snippets](./ui.mdx#snippets). |
+| `IClipboard` | [The clipboard](./ui.mdx#the-clipboard). |
+
 ## Related
 
 - [Create a plugin](./create-a-plugin.mdx)
+- [Building plugin UI](./ui.mdx): quick input, tree views and snippets.
 - [Editor extensions](./language-features.mdx): decorations, code actions, rename, formatting and keyboard hooks.
 - [Custom editors](./custom-editors.mdx) and [Web views](./web-views.mdx)
 - [C# support](./csharp.mdx), a complete plugin.

@@ -1,0 +1,348 @@
+---
+title: Building plugin UI
+description: Ask questions in the quick input box, show a tree of your own in a tool window, and insert snippets with tab stops, with Runesmith drawing the UI.
+---
+
+Most plugins need a few common pieces of UI: a list to pick from, a box to type a name in, a tree of things in a panel, and text with gaps
+for the user to fill in. Runesmith draws these for you, so they look and behave like the rest of the editor, work with the keyboard and
+screen readers, and keep your plugin's errors away from the user. This page covers the quick input box, tree views and snippets. Everything
+here was added in plugin API 0.1.2.
+
+## Quick input
+
+Import `IQuickInputService` to ask the user something in the box at the top of the window that the command palette uses. It has the
+palette's look and keys: <Keys>Up</Keys> and <Keys>Down</Keys> move, <Keys>Enter</Keys> accepts and <Keys>Esc</Keys> cancels. Each
+question shows **Asked by** and your plugin's name, so the user knows who is asking, such as for a token. Every member can be called from
+any thread, and a cancelled question returns null.
+
+### Pick from a list
+
+`PickAsync` shows rows and returns the picked `PickItem<T>`, whose `Value` is what the row stands for. Separators made with
+`PickItem.Separator<T>` start groups; typing filters the rows and keeps each group under its separator.
+
+```csharp title="BranchCommands.cs"
+[Export(typeof(ICommandContributor))]
+[method: ImportingConstructor]
+public sealed class BranchCommands(IQuickInputService quickInput, INotificationService notifications) : ICommandContributor
+{
+    public void Contribute(ICommandRegistry registry) =>
+        registry.Add(new CommandDefinition("acme.checkout", "Check Out Branch", "Acme"), async _ =>
+        {
+            var picked = await quickInput.PickAsync(
+            [
+                PickItem.Separator<string>("Local branches"),
+                new PickItem<string>("main", "main") { Icon = "git-compare", Detail = "Merge pull request #42", IsSelected = true },
+                new PickItem<string>("feature/login", "feature/login") { Icon = "git-compare", Detail = "Add the sign-in form" },
+                PickItem.Separator<string>("Remote branches"),
+                new PickItem<string>("origin/main", "origin/main") { Icon = "link", Description = "remote" },
+            ], new QuickPickOptions { Title = "Check out a branch", Placeholder = "Type a branch name", MatchOnDetail = true });
+            if (picked is not null)
+                notifications.Notify(NotificationKind.Success, $"Checked out {picked.Value}");
+        });
+}
+```
+
+| `PickItem<T>` member | What it does |
+| --- | --- |
+| `Label` | The row's text, which typing matches. |
+| `Value` | What the row stands for. |
+| `Description` | A short dimmed text after the label, such as `remote`. |
+| `Detail` | A second line under the label. |
+| `Icon` | An icon name, such as `git-compare`. |
+| `IconPath` | A file or folder whose icon from the file icon theme the row shows, when it has no `Icon`. |
+| `IsSelected` | The row is the active one when the pick opens, or checked in a pick of many. |
+| `Kind` | `PickItemKind.Item`, or `Separator` for a group's heading; use `PickItem.Separator<T>` to make one. |
+
+| `QuickPickOptions` member | Default | What it does |
+| --- | --- | --- |
+| `Title` | none | A title above the box. |
+| `Placeholder` | "Type to filter" | What the empty box shows. |
+| `Value` | empty | The text the box starts with. |
+| `MatchOnDescription`, `MatchOnDetail` | false | Typing also matches the description or the detail. |
+| `KeepOpenOnFocusLost` | false | The pick stays open when the window loses the focus or the user clicks outside it. |
+| `SearchDelay` | 150 ms | How long typing pauses before an async source is asked again. |
+| `EmptyText` | "Nothing matches" | What the list says when no row matches. |
+
+### Search as the user types
+
+Pass a `PickItemSource<T>` instead of a list when the rows come from a search, such as a server's. Runesmith asks it at once, then again
+after typing pauses for `SearchDelay`, and cancels the search before through its `CancellationToken`. A thin bar under the box shows while
+the source runs. When the source throws, the list says it could not be loaded, and the error goes to the **Plugins** output under your
+plugin's name.
+
+```csharp
+var symbol = await quickInput.PickAsync<string>(async (query, cancellationToken) =>
+{
+    var found = await index.FindClassesAsync(query, cancellationToken);
+    return [.. found.Select(c => new PickItem<string>(c.Name, c.FilePath) { Icon = "braces", Description = c.RelativePath })];
+}, new QuickPickOptions { Title = "Search symbols", Placeholder = "Type part of a class name", EmptyText = "No classes match" });
+```
+
+### Pick several
+
+`PickManyAsync` shows a checkbox on each row and returns the checked rows. <Keys>Space</Keys> checks the active row while the box is
+empty, <Keys>Ctrl+Space</Keys> always does, and the box at the top checks every row shown. <Keys>Enter</Keys> or **OK** accepts; with
+nothing checked, <Keys>Enter</Keys> picks the active row.
+
+```csharp
+string[] languages = ["C#", "F#", "Rust", "Go"];
+var chosen = await quickInput.PickManyAsync(
+    [.. languages.Select(l => new PickItem<string>(l, l) { Icon = "file-code", IsSelected = l == "C#" })],
+    new QuickPickOptions { Title = "Languages to install" });
+```
+
+### Ask for text
+
+`InputAsync` asks for a line of text and returns it. `Validate` checks the text after typing pauses and again before it is accepted; what
+it returns shows in red under the box, screen readers announce it, and <Keys>Enter</Keys> does nothing until it returns null. Set
+`IsPassword` for a token or a password.
+
+```csharp
+var token = await quickInput.InputAsync(new InputBoxOptions
+{
+    Title = "Sign in to Acme",
+    Prompt = "Paste a personal access token with the repo scope",
+    IsPassword = true,
+    Validate = (text, cancellationToken) => Task.FromResult(text.Length < 8 ? "A token has at least 8 characters." : null),
+});
+```
+
+| `InputBoxOptions` member | What it does |
+| --- | --- |
+| `Title`, `Prompt`, `Placeholder` | The title above the box, the line under it, and what the empty box shows. |
+| `Value`, `ValueSelection` | The text the box starts with, and the part of it selected; all of it by default. |
+| `IsPassword` | Hides what is typed. |
+| `Validate` | Returns what is wrong with the text, or null; it gets a `CancellationToken` that fires when the text changes again. |
+| `KeepOpenOnFocusLost` | Keeps the box open when the focus leaves it. |
+
+### Questions in steps
+
+`RunStepsAsync` asks several questions in one box, with **Step 2 of 3** and a Back button. Each step gets an `IQuickInputStep` to ask its
+questions with, and returns true to go on or false when its question returned null. When the user goes back, with the button or
+<Keys>Alt+Left</Keys>, the question returns null and Runesmith runs the step before again, so keep the answers in variables and start each
+question with the answer from last time. The box stays open between steps.
+
+```csharp
+string? name = null;
+PickItem<string>? kind = null;
+var done = await quickInput.RunStepsAsync("New component",
+[
+    async step => (name = await step.InputAsync(new InputBoxOptions
+    {
+        Prompt = "The component's name, in PascalCase",
+        Value = name ?? "NewComponent",
+        Validate = (text, _) => Task.FromResult(text.Length > 0 && char.IsUpper(text[0]) ? null : "Start the name with a capital letter."),
+    })) is not null,
+    async step => (kind = await step.PickAsync<string>(
+    [
+        new("Class", "class") { Icon = "box", Detail = "A plain class with a constructor" },
+        new("Record", "record") { Icon = "file-text", Detail = "An immutable record with value equality" },
+    ])) is not null,
+]);
+if (done)
+    notifications.Notify(NotificationKind.Success, $"Created the {kind!.Value} {name}");
+```
+
+### Keys
+
+| Key | What it does |
+| --- | --- |
+| <Keys>Up</Keys>, <Keys>Down</Keys>, <Keys>Page Up</Keys>, <Keys>Page Down</Keys> | Move the active row, skipping separators. |
+| <Keys>Enter</Keys> | Accepts. |
+| <Keys>Esc</Keys> | Cancels. |
+| <Keys>Tab</Keys> | Moves the focus to the list, where screen readers read each row; typing goes back to the box. |
+| <Keys>Space</Keys>, <Keys>Ctrl+Space</Keys> | Checks the active row in a pick of many. |
+| <Keys>Alt+Left</Keys> | Goes back a step. |
+
+A new question replaces one that shows, which then returns null.
+
+## Tree views
+
+Export an `ITreeViewProvider` to show a tree of your own, such as a project's targets or a server's resources, in a tool window. Its
+`TreeViewDefinition` holds the `ToolWindowDefinition` of the window, so the tree gets a stripe button, a **View** menu item and a command
+like any panel. Runesmith asks `GetChildrenAsync` for the top items when the window first shows, and for an item's children when the user
+first expands it. It draws only the rows in view, so a tree with tens of thousands of items scrolls smoothly.
+
+```csharp title="FilesTree.cs"
+[Export(typeof(ITreeViewProvider))]
+[Shared]
+[method: ImportingConstructor]
+public sealed class FilesTree(IWorkspace workspace) : ITreeViewProvider
+{
+    public const string Id = "acme.files";
+
+    public TreeViewDefinition Definition { get; } = new(new ToolWindowDefinition(Id, "Files", "list-tree", DockSide.Left))
+    {
+        EmptyMessage = "Open a folder to see its files",
+    };
+
+    public Task<IReadOnlyList<TreeItem>> GetChildrenAsync(TreeItem? parent, CancellationToken cancellationToken)
+    {
+        var folder = parent?.Id ?? workspace.RootPath;
+        if (folder is null)
+            return Task.FromResult<IReadOnlyList<TreeItem>>([]);
+
+        var folders = Directory.EnumerateDirectories(folder).Select(path => new TreeItem(Path.GetFileName(path))
+        {
+            Id = path,
+            IconPath = path,
+            CollapsibleState = TreeItemCollapsibleState.Collapsed,
+            ContextValue = "folder",
+        });
+        var files = Directory.EnumerateFiles(folder).Select(path => new TreeItem(Path.GetFileName(path))
+        {
+            Id = path,
+            IconPath = path,
+            ContextValue = "file",
+            CommandId = "acme.files.open",
+        });
+        return Task.FromResult<IReadOnlyList<TreeItem>>([.. folders, .. files]);
+    }
+}
+```
+
+| `TreeItem` member | What it does |
+| --- | --- |
+| `Label`, `Highlights` | The row's text, and spans of it drawn highlighted. |
+| `Id` | Keeps the item's expanded state and selection when the tree is refreshed; without it, the parent and the label are used. |
+| `Description` | A short dimmed text after the label. |
+| `ToolTip` | Shown when the pointer rests on the row. |
+| `Icon`, `IconPath` | An icon name, or a file or folder whose themed icon the row shows. |
+| `CollapsibleState` | `None` for a leaf, `Collapsed`, or `Expanded` to load and show the children at once. |
+| `ContextValue` | A kind, such as `file`, that commands read to decide whether they apply. |
+| `CommandId`, `CommandArgument` | The command run on a double-click or <Keys>Enter</Keys>, with a `TreeViewTarget` for the item unless you give an argument. |
+| `IsChecked` | Shows a checkbox, checked or not; null for none. |
+| `Data` | Anything of your own, such as the object the item stands for. |
+
+| `TreeViewDefinition` member | Default | What it does |
+| --- | --- | --- |
+| `ToolWindow` | | The tool window: its id, which is the tree view's id, title, icon and side. |
+| `EmptyMessage` | "Nothing to show" | What the window says while the tree has no items. |
+| `CanSelectMany` | false | Lets the user select several items with <Keys>Ctrl</Keys> and <Keys>Shift</Keys>. |
+| `ShowFilter` | true | A box above the tree that filters the loaded items as the user types. |
+
+`GetChildrenAsync` runs on the UI thread; await slow work instead of blocking. When it throws, the item shows a row that says its children
+could not be loaded, and the error goes to the **Plugins** output under your plugin's name.
+
+### Refresh, reveal and selection
+
+Get your tree's `ITreeView` from `ITreeViewService.GetTreeView`; a plugin can get only its own trees. Its members can be called from any
+thread, and its events come on the UI thread.
+
+```csharp
+var files = trees.GetTreeView(FilesTree.Id);
+files.Refresh();
+files.Refresh(changedFolder);
+await files.RevealAsync(new TreeItem("Program.cs") { Id = path }, select: true, focus: true);
+files.SelectionChanged += (_, _) => status.Text = $"{files.Selection.Count} selected";
+files.ItemChecked += (_, e) => todos.SetDone(e.Item.Id!, e.IsChecked);
+```
+
+- `Refresh()` loads the tree again and keeps the expanded items expanded and the selection selected, matched by id.
+- `Refresh(item)` replaces the item with the same id by the one you pass, and loads its children again if it is expanded.
+- `RevealAsync` shows the window, expands the item's parents, scrolls to it, and selects and focuses it as asked. To reveal an item that is not
+  loaded yet, implement `GetParentAsync`, so Runesmith can find the way down to it.
+- `Message` shows a line above the items, such as "Showing the first 500 results".
+
+### Title buttons and context menus
+
+Place commands in `TreeViewMenus.Title(id)` for buttons in the window's header, and in `TreeViewMenus.Item(id)` for the items' context
+menu. They run with a `TreeViewTarget`: the view's id, the item, or null for a title button, and the selection. An item shows only while its
+command can run with the target, so check `ContextValue` to show a command for one kind of item.
+
+```csharp
+registry.Add(new CommandDefinition("acme.files.refresh", "Refresh", "Acme") { Icon = "refresh" }, _ =>
+{
+    trees.GetTreeView(FilesTree.Id).Refresh();
+    return Task.CompletedTask;
+});
+registry.Add(new CommandDefinition("acme.files.open", "Open", "Acme") { ShowInPalette = false }, async argument =>
+{
+    if (argument is TreeViewTarget { Item.Id: { } path })
+        await editors.OpenAsync(path);
+}, argument => argument is TreeViewTarget { ContextValue: "file" });
+registry.AddMenuItem(new MenuItemDefinition(TreeViewMenus.Title(FilesTree.Id), "acme.files.refresh"));
+registry.AddMenuItem(new MenuItemDefinition(TreeViewMenus.Item(FilesTree.Id), "acme.files.open", "1-open"));
+```
+
+### Keys
+
+| Key | What it does |
+| --- | --- |
+| <Keys>Right</Keys> | Expands the item, or moves to its first child. |
+| <Keys>Left</Keys> | Collapses the item, or moves to its parent. |
+| <Keys>Enter</Keys>, double-click | Runs the item's command, or expands or collapses it when it has none. |
+| <Keys>Space</Keys> | Checks or unchecks the item's checkbox. |
+| <Keys>Menu</Keys> | Opens the context menu. |
+| Typing | Goes to the filter box; <Keys>Esc</Keys> clears it. |
+
+Screen readers read each row's label, description, expanded or collapsed state, checkbox and level.
+
+## Snippets
+
+`IEditorView.InsertSnippet` replaces the selection with a snippet: text with tab stops the user moves between with <Keys>Tab</Keys> and
+<Keys>Shift+Tab</Keys>. The insertion is one undo step. <Keys>Esc</Keys>, or moving the caret out of the snippet, leaves the tab stops; the
+last <Keys>Tab</Keys> goes to the final position, `$0`. Build a snippet with `SnippetString`, which escapes your text, or write the syntax
+yourself.
+
+```csharp
+editors.ActiveEditor?.InsertSnippet(new SnippetString()
+    .AppendChoice(["public", "internal"])
+    .AppendText(" sealed class ")
+    .AppendPlaceholder("Name")
+    .AppendText("\n{\n\tpublic ")
+    .AppendTabStop(2)
+    .AppendText("()\n\t{\n\t\t")
+    .AppendFinalTabStop()
+    .AppendText("\n\t}\n}\n"));
+```
+
+The choice comes first: the list offers `public` and `internal`. The name comes next, and because tab stop 2 is used twice, typing the
+class's name also changes the constructor's. New lines get the indentation of the line the snippet starts on, and each tab becomes the
+editor's indentation.
+
+| Syntax | `SnippetString` method | What it is |
+| --- | --- | --- |
+| `$1`, `${1}` | `AppendTabStop` | A tab stop. The same number in several places links them: typing in one changes the others. |
+| `${1:name}` | `AppendPlaceholder` | A tab stop whose text is selected when the caret comes to it; it can hold other tab stops. |
+| `${1\|a,b\|}` | `AppendChoice` | A tab stop that offers its choices in a list and starts with the first. |
+| `$0` | `AppendFinalTabStop` | Where the caret ends; without it, the end of the snippet. |
+| `$TM_FILENAME`, `${SELECTED_TEXT:default}` | `AppendVariable` | A variable, with the text used when it is empty. |
+| `${1/(.*)/${1:/upcase}/}` | | A copy of tab stop 1 changed by a regular expression. |
+| `\$`, `\}`, `\\` | `AppendText` | A literal `$`, `}` or `\`. |
+
+The variables are `TM_FILENAME`, `TM_FILENAME_BASE`, `TM_DIRECTORY`, `TM_FILEPATH`, `TM_SELECTED_TEXT` and `SELECTED_TEXT`,
+`TM_CURRENT_LINE`, `TM_CURRENT_WORD`, `TM_LINE_INDEX`, `TM_LINE_NUMBER`, `CLIPBOARD`, `CURRENT_YEAR`, `CURRENT_YEAR_SHORT`,
+`CURRENT_MONTH`, `CURRENT_MONTH_NAME`, `CURRENT_MONTH_NAME_SHORT`, `CURRENT_DATE`, `CURRENT_DAY_NAME`, `CURRENT_DAY_NAME_SHORT`,
+`CURRENT_HOUR`, `CURRENT_MINUTE`, `CURRENT_SECOND`, `CURRENT_SECONDS_UNIX`, `RANDOM`, `RANDOM_HEX`, `UUID`, `LINE_COMMENT`,
+`BLOCK_COMMENT_START` and `BLOCK_COMMENT_END`. A name Runesmith does not know becomes a placeholder with the name as its text. A snippet
+that uses `CLIPBOARD` is inserted once the clipboard has been read.
+
+### Snippets in completion
+
+A completion item whose `IsSnippet` is true inserts its `InsertText` as a snippet, with the same tab stops. Language servers' snippets work
+the same way.
+
+```csharp
+new CompletionItem("forloop", CompletionItemKind.Snippet)
+{
+    Detail = "for loop",
+    InsertText = "for (var ${1:i} = 0; $1 < ${2:count}; $1++)\n{\n\t$0\n}",
+    IsSnippet = true,
+};
+```
+
+## The clipboard
+
+Import `IClipboard` to read and write the clipboard's text from any thread: `GetTextAsync` returns null when it holds no text, and
+`SetTextAsync` replaces what it holds.
+
+```csharp
+await clipboard.SetTextAsync(path);
+```
+
+## Related
+
+- [API overview](./api.mdx): every area of the plugin API.
+- [Create a plugin](./create-a-plugin.mdx): build and install a plugin to try these in.
+- [Editor extensions](./language-features.mdx): completion, decorations and code actions.
