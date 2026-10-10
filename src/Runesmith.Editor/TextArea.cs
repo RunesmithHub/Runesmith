@@ -205,6 +205,7 @@ public sealed partial class TextArea : Control
         selectionMovedByEdit = false;
         selection = value;
         preferredX = null;
+        LeaveSnippetWhenCaretLeaves();
         UpdateBracketMatch();
         ShowCaret();
         if (scrollIntoView)

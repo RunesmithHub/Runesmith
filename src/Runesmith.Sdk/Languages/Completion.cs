@@ -41,6 +41,11 @@ public sealed record CompletionItem(string Label, CompletionItemKind Kind)
     /// <summary>Gets the text inserted, when it differs from the label.</summary>
     public string? InsertText { get; init; }
 
+    /// <summary>Gets whether the inserted text is a snippet, with tab stops, placeholders and variables as <see cref="SnippetString"/>
+    /// describes; the editor then moves between its tab stops after accepting the item.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public bool IsSnippet { get; init; }
+
     /// <summary>Gets the span of the request's snapshot that the inserted text replaces; null replaces the word before the caret.</summary>
     public TextSpan? ReplaceSpan { get; init; }
 

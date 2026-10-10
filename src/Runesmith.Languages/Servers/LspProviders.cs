@@ -66,10 +66,7 @@ public sealed class LspCompletionProvider(LanguageServerManager manager) : IComp
 
     private CompletionItem ToItem(Protocol.CompletionItem item, TextSnapshot snapshot, LanguageClient client, IReadOnlyList<string>? commitCharacters)
     {
-        var snippet = item.InsertTextFormat == Protocol.InsertTextFormat.Snippet;
         var text = item.Edit?.NewText ?? item.InsertText;
-        if (snippet && text is not null)
-            text = LspConvert.StripSnippet(text);
         var range = item.Edit?.Range ?? item.Edit?.Insert;
 
         return new CompletionItem(item.Label, LspConvert.ToKind(item.Kind))
@@ -77,6 +74,7 @@ public sealed class LspCompletionProvider(LanguageServerManager manager) : IComp
             Detail = item.Detail,
             Documentation = LspConvert.ToMarkdown(item.Documentation),
             InsertText = text,
+            IsSnippet = item.InsertTextFormat == Protocol.InsertTextFormat.Snippet,
             ReplaceSpan = range is null ? null : LspConvert.ToSpan(snapshot, range),
             FilterText = item.FilterText,
             SortText = item.SortText,

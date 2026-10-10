@@ -97,7 +97,7 @@ internal static class ClientCapabilities
             {
                 ["completionItem"] = new JsonObject
                 {
-                    ["snippetSupport"] = false,
+                    ["snippetSupport"] = true,
                     ["commitCharactersSupport"] = true,
                     ["documentationFormat"] = new JsonArray("markdown", "plaintext"),
                     ["insertReplaceSupport"] = true,

@@ -20,5 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Runesmith.Sdk.Tests" />
+    <InternalsVisibleTo Include="Runesmith.Editor" />
+    <InternalsVisibleTo Include="Runesmith.Editor.Tests" />
   </ItemGroup>
 </Project>

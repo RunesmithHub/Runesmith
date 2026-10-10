@@ -39,6 +39,7 @@ public sealed partial class TextArea
             var visibleSpan = TextSpan.FromBounds(snapshot.GetLine(first).Start, snapshot.GetLine(last).EndIncludingBreak);
             DrawDiffSpans(context, brushes, visibleSpan, left);
             DrawSearchMatches(context, brushes, visibleSpan, left);
+            DrawSnippet(context, brushes, visibleSpan, left);
             DrawHighlightBackgrounds(context, visibleSpan, left);
             DrawSelection(context, brushes, snapshot, first, last, left);
             DrawBracketMatch(context, brushes, left);

@@ -36,6 +36,7 @@ public sealed partial class TextArea
         if (IsReadOnly)
             return;
 
+        result = MirrorSnippetEdit(result);
         if (result.Changes.Count == 0)
         {
             Select(result.Selection);
@@ -81,6 +82,7 @@ public sealed partial class TextArea
         if (IsReadOnly)
             return;
 
+        EndSnippet();
         BreakUndoGroup();
         if (Document.History.Undo(Document.Buffer) is { StateBefore: EditorSelection before })
             Select(before);
@@ -93,6 +95,7 @@ public sealed partial class TextArea
         if (IsReadOnly)
             return;
 
+        EndSnippet();
         BreakUndoGroup();
         if (Document.History.Redo(Document.Buffer) is { StateAfter: EditorSelection after })
             Select(after);
@@ -168,6 +171,7 @@ public sealed partial class TextArea
         var lastBefore = before.GetLineFromPosition(changeSet.Changes[^1].Span.End).LineNumber;
         var delta = changeSet.After.LineCount - before.LineCount;
         cache.ApplyEdit(first, lastBefore, delta);
+        FollowEditWithSnippet(changeSet);
         MapDecorations(changeSet);
         FollowEditWithChanges(first, lastBefore, delta);
         for (var number = first; number <= Math.Min(lastBefore + delta, changeSet.After.LineCount - 1); number++)

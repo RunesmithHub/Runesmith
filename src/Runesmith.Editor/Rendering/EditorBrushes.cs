@@ -38,6 +38,10 @@ internal sealed class EditorBrushes
 
     public required IPen BracketMatchBorder { get; init; }
 
+    public required IBrush SnippetStop { get; init; }
+
+    public required IPen SnippetBorder { get; init; }
+
     public required IPen Error { get; init; }
 
     public required IPen Warning { get; init; }
@@ -99,6 +103,8 @@ internal sealed class EditorBrushes
             CurrentSearchMatch = new ImmutablePen(new ImmutableSolidColorBrush(warning), 1.5),
             BracketMatch = new ImmutableSolidColorBrush(accent, 0.14),
             BracketMatchBorder = new ImmutablePen(new ImmutableSolidColorBrush(accent, 0.6), 1),
+            SnippetStop = new ImmutableSolidColorBrush(accent, 0.1),
+            SnippetBorder = new ImmutablePen(new ImmutableSolidColorBrush(accent, 0.75), 1),
             Error = new ImmutablePen(new ImmutableSolidColorBrush(danger), 1.2),
             Warning = new ImmutablePen(new ImmutableSolidColorBrush(warning), 1.2),
             Information = new ImmutablePen(new ImmutableSolidColorBrush(info), 1.2),

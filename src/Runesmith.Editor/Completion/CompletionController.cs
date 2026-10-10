@@ -36,6 +36,7 @@ internal sealed class CompletionController : IDisposable
     private bool isUpdatePending;
     private Avalonia.Rect placement;
     private bool isRequesting;
+    private TextSpan? choiceSpan;
 
     public CompletionController(TextArea area, ILanguageFeatures features)
     {
@@ -82,6 +83,7 @@ internal sealed class CompletionController : IDisposable
     /// <summary>Asks for completions at the caret.</summary>
     public void Trigger(CompletionTrigger trigger, char? character = null)
     {
+        choiceSpan = null;
         var token = Cancellation.Renew(ref request);
         var snapshot = area.Snapshot;
         var caret = area.Selection.Caret;
@@ -154,6 +156,13 @@ internal sealed class CompletionController : IDisposable
             return;
 
         isUpdatePending = false;
+        if (choiceSpan is { } choices)
+        {
+            if (area.Selection.Span != choices)
+                Close();
+            return;
+        }
+
         if (!IsOpen && !isRequesting)
             return;
 
@@ -209,6 +218,7 @@ internal sealed class CompletionController : IDisposable
 
     public void Close()
     {
+        choiceSpan = null;
         Cancellation.Cancel(ref request);
         Cancellation.Cancel(ref resolving);
         resolveTimer.Stop();
@@ -328,6 +338,12 @@ internal sealed class CompletionController : IDisposable
 
     private void Accept()
     {
+        if (choiceSpan is not null)
+        {
+            AcceptChoice();
+            return;
+        }
+
         if (Current is not { } item)
         {
             Close();
@@ -362,9 +378,35 @@ internal sealed class CompletionController : IDisposable
                 shift += extra.NewText.Length - extra.Span.Length;
         }
 
-        changes.Sort((a, b) => a.Span.Start.CompareTo(b.Span.Start));
         Close();
+        if (item.IsSnippet)
+        {
+            _ = area.InsertSnippetAsync(text, main.Span, changes[1..]);
+            return;
+        }
+
+        changes.Sort((a, b) => a.Span.Start.CompareTo(b.Span.Start));
         area.ApplyChanges(changes, EditorSelection.At(start + shift + text.Length));
+    }
+
+    /// <summary>Offers a snippet tab stop's choices in the list; accepting one replaces the tab stop's text.</summary>
+    public void ShowChoices(TextSpan span, IReadOnlyList<string> choices)
+    {
+        Close();
+        var selected = area.Snapshot.GetText(span);
+        var entries = choices.Select(c => new CompletionEntry(new CompletionItem(c, CompletionItemKind.EnumMember), 0, [])).ToList();
+        popup.SetEntries(entries, Math.Max(0, entries.FindIndex(e => e.Item.Label == selected)));
+        popup.PlacementRect = area.GetCharacterRect(span.Start);
+        popup.IsOpen = true;
+        choiceSpan = span;
+    }
+
+    private void AcceptChoice()
+    {
+        var choice = Current?.Label;
+        Close();
+        if (choice is not null)
+            area.ReplaceSnippetStop(choice);
     }
 
     private async Task ResolveSelectedAsync()

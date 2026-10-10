@@ -47,6 +47,7 @@ public sealed partial class TextEditor : UserControl, IEditorView, IDisposable
         signatureHelp = new SignatureHelpController(Area, services.Features);
         hover = new HoverController(Area, services.Features);
         changePopup = new ChangePopup(Area);
+        Area.SnippetChoicesRequested += (_, target) => completion.ShowChoices(target.Span, target.Choices!);
         changePopup.ShowDiffRequested += (_, _) => ShowChangesRequested?.Invoke(this, EventArgs.Empty);
         Area.LineChangeClicked += (_, change) =>
         {
@@ -129,6 +130,18 @@ public sealed partial class TextEditor : UserControl, IEditorView, IDisposable
     public void ScrollTo(int offset) => Area.ScrollIntoView(offset, center: true);
 
     void IEditorView.Focus() => Area.Focus();
+
+    public void InsertSnippet(string snippet)
+    {
+        ArgumentNullException.ThrowIfNull(snippet);
+        _ = Area.InsertSnippetAsync(snippet);
+    }
+
+    public void InsertSnippet(SnippetString snippet)
+    {
+        ArgumentNullException.ThrowIfNull(snippet);
+        InsertSnippet(snippet.Value);
+    }
 
     /// <summary>Moves the caret to a line and column, counted from zero, scrolls it into the middle and focuses the editor.</summary>
     public void GoTo(TextPosition position)
@@ -228,7 +241,7 @@ public sealed partial class TextEditor : UserControl, IEditorView, IDisposable
             return;
 
         hover.Hide();
-        e.Handled = completion.HandleKey(e) || signatureHelp.HandleKey(e) || HandleKeyHooks(e);
+        e.Handled = completion.HandleKey(e) || signatureHelp.HandleKey(e) || Area.HandleSnippetKey(e) || HandleKeyHooks(e);
         if (!e.Handled && e.Key == Key.Escape && changePopup.IsOpen)
         {
             changePopup.Hide();

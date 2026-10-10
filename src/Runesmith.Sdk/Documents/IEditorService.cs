@@ -1,3 +1,4 @@
+using Runesmith.Sdk.Documents.Snippets;
 using Runesmith.Text;
 
 namespace Runesmith.Sdk.Documents;
@@ -51,4 +52,27 @@ public interface IEditorView
 
     /// <summary>Raised when the caret moves or the selection changes.</summary>
     event EventHandler? CaretMoved;
+
+    /// <summary>Replaces the selection with a snippet, as one undo step, and selects its first tab stop; Tab and Shift+Tab then move between
+    /// the tab stops, and Esc leaves them. See <see cref="SnippetString"/> for the syntax. Call it on the UI thread.</summary>
+    /// <remarks>A snippet that uses <c>$CLIPBOARD</c> is inserted once the clipboard has been read. An editor that has no tab stops inserts
+    /// the snippet's text with the caret at its final position. Added in plugin API 0.1.2.</remarks>
+    void InsertSnippet(string snippet)
+    {
+        var selection = Selection;
+        var snapshot = Document.Buffer.Current;
+        var context = new SnippetContext(Document.FilePath, Document.Name, snapshot, selection);
+        var expansion = SnippetExpansion.Create(SnippetParser.Parse(snippet), name => SnippetVariables.Resolve(name, context), SnippetVariables.IndentOf(snapshot, selection.Start));
+        var changes = Document.Buffer.Replace(selection, expansion.Text);
+        Document.History.Push(changes, null, null);
+        CaretOffset = selection.Start + expansion.FinalOffset;
+    }
+
+    /// <summary>Replaces the selection with a snippet built with <see cref="SnippetString"/>; see <see cref="InsertSnippet(string)"/>.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    void InsertSnippet(SnippetString snippet)
+    {
+        ArgumentNullException.ThrowIfNull(snippet);
+        InsertSnippet(snippet.Value);
+    }
 }

@@ -86,10 +86,6 @@ internal static partial class LspConvert
         : content.Kind == Protocol.MarkupKind.Markdown ? content.Value
         : EscapeMarkdown(content.Value);
 
-    /// <summary>Removes snippet syntax, such as <c>${1:name}</c> and <c>$0</c>, keeping the placeholders' text.</summary>
-    public static string StripSnippet(string snippet) =>
-        SnippetPlaceholder().Replace(SnippetTabStop().Replace(snippet, ""), match => match.Groups[1].Value).Replace("\\$", "$", StringComparison.Ordinal);
-
     private static DiagnosticSeverity ToSeverity(Protocol.DiagnosticSeverity? severity) => severity switch
     {
         Protocol.DiagnosticSeverity.Warning => DiagnosticSeverity.Warning,
@@ -99,12 +95,6 @@ internal static partial class LspConvert
     };
 
     private static string EscapeMarkdown(string text) => MarkdownSpecial().Replace(text, @"\$0");
-
-    [GeneratedRegex(@"\$\{\d+:([^}]*)\}")]
-    private static partial Regex SnippetPlaceholder();
-
-    [GeneratedRegex(@"\$(\d+|\{\d+\})")]
-    private static partial Regex SnippetTabStop();
 
     [GeneratedRegex(@"[\\`*_{}\[\]<>#|]")]
     private static partial Regex MarkdownSpecial();
