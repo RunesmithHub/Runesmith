@@ -4,6 +4,8 @@ using Runesmith.Hub.Catalog;
 using Runesmith.Hub.Enforcement;
 using Runesmith.Hub.State;
 using Runesmith.Hub.Updates;
+using Runesmith.Sdk.Shell;
+using Runesmith.Workspace.Settings;
 using RunesmithHub.Protocol.Index;
 using RunesmithHub.Protocol.Resolution;
 using RunesmithHub.Protocol.Versioning;
@@ -30,6 +32,16 @@ public enum InstalledSource
     Local,
 }
 
+/// <summary>What became of a copy in the user's plugins folder of a plugin Runesmith ships or the hub installed.</summary>
+public enum LocalCopyState
+{
+    /// <summary>It runs in place of that plugin, with its own secrets and storage.</summary>
+    Replacing,
+
+    /// <summary>It does not load, because the user has not let local copies replace plugins.</summary>
+    Refused,
+}
+
 /// <summary>A plugin page the plugin manager shows.</summary>
 /// <param name="Version">The version to select, or null for the newest that can be installed.</param>
 /// <param name="FromLink">The link that opened the page, or null.</param>
@@ -45,6 +57,9 @@ public sealed record InstalledRow(
 {
     /// <summary>Gets the state badge to show beside the name, if any.</summary>
     public NoticeKind? Badge { get; init; }
+
+    /// <summary>Gets what became of the plugin when it is a local copy of a plugin Runesmith ships or the hub installed, or null.</summary>
+    public LocalCopyState? LocalCopy { get; init; }
 
     /// <summary>Gets the plugin's folder, for its icon.</summary>
     public string? Folder { get; init; }
@@ -109,7 +124,7 @@ public sealed class PluginManagerModel
     /// <summary>Tells the views to show the data again.</summary>
     public void Refresh() => Changed?.Invoke(this, EventArgs.Empty);
 
-    /// <summary>Gets every plugin, problems first.</summary>
+    /// <summary>Gets every plugin, problems first, then local copies of plugins Runesmith ships or the hub installed.</summary>
     public IReadOnlyList<InstalledRow> Installed()
     {
         var state = client.State;
@@ -123,6 +138,12 @@ public sealed class PluginManagerModel
         {
             var id = plugin.Manifest.Id;
             shown.Add(id);
+            if (plugin.IsLocalCopy)
+            {
+                rows.Add(LocalCopyRow(plugin, all, off));
+                continue;
+            }
+
             var hub = state.Find(id);
             var replacesBundled = all.Any(p => p.Manifest.Id == id && p.State == PluginState.Replaced && p.Source == PluginSource.Bundled);
             var source = plugin.Source switch
@@ -163,7 +184,7 @@ public sealed class PluginManagerModel
             { Badge = NoticeKind.Quarantined });
         }
 
-        return [.. rows.OrderByDescending(r => r.IsProblem).ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase)];
+        return [.. rows.OrderByDescending(r => r.IsProblem).ThenByDescending(r => r.LocalCopy is not null).ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase)];
     }
 
     /// <summary>Gets the notices about installed plugins, problems first.</summary>
@@ -180,14 +201,14 @@ public sealed class PluginManagerModel
 
     /// <summary>Gets the version that runs now of a plugin, from the hub, Runesmith or the user's folder, or null.</summary>
     public string? RunningVersion(string id) =>
-        plugins().FirstOrDefault(p => p.Manifest.Id == id && p.State is not PluginState.Replaced)?.Manifest.Version;
+        plugins().FirstOrDefault(p => p.Manifest.Id == id && IsRunningCopy(p))?.Manifest.Version;
 
     /// <summary>Gets the capabilities a plugin has now, for marking the ones an install plan adds; null when it is not installed.</summary>
     public IReadOnlySet<string>? CurrentCapabilities(string id)
     {
         if (client.State.Find(id) is { } hub && client.Catalog is { } catalog && Moderation.Record(catalog, hub) is { } record)
             return record.Capabilities.Declared.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
-        return plugins().FirstOrDefault(p => p.Manifest.Id == id && p.State != PluginState.Replaced)?.Manifest.Capabilities?.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+        return plugins().FirstOrDefault(p => p.Manifest.Id == id && IsRunningCopy(p))?.Manifest.Capabilities?.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
     }
 
     /// <summary>Gets the model of an install plan's dialog.</summary>
@@ -197,7 +218,7 @@ public sealed class PluginManagerModel
     public PluginPageModel Describe(PageTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
-        var running = plugins().FirstOrDefault(p => p.Manifest.Id == target.PluginId && p.State != PluginState.Replaced);
+        var running = plugins().FirstOrDefault(p => p.Manifest.Id == target.PluginId && IsRunningCopy(p));
         var problem = running?.State switch
         {
             PluginState.Failed => $"It could not load: {running.Error}",
@@ -209,6 +230,68 @@ public sealed class PluginManagerModel
             Problem = problem,
         };
     }
+
+    /// <summary>Gets the notices to show once at start about local copies of plugins Runesmith ships or the hub installed: those that run in
+    /// their place, and those that were refused.</summary>
+    public static IReadOnlyList<(NotificationKind Kind, string Title, string Message)> LocalCopyNotices(IReadOnlyList<PluginInfo> plugins)
+    {
+        ArgumentNullException.ThrowIfNull(plugins);
+        var notices = new List<(NotificationKind, string, string)>();
+        var replacing = plugins.Where(p => p.IsLocalCopy && p.State == PluginState.Loaded).Select(p => p.Manifest.Name).ToList();
+        if (replacing.Count > 0)
+        {
+            notices.Add((NotificationKind.Warning,
+                replacing.Count == 1 ? $"A local copy of {replacing[0]} is running" : $"{replacing.Count} local copies of plugins are running",
+                $"{Names(replacing)} from your plugins folder {(replacing.Count == 1 ? "runs" : "run")} in place of the installed {(replacing.Count == 1 ? "plugin" : "plugins")}, with "
+                + $"{(replacing.Count == 1 ? "its" : "their")} own secrets and storage. Turn off {CoreSettings.AllowLocalOverrides} in Settings to stop this."));
+        }
+
+        var refused = plugins.Where(p => p.State == PluginState.Refused).Select(p => p.Manifest.Name).Distinct(StringComparer.Ordinal).ToList();
+        if (refused.Count > 0)
+        {
+            notices.Add((NotificationKind.Warning,
+                refused.Count == 1 ? $"A local copy of {refused[0]} was not loaded" : $"{refused.Count} local copies of plugins were not loaded",
+                $"Your plugins folder has a copy of {Names(refused)}, which Runesmith ships or the hub installed. The plugin manager says how to run it."));
+        }
+
+        return notices;
+    }
+
+    private static bool IsRunningCopy(PluginInfo plugin) => plugin.State is not (PluginState.Replaced or PluginState.Refused);
+
+    private static InstalledRow LocalCopyRow(PluginInfo plugin, IReadOnlyList<PluginInfo> all, IReadOnlySet<string> off)
+    {
+        var id = plugin.Manifest.Id;
+        if (plugin.State == PluginState.Refused)
+        {
+            return new InstalledRow(id, plugin.Manifest.Name, plugin.Manifest.Version, null, InstalledSource.Local, plugin.Error ?? "", IsProblem: true, IsEnabled: false, CanToggle: false)
+            {
+                LocalCopy = LocalCopyState.Refused,
+                Folder = plugin.Directory,
+            };
+        }
+
+        var replaced = all.FirstOrDefault(p => p.Manifest.Id == id && p.State == PluginState.Replaced && p.Source == PluginSource.Hub)
+            ?? all.FirstOrDefault(p => p.Manifest.Id == id && p.State == PluginState.Replaced && p.Source == PluginSource.Bundled);
+        var instead = replaced is null ? "the installed plugin" : $"version {replaced.Manifest.Version} {(replaced.Source == PluginSource.Hub ? "from the hub" : "that comes with Runesmith")}";
+        var (note, problem) = plugin.State switch
+        {
+            PluginState.Failed => ($"Could not load: {plugin.Error}", true),
+            PluginState.Disabled => ("Turned off.", false),
+            _ => ($"Local copy, running in place of {instead}. It has its own secrets and storage, so sign in to it again.", false),
+        };
+        return new InstalledRow(id, plugin.Manifest.Name, plugin.Manifest.Version, null, InstalledSource.Local, note, problem, !off.Contains(id), CanToggle: true)
+        {
+            LocalCopy = LocalCopyState.Replacing,
+            Folder = plugin.Directory,
+        };
+    }
+
+    private static string Names(List<string> names) => names.Count switch
+    {
+        1 => names[0],
+        _ => string.Join(", ", names.Take(names.Count - 1)) + " and " + names[^1],
+    };
 
     private string? BundledVersion(string id) => plugins().FirstOrDefault(p => p.Manifest.Id == id && p.Source == PluginSource.Bundled)?.Manifest.Version;
 
@@ -225,7 +308,7 @@ public sealed class PluginManagerModel
     {
         if (plugin.State == PluginState.Failed)
             return ($"Could not load: {plugin.Error}", true);
-        if (source == InstalledSource.Bundled && replacedBy?.Error is { } fallback)
+        if (source != InstalledSource.Local && replacedBy?.Error is { } fallback)
             return (fallback, true);
         if (plugin.State == PluginState.Disabled && plugin.Error is { } reason)
             return (reason, true);

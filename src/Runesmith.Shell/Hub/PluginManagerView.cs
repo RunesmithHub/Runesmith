@@ -264,6 +264,8 @@ internal sealed class PluginManagerView : DockPanel
         title.Children.Add(HubVisuals.TierBadge(row.Tier, local: row.Source == InstalledSource.Local));
         if (HubVisuals.StateBadge(row.Badge) is { } badge)
             title.Children.Add(badge);
+        if (HubVisuals.LocalCopyBadge(row.LocalCopy) is { } copy)
+            title.Children.Add(copy);
 
         var note = new TextBlock { Text = row.Note, Classes = { "caption" }, TextWrapping = TextWrapping.Wrap };
         if (row.IsProblem)

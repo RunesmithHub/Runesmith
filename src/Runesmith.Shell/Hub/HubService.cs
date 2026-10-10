@@ -12,6 +12,7 @@ using Runesmith.Sdk;
 using Runesmith.Sdk.Settings;
 using Runesmith.Sdk.Shell;
 using Runesmith.Shell.Services;
+using Runesmith.Workspace.Settings;
 using RunesmithHub.Protocol.Catalog;
 using RunesmithHub.Protocol.Resolution;
 using RunesmithHub.Protocol.Updating;
@@ -332,6 +333,9 @@ public sealed class HubService
             notifications.Notify(NotificationKind.Error, report.Quarantined.Count > 0 ? "A plugin was disabled because Runesmith found it harmful" : "A plugin's files changed",
                 "The plugin manager says which, and what to do.", "Show plugins", () => Show(PluginManagerTab.Installed));
         }
+
+        foreach (var (kind, title, message) in PluginManagerModel.LocalCopyNotices(runtime.Plugins))
+            notifications.Notify(kind, title, message, "Show plugins", () => Show(PluginManagerTab.Installed));
     }
 
     private void OnSettingChanged(string key)
@@ -346,6 +350,11 @@ public sealed class HubService
                 break;
             case HubSettings.CheckInterval:
                 timer.Interval = TimeSpan.FromHours(settings.Get<int>(HubSettings.CheckInterval));
+                break;
+            case CoreSettings.AllowLocalOverrides:
+                PromptRestart(settings.Get<bool>(CoreSettings.AllowLocalOverrides)
+                    ? "Local copies of plugins run in place of the installed ones from the next start."
+                    : "Local copies of installed plugins stop loading from the next start.");
                 break;
             case HubSettings.AllowedTiers or HubSettings.PreReleases or ShellSettings.DisabledPlugins:
                 Model.Refresh();
