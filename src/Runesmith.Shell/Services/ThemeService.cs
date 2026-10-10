@@ -78,7 +78,12 @@ public sealed class ThemeService : IThemeService, IDisposable
 
     public void Dispose() => manager.Dispose();
 
-    public void Toggle() => settings.Set(SettingKeys.Theme, IsDark ? BuiltInAppearance.LightTheme : BuiltInAppearance.DarkTheme);
+    public void Toggle() => settings.Set(SettingKeys.Theme, Current.Theme.Id switch
+    {
+        BuiltInAppearance.LowContrastDarkTheme => BuiltInAppearance.LowContrastLightTheme,
+        BuiltInAppearance.LowContrastLightTheme => BuiltInAppearance.LowContrastDarkTheme,
+        _ => IsDark ? BuiltInAppearance.LightTheme : BuiltInAppearance.DarkTheme,
+    });
 
     private void ApplyFontSize()
     {

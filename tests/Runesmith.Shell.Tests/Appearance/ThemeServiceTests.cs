@@ -83,6 +83,28 @@ public sealed class ThemeServiceTests : IDisposable
     });
 
     [Fact]
+    public Task AppliesTheLowContrastThemesWithTheirSchemesAndTogglesBetweenThem() => Run(() =>
+    {
+        var settings = TestSettings.Create(SettingsPath);
+        var (service, syntax, output) = Create(settings, FakeAppearance.Catalog());
+
+        settings.Set(SettingKeys.Theme, BuiltInAppearance.LowContrastDarkTheme);
+
+        Assert.True(service.IsDark);
+        Assert.Equal(BuiltInAppearance.LowContrastDarkTheme, service.Current.Theme.Id);
+        Assert.Equal(Color.Parse("#2A2C32"), Theme.DarkPalette.Surface);
+        Assert.Equal(BuiltInColorSchemes.LowContrastDarkId, syntax.Current.Id);
+
+        service.Toggle();
+
+        Assert.False(service.IsDark);
+        Assert.Equal(BuiltInAppearance.LowContrastLightTheme, settings.Get<string>(SettingKeys.Theme));
+        Assert.Equal(Color.Parse("#EEEFF1"), Theme.LightPalette.Surface);
+        Assert.Equal(BuiltInColorSchemes.LowContrastLightId, syntax.Current.Id);
+        Assert.Empty(output.Lines);
+    });
+
+    [Fact]
     public Task AppliesTheAccentOverAnyThemeAndGoesBackToTheThemesOwn() => Run(() =>
     {
         var settings = TestSettings.Create(SettingsPath);

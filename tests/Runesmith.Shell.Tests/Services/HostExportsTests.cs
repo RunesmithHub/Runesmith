@@ -30,8 +30,8 @@ public sealed class HostExportsTests
             Assert.IsType<DiffService>(result.Exports.GetExportedValue<IDiffService>());
             Assert.IsType<PluginStorage>(result.Exports.GetExportedValue<IPluginStorage>());
             var appearance = result.Exports.GetExportedValue<AppearanceCatalog>();
-            Assert.Equal(["dark", "light"], appearance.Themes.Select(e => e.Theme.Id));
-            Assert.Equal(["runesmith-dark", "runesmith-light"], appearance.Schemes.Select(e => e.Scheme.Id));
+            Assert.Equal(["dark", "light", "runesmith-low-contrast-dark", "runesmith-low-contrast-light"], appearance.Themes.Select(e => e.Theme.Id));
+            Assert.Equal(["runesmith-dark", "runesmith-light", "runesmith-low-contrast-dark", "runesmith-low-contrast-light"], appearance.Schemes.Select(e => e.Scheme.Id));
             Assert.Empty(appearance.Problems);
         }, TestContext.Current.CancellationToken);
     }

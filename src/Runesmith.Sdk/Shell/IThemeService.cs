@@ -5,7 +5,8 @@ public interface IThemeService
 {
     bool IsDark { get; }
 
-    /// <summary>Switches to Runesmith's own light theme while a dark one shows, or to its dark theme otherwise, and remembers the choice.</summary>
+    /// <summary>Switches between Runesmith's own low contrast themes while one shows, otherwise to its light theme while a dark one shows or
+    /// to its dark theme, and remembers the choice.</summary>
     void Toggle();
 
     /// <summary>Raised, on the UI thread, after the theme, its colors, the accent or the syntax color scheme change.</summary>

@@ -11,7 +11,7 @@ public sealed class AppearancePickersTests
     {
         var choices = AppearancePickers.Themes(FakeAppearance.Catalog(new FakeAppearance([FakeAppearance.Dusk])));
 
-        Assert.Equal([AppearanceCatalog.System, "dark", "light", "ember.dusk"], choices.Select(c => c.Value));
+        Assert.Equal([AppearanceCatalog.System, "dark", "light", "runesmith-low-contrast-dark", "runesmith-low-contrast-light", "ember.dusk"], choices.Select(c => c.Value));
         Assert.Equal("Dark, ember.themes", choices[^1].Detail);
         Assert.Equal(3, choices[^1].Swatch.Count);
         Assert.Equal("The color theme's own", AppearancePickers.Schemes(FakeAppearance.Catalog())[0].Title);

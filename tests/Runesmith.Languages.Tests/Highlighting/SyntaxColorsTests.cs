@@ -16,7 +16,9 @@ public sealed class SyntaxColorsTests : IDisposable
     {
         var colors = new SyntaxColors(new TextMateGrammars([]));
 
-        Assert.Equal([BuiltInColorSchemes.DarkId, BuiltInColorSchemes.LightId], new BuiltInColorSchemes().Schemes.Select(s => s.Id));
+        Assert.Equal(
+            [BuiltInColorSchemes.DarkId, BuiltInColorSchemes.LightId, BuiltInColorSchemes.LowContrastDarkId, BuiltInColorSchemes.LowContrastLightId],
+            new BuiltInColorSchemes().Schemes.Select(s => s.Id));
         Assert.All(new BuiltInColorSchemes().Schemes, s => Assert.Null(colors.Check(s)));
         Assert.Same(BuiltInColorSchemes.Dark, colors.Current);
     }

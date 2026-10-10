@@ -9,6 +9,8 @@ public sealed class BuiltInColorSchemes : IColorSchemeContributor
 {
     public const string DarkId = "runesmith-dark";
     public const string LightId = "runesmith-light";
+    public const string LowContrastDarkId = "runesmith-low-contrast-dark";
+    public const string LowContrastLightId = "runesmith-low-contrast-light";
 
     private static readonly string Folder = Path.Combine(AppContext.BaseDirectory, "ColorSchemes");
 
@@ -18,5 +20,13 @@ public sealed class BuiltInColorSchemes : IColorSchemeContributor
     /// <summary>Gets the scheme of Runesmith's light theme.</summary>
     public static ColorScheme Light { get; } = new(LightId, "Runesmith Light", Path.Combine(Folder, "RunesmithLight.json")) { IsDark = false };
 
-    public IEnumerable<ColorScheme> Schemes => [Dark, Light];
+    /// <summary>Gets the softer scheme of Runesmith's low contrast dark theme.</summary>
+    public static ColorScheme LowContrastDark { get; } =
+        new(LowContrastDarkId, "Runesmith Low Contrast Dark", Path.Combine(Folder, "RunesmithLowContrastDark.json"));
+
+    /// <summary>Gets the softer scheme of Runesmith's low contrast light theme.</summary>
+    public static ColorScheme LowContrastLight { get; } =
+        new(LowContrastLightId, "Runesmith Low Contrast Light", Path.Combine(Folder, "RunesmithLowContrastLight.json")) { IsDark = false };
+
+    public IEnumerable<ColorScheme> Schemes => [Dark, Light, LowContrastDark, LowContrastLight];
 }

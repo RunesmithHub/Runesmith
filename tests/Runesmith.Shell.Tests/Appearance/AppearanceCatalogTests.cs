@@ -17,11 +17,13 @@ public sealed class AppearanceCatalogTests
 
         var catalog = FakeAppearance.Catalog(plugin);
 
-        Assert.Equal(["dark", "light", "ember.ash", "ember.dusk"], catalog.Themes.Select(e => e.Theme.Id));
+        Assert.Equal(["dark", "light", "runesmith-low-contrast-dark", "runesmith-low-contrast-light", "ember.ash", "ember.dusk"], catalog.Themes.Select(e => e.Theme.Id));
         Assert.Null(catalog.Themes[0].Plugin);
         Assert.Same(FakeAppearance.Plugin, catalog.FindTheme("Ember.Dusk")?.Plugin);
         Assert.Equal(["runesmith", "ember.icons"], catalog.IconThemes.Select(e => e.Theme.Id));
-        Assert.Equal([BuiltInColorSchemes.DarkId, BuiltInColorSchemes.LightId], catalog.Schemes.Select(e => e.Scheme.Id));
+        Assert.Equal(
+            [BuiltInColorSchemes.DarkId, BuiltInColorSchemes.LightId, BuiltInColorSchemes.LowContrastDarkId, BuiltInColorSchemes.LowContrastLightId],
+            catalog.Schemes.Select(e => e.Scheme.Id));
         Assert.Empty(catalog.Problems);
     }
 
@@ -81,7 +83,7 @@ public sealed class AppearanceCatalogTests
 
         Assert.Equal("Runesmith Dark", catalog.FindTheme("dark")?.Theme.Name);
         Assert.Contains(catalog.Problems, p => p.Contains("another has that id", StringComparison.Ordinal));
-        Assert.Equal(["dark", "light"], failing.Themes.Select(e => e.Theme.Id));
+        Assert.Equal(["dark", "light", "runesmith-low-contrast-dark", "runesmith-low-contrast-light"], failing.Themes.Select(e => e.Theme.Id));
         Assert.Contains(failing.Problems, p => p.Contains("could not list its color themes", StringComparison.Ordinal));
     }
 
@@ -100,11 +102,59 @@ public sealed class AppearanceCatalogTests
     }
 
     [Theory]
+    [InlineData(BuiltInAppearance.LowContrastDarkTheme, BuiltInColorSchemes.LowContrastDarkId, true)]
+    [InlineData(BuiltInAppearance.LowContrastLightTheme, BuiltInColorSchemes.LowContrastLightId, false)]
+    public void ListsTheLowContrastThemesWithTheirSchemesAndKeepsTheirTextReadable(string id, string schemeId, bool isDark)
+    {
+        var catalog = FakeAppearance.Catalog();
+
+        var entry = Assert.IsType<ThemeEntry>(catalog.FindTheme(id));
+        var palette = entry.Palette;
+        Assert.Empty(catalog.Problems);
+        Assert.Null(entry.Plugin);
+        Assert.Equal(isDark, palette.IsDark);
+        Assert.Equal(schemeId, entry.Theme.ColorScheme);
+        Assert.NotNull(catalog.FindScheme(schemeId));
+        Assert.All([palette.Background, palette.Surface, palette.SurfaceRaised, palette.SurfaceSunken],
+            surface => Assert.InRange(ThemePalettes.Contrast(palette.TextPrimary, surface), ThemePalettes.ReadableContrast, 9));
+        Assert.All([palette.Background, palette.Surface, palette.SurfaceRaised, palette.SurfaceSunken],
+            surface => Assert.True(ThemePalettes.Contrast(palette.TextSecondary, surface) >= ThemePalettes.UnreadableContrast));
+        Assert.True(ThemePalettes.Contrast(palette.TextMuted, palette.Surface) >= ThemePalettes.UnreadableContrast);
+        Assert.True(ThemePalettes.Contrast(palette.AccentForeground, palette.Accent) >= ThemePalettes.ReadableContrast);
+        Assert.True(ThemePalettes.Contrast(palette.Accent, palette.Surface) >= ThemePalettes.UnreadableContrast);
+        Assert.True(ThemePalettes.Contrast(palette.TextPrimary, palette.Surface) < ThemePalettes.Contrast(Default(isDark).TextPrimary, Default(isDark).Surface));
+    }
+
+    [Theory]
+    [InlineData(BuiltInColorSchemes.LowContrastDarkId, true)]
+    [InlineData(BuiltInColorSchemes.LowContrastLightId, false)]
+    public void ColorsCodeInTheLowContrastSchemesReadablyOnTheirThemesEditor(string schemeId, bool isDark)
+    {
+        var catalog = FakeAppearance.Catalog();
+        var scheme = Assert.IsType<SchemeEntry>(catalog.FindScheme(schemeId)).Scheme;
+        var surface = catalog.Themes.Single(e => e.Theme.ColorScheme == schemeId).Palette.Surface;
+        using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(scheme.FilePath));
+
+        Assert.Equal(isDark, scheme.IsDark);
+        Assert.Equal(surface, Color.Parse(json.RootElement.GetProperty("colors").GetProperty("editor.background").GetString()!));
+        foreach (var rule in json.RootElement.GetProperty("tokenColors").EnumerateArray())
+        {
+            if (!rule.GetProperty("settings").TryGetProperty("foreground", out var foreground))
+                continue;
+            var name = rule.TryGetProperty("name", out var n) ? n.GetString() : "default";
+            var least = name is "comment" or "doc" or "punctuation" ? ThemePalettes.UnreadableContrast : ThemePalettes.ReadableContrast;
+            Assert.True(ThemePalettes.Contrast(Color.Parse(foreground.GetString()!), surface) >= least, $"{name} in {schemeId}");
+        }
+    }
+
+    [Theory]
     [InlineData("#FFFFFF", "#000000", 21)]
     [InlineData("#777777", "#777777", 1)]
     [InlineData("#00FFFFFF", "#000000", 1)]
     public void MeasuresContrastAfterBlendingTransparency(string foreground, string background, double expected) =>
         Assert.Equal(expected, ThemePalettes.Contrast(Color.Parse(foreground), Color.Parse(background)), 1);
+
+    private static ThemePalette Default(bool isDark) => isDark ? ThemePalette.Dark : ThemePalette.Light;
 
     private sealed class ThrowingThemes : IColorThemeContributor
     {
