@@ -13,6 +13,7 @@
     <ProjectReference Include="..\Runesmith.Workspace\Runesmith.Workspace.csproj" />
     <ProjectReference Include="..\Runesmith.Languages\Runesmith.Languages.csproj" />
     <ProjectReference Include="..\Runesmith.Editor\Runesmith.Editor.csproj" />
+    <ProjectReference Include="..\Runesmith.Dap\Runesmith.Dap.csproj" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\runesmith.png" />

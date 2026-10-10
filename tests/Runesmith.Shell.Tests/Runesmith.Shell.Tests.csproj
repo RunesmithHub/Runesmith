@@ -20,6 +20,10 @@
     <Compile Include="..\Shared\Hub\*.cs" LinkBase="Shared" />
     <None Include="..\Shared\Hub\Index\**" LinkBase="HubIndex" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- The in-process debug adapter the debugger's tests talk to. -->
+  <ItemGroup>
+    <Compile Include="..\Shared\Dap\*.cs" LinkBase="Shared\Dap" />
+  </ItemGroup>
   <!-- The editor services the editors in these tests are made with. -->
   <ItemGroup>
     <Compile Include="..\Runesmith.Editor.Tests\EditorFakes.cs" Link="Editors\EditorFakes.cs" />

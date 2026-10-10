@@ -24,6 +24,7 @@ public sealed class RunSession : IDisposable
     private readonly CancellationTokenSource cancel = new();
     private readonly TaskCompletionSource<int?> completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private RunProcess? process;
+    private Action? stopDebugger;
 
     internal RunSession(RunConfiguration configuration, IRunConfigurationType? type, RunMode mode, string? workingDirectory = null)
     {
@@ -85,6 +86,7 @@ public sealed class RunSession : IDisposable
         }
 
         Volatile.Read(ref process)?.Stop();
+        Volatile.Read(ref stopDebugger)?.Invoke();
     }
 
     /// <summary>Sends a line to the program's standard input and shows it in the console.</summary>
@@ -107,6 +109,16 @@ public sealed class RunSession : IDisposable
         StateChanged?.Invoke(this, EventArgs.Empty);
         if (WasStopped)
             started.Stop();
+    }
+
+    /// <summary>Marks the run as running under a debugger, which <paramref name="stop"/> ends.</summary>
+    internal void StartedDebugging(Action stop)
+    {
+        Volatile.Write(ref stopDebugger, stop);
+        State = RunState.Running;
+        StateChanged?.Invoke(this, EventArgs.Empty);
+        if (WasStopped)
+            stop();
     }
 
     internal void Finish(int? exitCode)

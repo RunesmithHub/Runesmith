@@ -24,6 +24,7 @@ internal sealed class DapConnection : IAsyncDisposable
     private Task? _readLoop;
     private Task? _dispatchLoop;
     private int _closed;
+    private int _disposed;
 
     public DapConnection(Stream input, Stream output)
     {
@@ -104,6 +105,9 @@ internal sealed class DapConnection : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            return;
+
         await _lifetime.CancelAsync().ConfigureAwait(false);
         Close(null);
         if (_readLoop is not null)
