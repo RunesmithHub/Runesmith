@@ -163,7 +163,8 @@ public sealed class ArchiveCommands(IEditorService editors, IWorkspaceEditServic
 1. Runesmith checks every operation against the disk as the operations before it leave it, and every text change against its file. When
    one fails, such as a file that exists without `Overwrite`, a file to delete or replace with unsaved changes, or a document that changed
    since `Snapshot`, nothing is changed and the user is told why.
-2. It asks the [participants](#take-part-in-file-operations) for text changes to make with the operations.
+2. It asks the [participants](#take-part-in-file-operations) and the [language servers](#language-servers) for text changes to make with
+   the operations.
 3. With `Confirmation` set to `WhenLarge`, the default for this overload, it asks the user first when the edit touches more than
    `LargeEditThreshold` files, 20 by default, counting the files in folders it renames or deletes. `Always` always asks, and `Never`
    never does. The question lists the changes.
@@ -220,6 +221,19 @@ public sealed class NamespaceParticipant(IWorkspace workspace) : IFileOperationP
 Runesmith calls the participants at the same time, on a background thread, and gives them `IFileOperationParticipant.TimeBudget`, 3
 seconds, together. Then it cancels the token and goes on without the participants that have not answered; it logs them, and those that
 throw, to the **Plugins** channel. File operations in a participant's edit are ignored.
+
+### Language servers
+
+The running language servers take part in every file operation, whether a plugin or a server's own edit makes it. Runesmith
+declares `workspace.fileOperations` and sends each server the requests and notifications its `fileOperations` capability asks for, with
+the files and folders its filters match by glob, by file or folder, and with or without case:
+
+- Before the operations, `workspace/willCreateFiles`, `willRenameFiles` and `willDeleteFiles`. The text changes a server answers with join
+  the edit, as a participant's do; its resource operations are ignored. Servers get 2.5 seconds, within the participants' budget, and a
+  server that has not answered by then is left out, with a line in its channel of the **Output** panel.
+- After the operations, and after the edit is undone or redone, `workspace/didCreateFiles`, `didRenameFiles` and `didDeleteFiles`.
+
+A rename matches a filter by its old or its new path. A folder that is renamed or deleted is sent as the folder, not as the files in it.
 
 ## Capabilities
 

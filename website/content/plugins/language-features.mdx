@@ -611,6 +611,7 @@ A [language server](./api.mdx#languages) gets these features from the requests i
 | Selection ranges | `textDocument/selectionRange` |
 | Call and type hierarchies | `textDocument/prepareCallHierarchy`, `callHierarchy/incomingCalls` and `/outgoingCalls`, `textDocument/prepareTypeHierarchy`, `typeHierarchy/supertypes` and `/subtypes` |
 | Files a rename or code action creates, renames or deletes | The `create`, `rename` and `delete` resource operations in a workspace edit's `documentChanges` |
+| Changes to make when files are created, renamed or deleted, such as updated imports | `workspace/willCreateFiles`, `willRenameFiles` and `willDeleteFiles`, then `didCreateFiles`, `didRenameFiles` and `didDeleteFiles`, for the files the server's `fileOperations` filters match. See [Language servers](./workspace.mdx#language-servers). |
 
 A [language analyzer](./api.mdx#language-analyzers) implements any of these interfaces of `Runesmith.LanguageServices` next to
 `ILanguageAnalyzer`; for references, symbols, folding, semantic tokens, selection ranges and hierarchies, its plugin exports the providers

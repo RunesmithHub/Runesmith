@@ -17,5 +17,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Runesmith.LanguageServices.Tests\FakeAnalyzer.cs" Link="FakeAnalyzer.cs" />
+    <Compile Include="..\Runesmith.Lsp.Tests\FakeServer.cs" Link="Servers\FakeServer.cs" />
   </ItemGroup>
 </Project>

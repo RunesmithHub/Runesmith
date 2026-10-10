@@ -154,6 +154,25 @@ internal sealed class ServerSession : IAsyncDisposable
             return queue;
     }
 
+    /// <summary>Asks the server for the changes to make before files change, once it has every message queued so far; null when its filters
+    /// match none of the files or it has no changes.</summary>
+    /// <exception cref="LspException">The server refused.</exception>
+    public async Task<Protocol.WorkspaceEdit?> WillChangeFilesAsync(FileOperationKind kind, IReadOnlyList<FileOperationTarget> files, CancellationToken cancellationToken)
+    {
+        await WhenSynced().WaitAsync(cancellationToken).ConfigureAwait(false);
+        return Client is { } running ? await running.WillChangeFilesAsync(kind, files, cancellationToken).ConfigureAwait(false) : null;
+    }
+
+    /// <summary>Tells the server of files that changed, after the messages queued so far, such as the documents that moved with them.</summary>
+    public void DidChangeFiles(FileOperationKind kind, IReadOnlyList<FileOperationTarget> files)
+    {
+        lock (gate)
+        {
+            if (State == SessionState.Running && client is { } running)
+                Enqueue(() => running.DidChangeFilesAsync(kind, files));
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         lock (gate)
@@ -192,7 +211,7 @@ internal sealed class ServerSession : IAsyncDisposable
         Output.AppendLine($"[{DateTime.Now:HH:mm:ss}] Starting {ServerCommand.Resolve(context.GetCommand(Definition))} {string.Join(' ', Definition.Arguments)} in {RootPath}");
         try
         {
-            await started.StartAsync().ConfigureAwait(false);
+            await context.StartClient(started).ConfigureAwait(false);
         }
         catch (LanguageServerException exception)
         {
@@ -461,4 +480,7 @@ internal sealed record SessionContext(
 
     /// <summary>Gets what runs when a server starts running or asks for its semantic tokens or folding ranges to be requested again.</summary>
     public Action? SyntaxChanged { get; init; }
+
+    /// <summary>Gets what starts a server's client and completes the handshake; tests connect it to a server of their own.</summary>
+    public Func<LanguageClient, Task> StartClient { get; init; } = client => client.StartAsync();
 }

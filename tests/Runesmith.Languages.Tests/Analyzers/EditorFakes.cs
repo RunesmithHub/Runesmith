@@ -150,9 +150,12 @@ internal sealed class TestDiagnostics : IDiagnosticService
 
 internal sealed class TestOutput : IOutputService
 {
-    public IOutputChannel GetChannel(string name) => new Channel(name);
+    /// <summary>Gets the lines written to every channel.</summary>
+    public System.Collections.Concurrent.ConcurrentQueue<string> Lines { get; } = new();
 
-    private sealed class Channel(string name) : IOutputChannel
+    public IOutputChannel GetChannel(string name) => new Channel(name, Lines);
+
+    private sealed class Channel(string name, System.Collections.Concurrent.ConcurrentQueue<string> lines) : IOutputChannel
     {
         public string Name => name;
 
@@ -160,9 +163,7 @@ internal sealed class TestOutput : IOutputService
         {
         }
 
-        public void AppendLine(string line)
-        {
-        }
+        public void AppendLine(string line) => lines.Enqueue(line);
 
         public void Clear()
         {

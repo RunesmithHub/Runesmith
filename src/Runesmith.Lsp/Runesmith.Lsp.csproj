@@ -4,5 +4,6 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Runesmith.Lsp.Tests" />
+    <InternalsVisibleTo Include="Runesmith.Languages.Tests" />
   </ItemGroup>
 </Project>
