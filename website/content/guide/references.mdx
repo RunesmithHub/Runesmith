@@ -1,0 +1,48 @@
+---
+title: References
+description: Find every use of a symbol with Find References, go to its implementations, and see its other uses highlighted in the file.
+---
+
+Find References lists every place a symbol is used, and Go to Implementation finds the implementations of an interface or an abstract
+member. Both put what they find in the **References** panel, by file, with each line. While the caret rests on a symbol, its other uses in
+the file are highlighted.
+
+## Find references
+
+<Steps>
+
+1. Put the caret on a name and press <Keys>Shift+F12</Keys>, or right-click it and choose **Find References**.
+2. When the symbol is used in one place only, Runesmith goes there. Otherwise the **References** panel opens with every use, the symbol's
+   declaration included, grouped by file.
+3. Move through the list with <Keys>Up</Keys> and <Keys>Down</Keys>: the editor shows each place as you go, and the list keeps the focus.
+   Press <Keys>Enter</Keys>, or click a row, to go to it. **Go › Back** returns to where you were.
+
+</Steps>
+
+The panel's title says what was searched for and how many places it found in how many files. Each row shows the line number and the line,
+with the name in bold. In the list, <Keys>F4</Keys> selects the next place and <Keys>Shift+F4</Keys> the previous one. A new search
+replaces the list.
+
+## Go to implementation
+
+Press <Keys>Ctrl+F12</Keys>, or right-click and choose **Go to Implementation**, on an interface, an abstract or virtual member, or a
+method of an interface. One implementation opens at once; several are listed in the **References** panel. When the language finds none,
+a short message beside the caret says so.
+
+## Highlighted occurrences
+
+A moment after the caret stops on a name, the language highlights the other uses of the same symbol in the file, with a faint background:
+places that assign or declare the symbol in blue, places that read it in grey. Each is also marked beside the vertical scroll bar. The
+highlights go away when you select text or move the caret off them.
+
+## Where the results come from
+
+References, implementations and highlighted occurrences come from the language's server and from plugins. Without either, Find References
+says that it found nothing. The [Editor extensions](/plugins/language-features#references-and-implementations) page shows how a plugin adds
+them.
+
+## Related
+
+- [Navigation](./navigation.mdx)
+- [Hierarchies](./hierarchies.mdx)
+- [Keyboard shortcuts](./keyboard-shortcuts.mdx)

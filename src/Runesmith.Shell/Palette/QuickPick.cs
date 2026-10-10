@@ -69,9 +69,9 @@ internal sealed class QuickPick : UserControl, IDisposable
         };
 
         var footer = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(16, 8) };
-        footer.Children.AddRange([new ShortcutBadge { Text = "↑" }, new ShortcutBadge { Text = "↓" }, Caption("Navigate", 16), new ShortcutBadge { Text = "Enter" }, Caption("Open", 16)]);
+        footer.Children.AddRange([new ShortcutBadge { Text = "↑" }, new ShortcutBadge { Text = "↓" }, Caption("Navigate", 14), new ShortcutBadge { Text = "Enter" }, Caption("Open", 14)]);
         foreach (var source in sources.Where(s => s.Prefix.Length > 0))
-            footer.Children.AddRange([new ShortcutBadge { Text = source.Prefix }, Caption(source.Name, 14)]);
+            footer.Children.AddRange([new ShortcutBadge { Text = source.Prefix }, Caption(source.Name, 12)]);
 
         var layout = new DockPanel();
         DockPanel.SetDock(header, Dock.Top);

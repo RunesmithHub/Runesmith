@@ -21,13 +21,14 @@ public sealed class ShellController(NotificationService notifications, [ImportMa
     /// <summary>Opens the quick pick with a query, such as <c>&gt;</c> for the command palette.</summary>
     public Task ShowQuickPickAsync(string initialQuery = "") => ShowAsync(sources.Value, initialQuery);
 
-    /// <summary>Opens the quick pick on files, commands and settings at once; the usual prefixes still pick one kind.</summary>
+    /// <summary>Opens the quick pick on files, symbols, commands and settings at once; the usual prefixes still pick one kind.</summary>
     public Task ShowSearchEverywhereAsync()
     {
         var all = sources.Value;
         var everywhere = new EverywhereSource(
         [
             (all.First(s => s.Prefix.Length == 0), 6),
+            (all.First(s => s.Prefix == "#"), 5),
             (all.First(s => s.Prefix == ">"), 5),
             (settings.Value, 4),
         ]);
