@@ -116,8 +116,7 @@ internal static class MenuBuilder
         if (items.Count > 0 && items[^1] is Separator)
             items.RemoveAt(items.Count - 1);
 
-        // A narrower context menu cuts off the longest key gestures.
-        var menu = new ContextMenu { MinWidth = 320 };
+        var menu = new ContextMenu();
         foreach (var item in items)
             menu.Items.Add(item);
         return menu;

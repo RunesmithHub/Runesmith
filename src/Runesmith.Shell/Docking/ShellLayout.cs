@@ -15,9 +15,7 @@ public sealed class ShellLayout : IDockContentProvider
     private const string DocumentPrefix = "doc:";
 
     private readonly Dictionary<string, IDockPanel> panels = new(StringComparer.Ordinal);
-    private readonly HashSet<string> served = new(StringComparer.Ordinal);
     private readonly List<Func<string, IDockPanel?>> factories = [];
-    private DockHost? host;
     private string? lastEditorGroup;
 
     public ShellLayout()
@@ -37,8 +35,7 @@ public sealed class ShellLayout : IDockContentProvider
     /// <summary>Shows the layout and its panels in a dock host.</summary>
     public void Attach(DockHost dockHost)
     {
-        host = dockHost;
-        dockHost.ContentProvider = new Provider(this);
+        dockHost.ContentProvider = this;
         dockHost.Layout = Layout;
     }
 
@@ -46,13 +43,7 @@ public sealed class ShellLayout : IDockContentProvider
     public void AddFactory(Func<string, IDockPanel?> factory) => factories.Add(factory);
 
     /// <summary>Makes a panel known by its id, such as a document's.</summary>
-    public void Register(IDockPanel panel)
-    {
-        panels[panel.Id] = panel;
-        // HammerUI 0.1.0 keeps the first panel it got for an id; a new provider makes it ask again.
-        if (served.Remove(panel.Id) && host is not null)
-            host.ContentProvider = new Provider(this);
-    }
+    public void Register(IDockPanel panel) => panels[panel.Id] = panel;
 
     public void Unregister(string panelId) => panels.Remove(panelId);
 
@@ -66,7 +57,6 @@ public sealed class ShellLayout : IDockContentProvider
             panels[panelId] = panel;
         }
 
-        served.Add(panelId);
         return panel;
     }
 
@@ -93,10 +83,5 @@ public sealed class ShellLayout : IDockContentProvider
     {
         if (Layout.FocusedGroup is { } group && group.Panels.Count > 0)
             lastEditorGroup = group.Id;
-    }
-
-    private sealed class Provider(ShellLayout layout) : IDockContentProvider
-    {
-        public IDockPanel? GetPanel(string panelId) => layout.GetPanel(panelId);
     }
 }
