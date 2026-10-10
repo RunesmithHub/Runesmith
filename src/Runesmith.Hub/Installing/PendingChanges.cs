@@ -5,7 +5,7 @@ namespace Runesmith.Hub.Installing;
 /// <summary>Puts committed installs, updates and removals into effect, before plugins load.</summary>
 internal static class PendingChanges
 {
-    /// <summary>Moves the prepared folders into the plugins folder and removes the removed ones.</summary>
+    /// <summary>Moves the prepared folders into the hub's plugins folder and removes the removed ones.</summary>
     /// <param name="problems">Collects what could not be done; those changes stay pending for the next start.</param>
     public static HubState Apply(HubPaths paths, HubState state, ICollection<string> problems)
     {
@@ -16,6 +16,7 @@ internal static class PendingChanges
         }
 
         var trash = Directory.CreateDirectory(Path.Combine(paths.Staging, ".trash-" + Guid.NewGuid().ToString("N"))).FullName;
+        Directory.CreateDirectory(paths.Plugins);
         var leftInstalled = new List<PendingFolder>();
         foreach (var folder in pending.Installed)
         {

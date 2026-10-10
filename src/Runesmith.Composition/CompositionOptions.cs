@@ -14,7 +14,7 @@ public sealed record CompositionOptions(
     /// <summary>Gets the ids of plugins the user turned off.</summary>
     public IReadOnlySet<string> DisabledPlugins { get; init; } = new HashSet<string>();
 
-    /// <summary>Gets the ids of the plugins in the user's folder that the plugin hub installed.</summary>
+    /// <summary>Gets the ids of the plugins the hub's installed state lists; only these load from a <see cref="PluginSource.Hub"/> folder.</summary>
     public IReadOnlySet<string> HubPlugins { get; init; } = new HashSet<string>();
 
     /// <summary>Gets the plugins Runesmith keeps from loading, with why, such as a plugin whose files changed since it was installed.</summary>

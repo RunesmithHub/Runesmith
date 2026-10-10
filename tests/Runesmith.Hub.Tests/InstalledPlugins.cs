@@ -3,7 +3,7 @@ using Runesmith.Tests.Hub;
 
 namespace Runesmith.Hub.Tests;
 
-/// <summary>Puts hub plugins in a fixture's plugins folder as if the hub had installed them earlier.</summary>
+/// <summary>Puts hub plugins in a fixture's hub folder as if the hub had installed them earlier.</summary>
 internal static class InstalledPlugins
 {
     public static void Write(HubFixture fixture, params (string Id, string Version, string Tier, bool Requested)[] plugins)

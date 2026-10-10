@@ -56,7 +56,7 @@ public sealed class HubService
         var http = HubHttp.Create(Version);
         Client = new HubClient(
             HubConfiguration.Load(AppContext.BaseDirectory),
-            new HubPaths(RunesmithPaths.UserPlugins, RunesmithPaths.Data),
+            new HubPaths(RunesmithPaths.Hub),
             new RunesmithHost(PluginDiscovery.ApiVersion, PluginDiscovery.OldestSupportedApiVersion, Platform()),
             Version,
             new HttpFileDownloader(http),

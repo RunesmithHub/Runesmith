@@ -3,11 +3,13 @@ namespace Runesmith.Composition.Tests;
 public sealed class HubPluginTests : IDisposable
 {
     private readonly TestPluginFolder bundled = new();
+    private readonly TestPluginFolder hub = new();
     private readonly TestPluginFolder user = new();
 
     public void Dispose()
     {
         bundled.Dispose();
+        hub.Dispose();
         user.Dispose();
     }
 
@@ -15,9 +17,9 @@ public sealed class HubPluginTests : IDisposable
     public void ANewerCopyFromTheHubRunsInsteadOfTheBundledOne()
     {
         bundled.Add(Greeters.Greeter);
-        user.Add(Greeters.Greeter with { Version = "1.2.0" });
+        hub.Add(Greeters.Greeter with { Version = "1.2.0" });
 
-        var plugins = Discover(hub: ["tests.greeter"]);
+        var plugins = Discover(hubIds: ["tests.greeter"]);
 
         Assert.Equal(PluginState.Replaced, plugins[0].State);
         Assert.Equal("Version 1.2.0 from the hub runs instead.", plugins[0].Error);
@@ -29,9 +31,9 @@ public sealed class HubPluginTests : IDisposable
     public void TheBundledCopyStaysWhenTheHubCopyIsNotNewer()
     {
         bundled.Add(Greeters.Greeter with { Version = "1.5.0" });
-        user.Add(Greeters.Greeter with { Version = "1.2.0" });
+        hub.Add(Greeters.Greeter with { Version = "1.2.0" });
 
-        var plugins = Discover(hub: ["tests.greeter"]);
+        var plugins = Discover(hubIds: ["tests.greeter"]);
 
         Assert.Equal(PluginState.Loaded, plugins[0].State);
         Assert.Equal(PluginState.Replaced, plugins[1].State);
@@ -42,10 +44,10 @@ public sealed class HubPluginTests : IDisposable
     public void TheBundledCopyStaysWhenTheHubCopyCannotLoad()
     {
         bundled.Add(Greeters.Greeter);
-        var copy = user.Add(Greeters.Greeter with { Version = "1.2.0" });
+        var copy = hub.Add(Greeters.Greeter with { Version = "1.2.0" });
         File.WriteAllBytes(Path.Combine(copy, "lib", "Tests.Greeter.dll"), [0x4D, 0x5A, 1, 2, 3]);
 
-        var plugins = Discover(hub: ["tests.greeter"]);
+        var plugins = Discover(hubIds: ["tests.greeter"]);
 
         Assert.Equal(PluginState.Loaded, plugins[0].State);
         Assert.Equal(PluginState.Replaced, plugins[1].State);
@@ -58,7 +60,7 @@ public sealed class HubPluginTests : IDisposable
         bundled.Add(Greeters.Greeter);
         user.Add(Greeters.Greeter with { Version = "2.0.0" });
 
-        var plugins = Discover(hub: []);
+        var plugins = Discover(hubIds: []);
 
         Assert.Equal(PluginState.Loaded, plugins[0].State);
         Assert.Equal((PluginState.Refused, PluginSource.Local, true), (plugins[1].State, plugins[1].Source, plugins[1].IsLocalCopy));
@@ -71,14 +73,14 @@ public sealed class HubPluginTests : IDisposable
     [Fact]
     public void ALocalCopyOfAHubPluginIsRefusedUnlessTheUserAllowsIt()
     {
-        user.Add(Greeters.Greeter);
-        user.Add(Greeters.Greeter with { Version = "2.0.0" }, folder: "greeter-dev");
+        hub.Add(Greeters.Greeter);
+        user.Add(Greeters.Greeter with { Version = "2.0.0" });
 
-        var plugins = Discover(hub: ["tests.greeter"]);
+        var plugins = Discover(hubIds: ["tests.greeter"]);
 
-        var hub = plugins.Single(p => p.Source == PluginSource.Hub);
+        var installed = plugins.Single(p => p.Source == PluginSource.Hub);
         var copy = plugins.Single(p => p.Source == PluginSource.Local);
-        Assert.Equal((PluginState.Loaded, false), (hub.State, hub.IsLocalCopy));
+        Assert.Equal((PluginState.Loaded, false), (installed.State, installed.IsLocalCopy));
         Assert.Equal(PluginState.Refused, copy.State);
         Assert.StartsWith("The hub installed this plugin, so the copy in your plugins folder does not load.", copy.Error, StringComparison.Ordinal);
     }
@@ -92,7 +94,7 @@ public sealed class HubPluginTests : IDisposable
         bundled.Add(Greeters.Greeter);
         user.Add(Greeters.Greeter with { Version = version });
 
-        var plugins = Discover(hub: [], allowLocalOverrides: true);
+        var plugins = Discover(hubIds: [], allowLocalOverrides: true);
 
         Assert.Equal((PluginState.Replaced, $"Version {version} from your plugins folder runs instead."), (plugins[0].State, plugins[0].Error));
         Assert.Equal((PluginState.Loaded, PluginSource.Local, true), (plugins[1].State, plugins[1].Source, plugins[1].IsLocalCopy));
@@ -105,10 +107,10 @@ public sealed class HubPluginTests : IDisposable
     public void AnAllowedLocalCopyRunsInsteadOfTheHubOne()
     {
         bundled.Add(Greeters.Greeter);
+        hub.Add(Greeters.Greeter with { Version = "1.2.0" });
         user.Add(Greeters.Greeter with { Version = "1.2.0" });
-        user.Add(Greeters.Greeter with { Version = "1.2.0" }, folder: "aaa-greeter-dev");
 
-        var plugins = Discover(hub: ["tests.greeter"], allowLocalOverrides: true);
+        var plugins = Discover(hubIds: ["tests.greeter"], allowLocalOverrides: true);
 
         Assert.Equal(PluginState.Replaced, plugins.Single(p => p.Source == PluginSource.Bundled).State);
         Assert.Equal((PluginState.Replaced, "Version 1.2.0 from your plugins folder runs instead."), plugins.Where(p => p.Source == PluginSource.Hub).Select(p => (p.State, p.Error)).Single());
@@ -124,7 +126,7 @@ public sealed class HubPluginTests : IDisposable
         var copy = user.Add(Greeters.Greeter with { Version = "1.2.0" });
         File.WriteAllBytes(Path.Combine(copy, "lib", "Tests.Greeter.dll"), [0x4D, 0x5A, 1, 2, 3]);
 
-        var plugins = Discover(hub: [], allowLocalOverrides: true);
+        var plugins = Discover(hubIds: [], allowLocalOverrides: true);
 
         Assert.Equal(PluginState.Loaded, plugins[0].State);
         Assert.Equal(PluginState.Replaced, plugins[1].State);
@@ -134,10 +136,10 @@ public sealed class HubPluginTests : IDisposable
     [Fact]
     public void WhatTheHubWithholdsDoesNotHoldBackAnAllowedLocalCopy()
     {
+        hub.Add(Greeters.Greeter);
         user.Add(Greeters.Greeter);
-        user.Add(Greeters.Greeter, folder: "greeter-dev");
 
-        var plugins = Discover(hub: ["tests.greeter"], withheld: new Dictionary<string, string> { ["tests.greeter"] = "The plugin hub is turned off." }, allowLocalOverrides: true);
+        var plugins = Discover(hubIds: ["tests.greeter"], withheld: new Dictionary<string, string> { ["tests.greeter"] = "The plugin hub is turned off." }, allowLocalOverrides: true);
 
         Assert.Equal(PluginState.Replaced, plugins.Single(p => p.Source == PluginSource.Hub).State);
         Assert.Equal(PluginState.Loaded, plugins.Single(p => p.Source == PluginSource.Local).State);
@@ -151,7 +153,7 @@ public sealed class HubPluginTests : IDisposable
         bundled.Add(Greeters.Greeter);
         user.Add(new TestPlugin("tests.other", "Tests.Other") { Implementation = "namespace Tests.Other; public sealed class Other { }" });
 
-        var plugins = Discover(hub: [], allowLocalOverrides: allowLocalOverrides);
+        var plugins = Discover(hubIds: [], allowLocalOverrides: allowLocalOverrides);
         var loaded = new PluginLoader(plugins).Load();
 
         var other = plugins.Single(p => p.Manifest.Id == "tests.other");
@@ -187,7 +189,7 @@ public sealed class HubPluginTests : IDisposable
         user.Add(Greeters.Greeter);
         user.Add(Greeters.Greeter, folder: "tests.greeter-2");
 
-        var plugins = Discover(hub: [], allowLocalOverrides: true);
+        var plugins = Discover(hubIds: [], allowLocalOverrides: true);
 
         Assert.Equal([PluginState.Replaced, PluginState.Loaded, PluginState.Failed], plugins.Select(p => p.State));
         Assert.Equal("Another plugin with the id tests.greeter was loaded first.", plugins[2].Error);
@@ -196,10 +198,10 @@ public sealed class HubPluginTests : IDisposable
     [Fact]
     public void AWithheldPluginDoesNotLoadAndSaysWhy()
     {
-        user.Add(Greeters.Greeter);
-        user.Add(Greeters.Welcome);
+        hub.Add(Greeters.Greeter);
+        hub.Add(Greeters.Welcome);
 
-        var plugins = Discover(hub: ["tests.greeter", "tests.welcome"], withheld: new Dictionary<string, string> { ["tests.greeter"] = "The hub blocked it." });
+        var plugins = Discover(hubIds: ["tests.greeter", "tests.welcome"], withheld: new Dictionary<string, string> { ["tests.greeter"] = "The hub blocked it." });
         new PluginLoader(plugins).Load();
 
         var greeter = plugins.Single(p => p.Manifest.Id == "tests.greeter");
@@ -207,6 +209,44 @@ public sealed class HubPluginTests : IDisposable
         Assert.Equal(PluginState.Failed, plugins.Single(p => p.Manifest.Id == "tests.welcome").State);
     }
 
-    private List<PluginInfo> Discover(string[] hub, Dictionary<string, string>? withheld = null, bool allowLocalOverrides = false) =>
-        [.. PluginDiscovery.Discover([(bundled.PluginsPath, PluginSource.Bundled), (user.PluginsPath, PluginSource.Local)], new HashSet<string>(), hub.ToHashSet(), withheld, allowLocalOverrides)];
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ALocalBuildWithTheIdOfAHubPluginLeavesTheHubCopyAlone(bool allowLocalOverrides)
+    {
+        bundled.Add(Greeters.Greeter);
+        var installed = hub.Add(Greeters.Greeter with { Version = "1.2.0" });
+        var before = Snapshot(installed);
+        var local = user.Add(Greeters.Greeter with { Version = "1.3.0" });
+
+        var plugins = Discover(hubIds: ["tests.greeter"], allowLocalOverrides: allowLocalOverrides);
+
+        var fromHub = plugins.Single(p => p.Source == PluginSource.Hub);
+        var copy = plugins.Single(p => p.Source == PluginSource.Local);
+        Assert.Equal((installed, local), (fromHub.Directory, copy.Directory));
+        Assert.Equal(allowLocalOverrides ? (PluginState.Replaced, PluginState.Loaded) : (PluginState.Loaded, PluginState.Refused), (fromHub.State, copy.State));
+        Assert.Equal(plugins.IndexOf(allowLocalOverrides ? copy : fromHub), Assert.Single(new PluginLoader(plugins).Load()).Index);
+        Assert.Equal(before, Snapshot(installed));
+    }
+
+    [Fact]
+    public void TheFolderAPluginIsFoundInDecidesItsSource()
+    {
+        hub.Add(Greeters.Greeter);
+        hub.Add(Greeters.Stowaway);
+        user.Add(new TestPlugin("tests.other", "Tests.Other") { Implementation = "namespace Tests.Other; public sealed class Other { }" });
+
+        var plugins = Discover(hubIds: ["tests.greeter", "tests.other"]);
+
+        Assert.Equal(
+            [("tests.greeter", PluginSource.Hub, false), ("tests.other", PluginSource.Local, false)],
+            plugins.Select(p => (p.Manifest.Id, p.Source, p.IsLocalCopy)));
+    }
+
+    private static Dictionary<string, string> Snapshot(string folder) =>
+        Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)
+            .ToDictionary(file => Path.GetRelativePath(folder, file), file => Convert.ToHexString(File.ReadAllBytes(file)), StringComparer.Ordinal);
+
+    private List<PluginInfo> Discover(string[] hubIds, Dictionary<string, string>? withheld = null, bool allowLocalOverrides = false) =>
+        [.. PluginDiscovery.Discover([(bundled.PluginsPath, PluginSource.Bundled), (hub.PluginsPath, PluginSource.Hub), (user.PluginsPath, PluginSource.Local)], new HashSet<string>(), hubIds.ToHashSet(), withheld, allowLocalOverrides)];
 }

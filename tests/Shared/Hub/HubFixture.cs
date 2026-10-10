@@ -7,7 +7,7 @@ using RunesmithHub.Protocol.Versioning;
 
 namespace Runesmith.Tests.Hub;
 
-/// <summary>A hub client over the signed sample index, with its own plugins and data folders and a clock inside the index's validity.</summary>
+/// <summary>A hub client over the signed sample index, with its own hub and user plugins folders and a clock inside the index's validity.</summary>
 /// <remarks>The index was written by <c>rshub dev fixture &lt;dir&gt; --base-url http://127.0.0.1:47613/</c>, without its test keys.</remarks>
 internal sealed class HubFixture : IDisposable
 {
@@ -19,7 +19,7 @@ internal sealed class HubFixture : IDisposable
     {
         Index = index ?? SampleIndex;
         Time = new ManualTime(TimestampExpiry(Index).AddDays(-2));
-        Paths = new HubPaths(Path.Combine(Home, "plugins"), Path.Combine(Home, "data"));
+        Paths = new HubPaths(Path.Combine(Home, "data", "hub"));
     }
 
     /// <summary>Gets the sample index as the build copied it.</summary>
@@ -30,6 +30,9 @@ internal sealed class HubFixture : IDisposable
     public string Home { get; } = Directory.CreateTempSubdirectory("runesmith-hub-").FullName;
 
     public HubPaths Paths { get; }
+
+    /// <summary>Gets the user's plugins folder, where <c>InstallPlugin</c> writes local builds.</summary>
+    public string UserPlugins => Path.Combine(Home, "plugins");
 
     public ManualTime Time { get; }
 

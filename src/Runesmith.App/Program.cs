@@ -106,15 +106,18 @@ internal static class Program
     private static async Task<CompositionResult> ComposeAsync()
     {
         var stopwatch = Stopwatch.StartNew();
-        HubReport = HubStartup.Run(HubConfiguration.Load(AppContext.BaseDirectory), new HubPaths(RunesmithPaths.UserPlugins, RunesmithPaths.Data), StartupSettings.HubEnabled(),
-            TimeProvider.System);
+        var hub = new HubPaths(RunesmithPaths.Hub);
+        HubReport = HubStartup.Run(HubConfiguration.Load(AppContext.BaseDirectory), hub, StartupSettings.HubEnabled(), TimeProvider.System);
         Timings.Add(("Prepare the plugins from the hub", stopwatch.Elapsed));
 
         stopwatch.Restart();
         string[] hostAssemblies = ["Runesmith.Sdk", "Runesmith.Workspace", "Runesmith.Languages", "Runesmith.Editor", "Runesmith.Shell"];
         var folders = new List<(string Path, PluginSource Source)> { (Path.Combine(AppContext.BaseDirectory, "plugins"), PluginSource.Bundled) };
         if (!Arguments.ArePluginsDisabled && !IsSafeMode)
+        {
+            folders.Add((hub.Plugins, PluginSource.Hub));
             folders.Add((RunesmithPaths.UserPlugins, PluginSource.Local));
+        }
 
         var options = new CompositionOptions(
             [.. hostAssemblies.Select(name => System.Reflection.Assembly.Load(name))],

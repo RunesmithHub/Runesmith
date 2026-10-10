@@ -28,7 +28,7 @@ public enum PluginSource
     /// <summary>The user put it in their plugins folder.</summary>
     Local,
 
-    /// <summary>The plugin hub installed it in the user's plugins folder.</summary>
+    /// <summary>The plugin hub installed it in its own folder in Runesmith's data folder.</summary>
     Hub,
 }
 

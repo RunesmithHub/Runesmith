@@ -21,7 +21,7 @@ public static class PluginDiscovery
     /// duplicate, except that a newer copy the hub installed replaces the one Runesmith ships, and a local copy of a plugin Runesmith ships or
     /// the hub installed replaces it when <paramref name="allowLocalOverrides"/> is set and is refused otherwise.</summary>
     /// <param name="disabledIds">The ids of plugins the user turned off.</param>
-    /// <param name="hubIds">The ids of the plugins in a local folder that the plugin hub installed.</param>
+    /// <param name="hubIds">The ids of the plugins the hub's installed state lists; a hub folder's other subfolders are skipped. Null takes them all.</param>
     /// <param name="withheld">The plugins Runesmith keeps from loading, with why.</param>
     /// <param name="allowLocalOverrides">Whether a local copy runs in place of the plugin Runesmith ships or the hub installed, whatever its version.</param>
     public static IReadOnlyList<PluginInfo> Discover(
@@ -31,7 +31,7 @@ public static class PluginDiscovery
         ArgumentNullException.ThrowIfNull(folders);
         ArgumentNullException.ThrowIfNull(disabledIds);
         var found = new List<(PluginInfo Plugin, string? Error)>();
-        foreach (var (folder, folderSource) in folders)
+        foreach (var (folder, source) in folders)
         {
             if (!Directory.Exists(folder))
                 continue;
@@ -42,7 +42,9 @@ public static class PluginDiscovery
                 if (!File.Exists(manifestPath))
                     continue;
 
-                var source = folderSource == PluginSource.Local && hubIds?.Contains(Path.GetFileName(directory)) == true ? PluginSource.Hub : folderSource;
+                if (source == PluginSource.Hub && hubIds?.Contains(Path.GetFileName(directory)) == false)
+                    continue;
+
                 try
                 {
                     found.Add((new PluginInfo(PluginManifest.Read(manifestPath), directory, source), null));

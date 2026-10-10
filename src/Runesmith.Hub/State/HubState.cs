@@ -56,7 +56,7 @@ public sealed record PendingChange(IReadOnlyList<PendingFolder> Installed, IRead
 /// <param name="Transaction">The folder in the staging area that holds it.</param>
 public sealed record PendingFolder(string Id, string Version, string Transaction);
 
-/// <summary>A plugin the hub blocked, which Runesmith moved out of the plugins folder.</summary>
+/// <summary>A plugin the hub blocked, which Runesmith moved out of the hub's plugins folder.</summary>
 /// <param name="Folder">Where its files are now.</param>
 /// <param name="Reason">The moderation reason, such as <c>malicious</c>.</param>
 public sealed record QuarantinedPlugin(string Id, string Name, string Version, string Folder, DateTimeOffset At, string? Reason, string? Note)

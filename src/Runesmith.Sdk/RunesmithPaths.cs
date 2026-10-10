@@ -40,7 +40,11 @@ public static class RunesmithPaths
     public static string UserSettings => Path.Combine(Config, "settings.json");
 
     /// <summary>Gets the folder the user installs plugins in; each plugin is a subfolder with a <c>plugin.json</c>.</summary>
+    /// <remarks>It holds only what the user or <c>dotnet build -t:InstallPlugin</c> put there; the plugin hub installs into <see cref="Hub"/>.</remarks>
     public static string UserPlugins => Path.Combine(Config, "plugins");
+
+    /// <summary>Gets the folder Runesmith manages for the plugin hub: the plugins it installed, their state, the quarantine and the verified index.</summary>
+    public static string Hub => Path.Combine(Data, "hub");
 
     /// <summary>Gets the folder where Runesmith remembers windows, layouts and open files between runs.</summary>
     public static string State => Path.Combine(Config, "state");

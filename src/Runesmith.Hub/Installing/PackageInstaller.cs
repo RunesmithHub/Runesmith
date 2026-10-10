@@ -51,7 +51,7 @@ internal sealed class PackageInstaller(HubPaths paths, IFileDownloader downloade
         catch (UnauthorizedAccessException exception)
         {
             Folders.TryDelete(root);
-            throw new InstallException($"Runesmith may not write to the plugins folder, so nothing changed: {exception.Message}", exception);
+            throw new InstallException($"Runesmith may not write to its hub plugins folder, so nothing changed: {exception.Message}", exception);
         }
         catch
         {
