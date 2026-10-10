@@ -11,14 +11,16 @@ who change it; plugin authors need only [Plugins](/plugins).
 
 <Steps>
 
-1. **Find.** `PluginDiscovery` looks at every subfolder of the built-in `plugins` folder next to the executable, then of the user's plugins
-   folder, for a `plugin.json`. `PluginManifest` reads the packaged manifest (`schemaVersion` 1) with `RunesmithHub.Protocol`, or an older
+1. **Find.** `PluginDiscovery` looks for a `plugin.json` in every subfolder of three folders, in this order: the built-in `plugins` folder
+   next to the executable (bundled), the hub's plugins folder `hub/plugins` in the data folder (hub), and the user's plugins folder
+   (local). Each plugin's source is the folder it was found in, never its manifest. From the hub's folder, only the plugins the hub's
+   installed state lists (`CompositionOptions.HubPlugins`) load; `HubStartup` manages that folder, and `InstallPlugin` writes only to the
+   user's. `PluginManifest` reads the packaged manifest (`schemaVersion` 1) with `RunesmithHub.Protocol`, or an older
    manifest without `schemaVersion`. Discovery checks the manifest: the required fields, a `runesmithApi` range this Runesmith supports,
-   assemblies that exist inside the plugin's folder, an id no plugin before it took, and the user's `plugins.disabled` setting. Plugins the
-   hub installed (`CompositionOptions.HubPlugins`) load as hub plugins. A newer hub copy of a bundled plugin runs in its place while the
-   bundled copy stays as the fallback. A local copy of a bundled or hub plugin, one with the same id, is refused unless
-   `CompositionOptions.AllowLocalOverrides` is set, which the user's `plugins.allowLocalOverrides` decides; then it runs in place of
-   that plugin whatever its version, and `PluginInfo.IsLocalCopy` marks it. Plugins the hub withholds
+   assemblies that exist inside the plugin's folder, an id no plugin before it took, and the user's `plugins.disabled` setting. A newer
+   hub copy of a bundled plugin runs in its place while the bundled copy stays as the fallback. A local copy of a bundled or hub plugin,
+   one with the same id, is refused unless `CompositionOptions.AllowLocalOverrides` is set, which the user's `plugins.allowLocalOverrides`
+   decides; then it runs in place of that plugin whatever its version, and `PluginInfo.IsLocalCopy` marks it. Plugins the hub withholds
    (`CompositionOptions.WithheldPlugins`), such as blocked ones and their dependents, stay off with the reason.
 2. **Order.** `PluginLoader` sorts the plugins so that each comes after the plugins it depends on. A plugin whose dependency is missing,
    turned off, failed, of a version outside the range, or part of a cycle fails with a reason that names the dependency.

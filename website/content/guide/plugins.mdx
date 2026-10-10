@@ -36,6 +36,10 @@ A plugin in your plugins folder with the id of a plugin that comes with Runesmit
 and the plugin manager marks it **Not loaded**, unless you turn on **Local copies replace plugins** (`plugins.allowLocalOverrides`) in
 your own settings. Then it runs in place of the other plugin, marked **Replaces the installed plugin**, with its own secrets and storage.
 
+Plugins from the hub are kept in a folder Runesmith manages, `hub/plugins` in its data folder. Your plugins folder holds only the plugins
+you put there, so a plugin you build and install yourself, such as with `dotnet build -t:InstallPlugin`, never changes a copy from the hub.
+[Where plugins live](/plugins#where-plugins-live) lists both folders.
+
 The setting **Allowed plugins** (`plugins.hub.allowedTiers`) can limit installs to official and verified plugins, or to official ones; the
 others are then hidden from **Browse**.
 

@@ -48,7 +48,9 @@ record in the hub index (<https://runesmithhub.github.io/registry/>). The build 
 differ or the version is not published.
 
 To work on an official plugin, change it in its repository, run `dotnet build src/<Project> -t:InstallPlugin` there and turn on
-`plugins.allowLocalOverrides` in your user settings: the local copy then runs instead of the bundled one, with its own secrets and storage.
+`plugins.allowLocalOverrides` in your user settings: the local copy then runs instead of the bundled or hub copy, with its own secrets and
+storage. `InstallPlugin` writes to your plugins folder and the hub keeps its plugins in `hub/plugins` in Runesmith's data folder, so the
+local copy never changes a copy from the hub.
 [Building and testing](website/content/developers/building.mdx#work-on-an-official-plugin) has the details.
 
 ## Making a change

@@ -57,8 +57,8 @@ benchmarks.
 <Steps>
 
 1. `Program.Main` reads the command line. When Runesmith runs already, it hands the paths or link to that instance and exits.
-2. `HubStartup` puts installs from the plugin hub into effect, moves plugins the hub blocked to quarantine and checks the files of the
-   others, and says which plugins must not load.
+2. `HubStartup` puts installs from the plugin hub into effect in the hub's own folder (`RunesmithPaths.Hub`), moves plugins the hub blocked
+   to quarantine and checks the files of the others, and says which plugins must not load.
 3. It starts the composition on a background thread while Avalonia starts. The composition finds the plugins, loads them and composes them
    with the parts of Runesmith's own assemblies, from the cache when nothing changed. See [Composition and plugins](./composition.mdx).
 4. `ShellStartup.CreateMainWindow` applies the theme and creates the main window from the composed parts.

@@ -3,17 +3,20 @@ title: Files and folders
 description: Where Runesmith keeps your settings, key bindings, plugins, session, logs and caches, and how to keep them elsewhere.
 ---
 
-Runesmith keeps two folders on your computer: a settings folder for what you set up yourself, and a cache folder for what it can rebuild.
-Setting `RUNESMITH_HOME` moves both, such as for a portable copy or a clean profile.
+Runesmith keeps three folders on your computer: a settings folder for what you set up yourself, a data folder for what it downloads and
+manages, and a cache folder for what it can rebuild. Setting `RUNESMITH_HOME` moves all three, such as for a portable copy or a clean
+profile.
 
 ## The folders
 
 | Folder | Windows | Linux | macOS |
 | --- | --- | --- | --- |
 | Settings | `%APPDATA%\Runesmith` | `$XDG_CONFIG_HOME/runesmith`, by default `~/.config/runesmith` | `~/Library/Application Support/Runesmith` |
+| Data | `%LOCALAPPDATA%\Runesmith` | `$XDG_DATA_HOME/runesmith`, by default `~/.local/share/runesmith` | `~/Library/Application Support/Runesmith` |
 | Cache | `%LOCALAPPDATA%\Runesmith\Cache` | `$XDG_CACHE_HOME/runesmith`, by default `~/.cache/runesmith` | `~/Library/Caches/Runesmith` |
 
-When the `RUNESMITH_HOME` environment variable is set, the settings folder is that folder and the cache folder is `cache` inside it.
+When the `RUNESMITH_HOME` environment variable is set, the settings folder is that folder, and the data and cache folders are `data` and
+`cache` inside it.
 
 ## What is in them
 
@@ -21,11 +24,14 @@ When the `RUNESMITH_HOME` environment variable is set, the settings folder is th
 | --- | --- |
 | `settings.json` | Your [settings](./settings.mdx). |
 | `keybindings.json` | Your [key bindings](./keyboard-shortcuts.mdx#keybindingsjson). |
-| `plugins/` | The [plugins](/plugins) you install, one folder each. |
+| `plugins/` | The [plugins](/plugins) you put there yourself, one folder each. |
 | `state/layout.json` | The arrangement of the panels. |
 | `state/window.json` | The window's size and place, and the last folder. |
 | `state/recent.json` | The recent folders on the welcome page. |
 | `state/sessions/` | The open files of each folder, one file per folder. |
+| Data: `hub/plugins/` | The plugins you install from the [plugin hub](./plugins.mdx). Runesmith manages this folder and turns off a plugin whose files changed. |
+| Data: `hub/` | The hub's installed state, the quarantine of plugins it blocked, its verified index and the plugin icons. |
+| Data: `sdks/` | The [SDKs](./sdks.mdx) Runesmith installs. |
 | Cache: `logs/` | A file for each error Runesmith did not expect, such as `error-20261008-101829-221.log`. |
 | Cache: `composition/` | The [composition cache](/developers/composition), which makes starting faster. |
 

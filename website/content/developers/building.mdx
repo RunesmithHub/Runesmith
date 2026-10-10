@@ -98,10 +98,10 @@ plugin from the plugin's repository:
 dotnet build src/Runesmith.CSharp -t:InstallPlugin
 ```
 
-`InstallPlugin` writes the plugin into the user's plugins folder, under `RUNESMITH_HOME` when it is set. A local copy of a plugin that
-comes with Runesmith or from the hub does not load until you allow it; until then the plugin manager marks it **Not loaded** and says
-why. If you updated the plugin from the hub, uninstall that update from its page in the plugin manager first: `InstallPlugin` writes
-to the same folder, and Runesmith turns off a hub plugin whose files changed. To run the local copy:
+`InstallPlugin` writes the plugin into the user's plugins folder, under `RUNESMITH_HOME` when it is set. Bundled plugins live next to the
+executable and updates from the hub in `hub/plugins` in Runesmith's data folder, so the local copy sits beside them and never changes
+their files (see [Where plugins live](/plugins#where-plugins-live)). A local copy of a plugin that comes with Runesmith or from the hub
+does not load until you allow it; until then the plugin manager marks it **Not loaded** and says why. To run the local copy:
 
 <Steps>
 
@@ -114,7 +114,7 @@ to the same folder, and Runesmith turns off a hub plugin whose files changed. To
 </Steps>
 
 While a local copy runs, Runesmith shows a notice at each start, and the plugin manager's **Installed** tab marks it **Replaces the
-installed plugin**. Remove the local copy, or turn the setting off, to go back to the bundled one.
+installed plugin**. Remove the local copy, or turn the setting off, to go back to the bundled or hub copy, which stayed as it was.
 
 ## Test
 

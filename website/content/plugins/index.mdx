@@ -26,22 +26,26 @@ itself. It cannot load another plugin's implementation.
 
 ## Where plugins live
 
-Runesmith looks in two places when it starts. Each plugin is a subfolder that holds a `plugin.json`.
+Runesmith looks in three places when it starts. Each plugin is a subfolder that holds a `plugin.json`, named after its id.
 
 | Folder | What is there |
 | --- | --- |
 | `plugins` next to the Runesmith executable | The plugins that ship with Runesmith, such as C#. |
-| Your plugins folder | The plugins you install: from the [plugin hub](/guide/plugins), and the ones you put there yourself, which Runesmith marks as local. |
+| The hub's plugins folder | The plugins you install from the [plugin hub](/guide/plugins). Runesmith manages this folder. |
+| Your plugins folder | The plugins you put there yourself, such as with `dotnet build -t:InstallPlugin`. Runesmith marks them as local. |
 
-Your plugins folder is:
+| System | Your plugins folder | The hub's plugins folder |
+| --- | --- | --- |
+| Windows | `%APPDATA%\Runesmith\plugins` | `%LOCALAPPDATA%\Runesmith\hub\plugins` |
+| Linux | `~/.config/runesmith/plugins` (or `$XDG_CONFIG_HOME/runesmith/plugins`) | `~/.local/share/runesmith/hub/plugins` (or `$XDG_DATA_HOME/runesmith/hub/plugins`) |
+| macOS | `~/Library/Application Support/Runesmith/plugins` | `~/Library/Application Support/Runesmith/hub/plugins` |
 
-| System | Folder |
-| --- | --- |
-| Windows | `%APPDATA%\Runesmith\plugins` |
-| Linux | `~/.config/runesmith/plugins` (or `$XDG_CONFIG_HOME/runesmith/plugins`) |
-| macOS | `~/Library/Application Support/Runesmith/plugins` |
+When the `RUNESMITH_HOME` environment variable is set, your plugins folder is `$RUNESMITH_HOME/plugins` and the hub's is
+`$RUNESMITH_HOME/data/hub/plugins` instead.
 
-When the `RUNESMITH_HOME` environment variable is set, your plugins folder is `$RUNESMITH_HOME/plugins` instead.
+The two are apart, so a plugin you build and install yourself never changes a copy from the hub, even one with the same id; which of the
+two runs then is up to the setting `plugins.allowLocalOverrides`, see [Plugins from the hub](/guide/plugins#tiers). Leave the hub's
+folder to Runesmith: it checks the files of hub plugins at each start and turns off one whose files changed.
 
 An installed plugin's folder holds the manifest the build writes, its assemblies and its icons:
 
