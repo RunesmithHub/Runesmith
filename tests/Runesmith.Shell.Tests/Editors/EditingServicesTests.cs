@@ -114,7 +114,7 @@ public sealed class EditingServicesTests : IDisposable
         Assert.Equal("code", a.Buffer.Current.GetText());
 
         settings.Set(SettingKeys.FormatOnSave, true);
-        Assert.True(await FormatOnSave.RunAsync(settings, editor));
+        Assert.True(await FormatOnSave.RunAsync(settings, editor, TimeSpan.FromMinutes(1)));
         Assert.Equal("// formatted\ncode", a.Buffer.Current.GetText());
         Assert.False(await FormatOnSave.RunAsync(settings, null));
     });
