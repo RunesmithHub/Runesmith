@@ -89,7 +89,7 @@ public sealed class CoreCommands(
         Sync(CommandIds.Undo, "Undo", "Edit", "undo", "Ctrl+Z", () => (shell.FocusedTextBox is { } box ? (Action)box.Undo : customEditors.Active is { } custom ? custom.Editor.Undo : Editor!.Undo)(), () => HasEditorOrText() || HasCustomEditor(), Menus.Edit, "1-undo");
         Sync(CommandIds.Redo, "Redo", "Edit", "redo", "Ctrl+Y | Ctrl+Shift+Z", () => (shell.FocusedTextBox is { } box ? (Action)box.Redo : customEditors.Active is { } custom ? custom.Editor.Redo : Editor!.Redo)(), () => HasEditorOrText() || HasCustomEditor(), Menus.Edit, "1-undo");
         Add(CommandIds.UndoWorkspaceEdit, "Undo Workspace Edit", "Edit", "undo", null, () => workspaceEdits.UndoAsync(), () => workspaceEdits.CanUndo, Menus.Edit, "1-undo",
-            "Undo the last change a refactoring, code action or plugin made to files, with the files it created, renamed or deleted.");
+            "Undo the last change a refactoring, code action, plugin or the Explorer made to files, with the files it created, renamed or deleted.");
         Add(CommandIds.RedoWorkspaceEdit, "Redo Workspace Edit", "Edit", "redo", null, () => workspaceEdits.RedoAsync(), () => workspaceEdits.CanRedo, Menus.Edit, "1-undo",
             "Make the last undone workspace edit again.");
         Add(CommandIds.Cut, "Cut", "Edit", "cut", "Ctrl+X", () => shell.FocusedTextBox is { } box ? Run(box.Cut) : Editor!.CutAsync(), HasEditorOrText, Menus.Edit, "2-clipboard");

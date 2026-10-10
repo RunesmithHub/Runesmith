@@ -108,6 +108,18 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
     public Task<bool> ApplyAsync(WorkspaceEdit edit, WorkspaceEditOptions options, CancellationToken cancellationToken = default) =>
         ApplyAsync(edit, options, caller(), cancellationToken);
 
+    /// <summary>Applies an edit of Runesmith's own file commands, such as the Explorer's, which ask the user first themselves: without asking
+    /// and without offering to undo it in a notification. The caller tells the user why when it was not applied.</summary>
+    /// <returns>Whether the edit was applied, and if not, why, or null when the user has been told already.</returns>
+    internal async Task<(bool Applied, string? Problem)> ApplyFileCommandAsync(WorkspaceEdit edit, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(edit);
+        if (!Dispatcher.UIThread.CheckAccess())
+            return await Dispatcher.UIThread.InvokeAsync(() => ApplyFileCommandAsync(edit, cancellationToken));
+
+        return await ApplyCoreAsync(edit, new WorkspaceEditOptions { Confirmation = WorkspaceEditConfirmation.Never }, null, offerUndo: false, cancellationToken);
+    }
+
     public async Task<bool> UndoAsync(CancellationToken cancellationToken = default)
     {
         if (!Dispatcher.UIThread.CheckAccess())
@@ -261,10 +273,25 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
         if (!Dispatcher.UIThread.CheckAccess())
             return await Dispatcher.UIThread.InvokeAsync(() => ApplyAsync(edit, options, plugin, cancellationToken));
 
+        var (applied, problem) = await ApplyCoreAsync(edit, options, plugin, offerUndo: true, cancellationToken);
+        if (problem is not null)
+            Refuse("The edit was not applied", problem);
+        return applied;
+    }
+
+    // Applies an edit on the UI thread; returns why it was not applied, or null when the user has been told or declined.
+    private async Task<(bool Applied, string? Problem)> ApplyCoreAsync(WorkspaceEdit edit, WorkspaceEditOptions options, PluginInfo? plugin, bool offerUndo,
+        CancellationToken cancellationToken)
+    {
         var (plan, planProblem) = FileOperationPlan.Create(edit.FileOperations);
         if (plan is null)
-            return Refuse("The edit was not applied", planProblem);
+            return (false, planProblem);
         DemandAccess(plan, plugin);
+
+        // Checked before the participants are asked, so they never prepare for operations that are not made.
+        ToClose(plan, out var unsavedBefore);
+        if (unsavedBefore is not null)
+            return (false, $"{unsavedBefore.Name} has unsaved changes.");
 
         var operations = plan.Operations;
         var documentEdits = edit.Documents.Where(d => d.Changes.Count > 0).ToList();
@@ -273,7 +300,7 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
 
         var groups = Resolve(plan, documentEdits, out var resolveProblem);
         if (resolveProblem is not null)
-            return Refuse("The edit was not applied", resolveProblem);
+            return (false, resolveProblem);
 
         var targets = new List<(EditTarget Target, IDocument? Document, IReadOnlyList<TextChange> Changes)>();
         foreach (var (target, group) in groups)
@@ -290,29 +317,29 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
             {
                 document = documents.Find(target.CurrentPath!) ?? (await editors.Value.OpenAsync(target.CurrentPath!, activate: false))?.Document;
                 if (document is null)
-                    return false;
+                    return (false, null);
                 problem = Check(document.Buffer.Current, document.IsReadOnly, group, out changes);
             }
 
             if (problem is not null)
-                return Refuse("The edit was not applied", $"{Path.GetFileName(target.FinalPath)} {problem}");
+                return (false, $"{Path.GetFileName(target.FinalPath)} {problem}");
             targets.Add((target, document, changes));
         }
 
         var closing = ToClose(plan, out var unsaved);
         if (unsaved is not null)
-            return Refuse("The edit was not applied", $"{unsaved.Name} has unsaved changes.");
+            return (false, $"{unsaved.Name} has unsaved changes.");
 
         var label = options.Label ?? Describe(operations, targets.Count);
         if (NeedsConfirmation(options, plan, targets.Count)
             && !await notifications.ConfirmAsync(label, Summarize(operations, targets.Select(t => (t.Target.FinalPath, t.Changes.Count))), "Apply"))
-            return false;
+            return (false, null);
 
         cancellationToken.ThrowIfCancellationRequested();
         await CloseAsync(closing);
         var actions = operations.Select(ToAction).ToList();
         if (!Run(actions, action => action.Do(), action => action.Undo(), out var failure))
-            return Refuse("The edit was not applied", failure);
+            return (false, failure);
 
         var texts = new List<TextRecord>();
         foreach (var (target, found, changes) in targets)
@@ -323,7 +350,7 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
                 foreach (var text in texts.AsEnumerable().Reverse())
                     Apply(text.Document, Inverse(text.Changes, text.Before));
                 Run(actions.AsEnumerable().Reverse(), action => action.Undo(), action => action.Do(), out _);
-                return Refuse("The edit was not applied", $"{Path.GetFileName(target.FinalPath)} could not be opened.");
+                return (false, $"{Path.GetFileName(target.FinalPath)} could not be opened.");
             }
 
             var before = document.Buffer.Current;
@@ -332,7 +359,7 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
         }
 
         if (actions.Count == 0 && texts.Count == 0)
-            return true;
+            return (true, null);
 
         var step = new Step(label, actions, texts);
         foreach (var undone in redo)
@@ -346,9 +373,9 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
         }
 
         Finish(step, [.. actions.Select(a => a.Operation)]);
-        if (actions.Count > 0)
+        if (actions.Count > 0 && offerUndo)
             notifications.Notify(NotificationKind.Info, label, null, "Undo", () => _ = UndoIfLastAsync(step));
-        return true;
+        return (true, null);
     }
 
     private Task<bool> UndoIfLastAsync(Step step) => undo.Count > 0 && undo[^1] == step ? UndoAsync() : Task.FromResult(false);

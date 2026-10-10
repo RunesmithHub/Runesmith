@@ -179,6 +179,10 @@ change of a file, <Keys>Ctrl+Z</Keys> in that file's editor undoes the whole edi
 An undo that would lose work, such as when a renamed file was changed again since or a created folder has files in it now, is refused with
 the reason. Runesmith keeps the last 20 edits.
 
+The **Explorer** makes its renames, deletes and new files and folders as workspace edits too, so they are steps of the same history and
+participants and language servers hear of them. <Keys>Ctrl+Z</Keys> and <Keys>Ctrl+Y</Keys> in the Explorer undo and redo the last
+workspace edit.
+
 Deleted files go to the system's trash where Runesmith can use it: the desktop trash on Linux, for files on its drive, and `~/.Trash` on
 macOS. Otherwise, and with `UseTrash` off, Runesmith keeps the files while the edit can be undone, and deletes them for good once the edit
 leaves the history or Runesmith closes.
@@ -224,7 +228,7 @@ throw, to the **Plugins** channel. File operations in a participant's edit are i
 
 ### Language servers
 
-The running language servers take part in every file operation, whether a plugin or a server's own edit makes it. Runesmith
+The running language servers take part in every file operation, whether a plugin, the Explorer or a server's own edit makes it. Runesmith
 declares `workspace.fileOperations` and sends each server the requests and notifications its `fileOperations` capability asks for, with
 the files and folders its filters match by glob, by file or folder, and with or without case:
 

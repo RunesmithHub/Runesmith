@@ -15,7 +15,6 @@ using Avalonia.VisualTree;
 using HammerUI;
 using HammerUI.Controls;
 using Runesmith.Sdk.Commands;
-using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Sdk.Workspace;
 using Runesmith.Shell.Appearance;
@@ -27,7 +26,8 @@ using Runesmith.Workspace.Files;
 
 namespace Runesmith.Shell.ToolWindows;
 
-/// <summary>The Explorer: the open folder's files and folders, to open, create, rename and delete them.</summary>
+/// <summary>The Explorer: the open folder's files and folders, to open, create, rename and delete them, each change one step that Undo in the
+/// Explorer takes back.</summary>
 [Export(typeof(IToolWindowProvider))]
 [Export]
 [Shared]
@@ -39,7 +39,8 @@ public sealed class ExplorerToolWindow(
     EditorService editors,
     CommandService commands,
     FileIcons icons,
-    NotificationService notifications) : IToolWindowProvider
+    NotificationService notifications,
+    WorkspaceEditService edits) : IToolWindowProvider
 {
     public const string Id = "explorer";
 
@@ -47,7 +48,8 @@ public sealed class ExplorerToolWindow(
 
     private ExplorerView? view;
 
-    public Control CreateContent() => view = new ExplorerView(tree, workspace, editors, commands, icons, notifications);
+    public Control CreateContent() =>
+        view = new ExplorerView(tree, workspace, editors, commands, icons, notifications, new ExplorerFileActions(edits, editors, notifications));
 
     /// <summary>Shows the Explorer with a file or folder selected.</summary>
     public void Reveal(string path)
@@ -64,11 +66,13 @@ public sealed class ExplorerToolWindow(
         private readonly FileIcons icons;
         private readonly NotificationService notifications;
         private readonly CommandService commands;
+        private readonly ExplorerFileActions files;
         private readonly TreeView view;
         private readonly EmptyState empty;
         private readonly StackPanel actions;
 
-        public ExplorerView(FileTree tree, IWorkspace workspace, EditorService editors, CommandService commands, FileIcons icons, NotificationService notifications)
+        public ExplorerView(FileTree tree, IWorkspace workspace, EditorService editors, CommandService commands, FileIcons icons, NotificationService notifications,
+            ExplorerFileActions files)
         {
             this.tree = tree;
             this.workspace = workspace;
@@ -76,6 +80,7 @@ public sealed class ExplorerToolWindow(
             this.icons = icons;
             this.notifications = notifications;
             this.commands = commands;
+            this.files = files;
 
             actions = new StackPanel
             {
@@ -197,11 +202,22 @@ public sealed class ExplorerToolWindow(
                     _ = DeleteAsync(node);
                     break;
                 default:
-                    return;
+                    if (WorkspaceUndoCommand(e) is not { } command)
+                        return;
+                    _ = commands.ExecuteAsync(command);
+                    break;
             }
 
             e.Handled = true;
         }
+
+        // In the Explorer, Undo and Redo take back and make again the last workspace edit, such as a rename or a delete.
+        private string? WorkspaceUndoCommand(KeyEventArgs e) => commands.FindByGesture(e) switch
+        {
+            CommandIds.Undo => CommandIds.UndoWorkspaceEdit,
+            CommandIds.Redo => CommandIds.RedoWorkspaceEdit,
+            _ => null,
+        };
 
         private void OpenSelected(bool focus)
         {
@@ -264,26 +280,8 @@ public sealed class ExplorerToolWindow(
 
             var name = await Prompt.AskAsync(notifications.Dialogs, folder ? "New Folder" : "New File", $"Name, in {Path.GetFileName(parent)}", "",
                 n => Prompt.ValidateFileName(n, parent));
-            if (name is null)
-                return;
-
-            var path = Path.Combine(parent, name);
-            try
-            {
-                if (folder)
-                {
-                    Directory.CreateDirectory(path);
-                }
-                else
-                {
-                    await File.WriteAllBytesAsync(path, []);
-                    await editors.OpenAsync(path);
-                }
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                notifications.Notify(NotificationKind.Error, $"{name} could not be created", exception.Message);
-            }
+            if (name is not null)
+                await files.CreateAsync(parent, name, folder);
         }
 
         private async Task CopyAsync(string text)
@@ -298,41 +296,11 @@ public sealed class ExplorerToolWindow(
             var extension = node.IsDirectory ? 0 : Path.GetExtension(node.Name).Length;
             var name = await Prompt.AskAsync(notifications.Dialogs, "Rename", $"New name for {node.Name}", node.Name,
                 n => Prompt.ValidateFileName(n, folder, except: node.Name), (0, node.Name.Length - extension));
-            if (name is null || name == node.Name)
-                return;
-
-            var target = Path.Combine(folder, name);
-            try
-            {
-                if (node.IsDirectory)
-                    Directory.Move(node.FullPath, target);
-                else
-                    File.Move(node.FullPath, target);
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                notifications.Notify(NotificationKind.Error, $"{node.Name} could not be renamed", exception.Message);
-            }
+            if (name is not null && name != node.Name)
+                await files.RenameAsync(node.FullPath, name);
         }
 
-        private async Task DeleteAsync(FileTreeNode node)
-        {
-            var what = node.IsDirectory ? $"the folder {node.Name} and everything in it" : node.Name;
-            if (!await notifications.ConfirmAsync("Delete?", $"Delete {what}? This cannot be undone.", "Delete", isDestructive: true))
-                return;
-
-            try
-            {
-                if (node.IsDirectory)
-                    Directory.Delete(node.FullPath, recursive: true);
-                else
-                    File.Delete(node.FullPath);
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                notifications.Notify(NotificationKind.Error, $"{node.Name} could not be deleted", exception.Message);
-            }
-        }
+        private Task DeleteAsync(FileTreeNode node) => files.DeleteAsync(node.FullPath, node.IsDirectory);
 
         private static MenuItem MenuItem(string header, Geometry? icon, Action action, string? gesture = null)
         {

@@ -2,7 +2,6 @@ using Runesmith.Composition;
 using Runesmith.Sdk.Documents;
 using Runesmith.Sdk.Languages;
 using Runesmith.Sdk.Messaging;
-using Runesmith.Sdk.Settings;
 using Runesmith.Shell.Editors;
 using Runesmith.Shell.Editors.FileOperations;
 using Runesmith.Shell.Tests.Plugins;
@@ -215,7 +214,7 @@ public sealed class FileOperationsTests : IDisposable
     [Fact]
     public Task ParticipantsHearOfAnUndoneFolderDeleteAsAFolderCreated() => Run(async () =>
     {
-        var participant = new Participant();
+        var participant = new RecordingParticipant();
         participants.Add(participant);
         var service = Create();
         var folder = Path.Combine(root, "Old");
@@ -288,7 +287,7 @@ public sealed class FileOperationsTests : IDisposable
     {
         var file = Write(Path.Combine("Models", "Order.cs"), "namespace App.Models;\nclass Order {}\n");
         var moved = Path.Combine(root, "Billing", "Order.cs");
-        var namespaces = new Participant
+        var namespaces = new RecordingParticipant
         {
             Will = operations => operations is [RenameFileOperation rename]
                 ? new WorkspaceEdit([new DocumentEdit(rename.NewPath, [Replace(14, 6, "Billing")])])
@@ -311,8 +310,8 @@ public sealed class FileOperationsTests : IDisposable
     [Fact]
     public Task ParticipantsThatAreTooSlowOrFailAreSkippedAndReported() => Run(async () =>
     {
-        participants.Add(new Participant { Will = _ => throw new InvalidOperationException("Broken participant") });
-        participants.Add(new Participant { Delay = TimeSpan.FromSeconds(30), Will = _ => new WorkspaceEdit([new DocumentEdit(Path.Combine(root, "A.cs"), [Insert(0, "late")])]) });
+        participants.Add(new RecordingParticipant { Will = _ => throw new InvalidOperationException("Broken participant") });
+        participants.Add(new RecordingParticipant { Delay = TimeSpan.FromSeconds(30), Will = _ => new WorkspaceEdit([new DocumentEdit(Path.Combine(root, "A.cs"), [Insert(0, "late")])]) });
         var service = Create(budget: TimeSpan.FromMilliseconds(200));
         var file = Write("A.cs", "a");
         var started = DateTime.UtcNow;
@@ -401,7 +400,7 @@ public sealed class FileOperationsTests : IDisposable
 
     private WorkspaceEditService Create(TimeSpan? budget = null)
     {
-        documents = new DocumentService(new TestSettings(), new TestLanguages());
+        documents = new DocumentService(new LineFeedSettings(), new PlainTextLanguages());
         editors = new OpeningEditors(documents);
         return new WorkspaceEditService(documents, new Lazy<IEditorService>(() => editors), notifications, new FakeWorkspace(root), messages,
             [.. participants.Select(p => new Lazy<IFileOperationParticipant>(() => p))], documents, () => caller, log.Add,
@@ -438,120 +437,4 @@ public sealed class FileOperationsTests : IDisposable
             await test();
             return true;
         }, TestContext.Current.CancellationToken);
-
-    private sealed class Participant : IFileOperationParticipant
-    {
-        private readonly System.Threading.Channels.Channel<IReadOnlyList<FileOperation>> did = System.Threading.Channels.Channel.CreateUnbounded<IReadOnlyList<FileOperation>>();
-
-        public Func<IReadOnlyList<FileOperation>, WorkspaceEdit?> Will { get; init; } = _ => null;
-
-        public TimeSpan Delay { get; init; }
-
-        public async Task<WorkspaceEdit?> WillApplyAsync(IReadOnlyList<FileOperation> operations, CancellationToken cancellationToken)
-        {
-            if (Delay > TimeSpan.Zero)
-                await Task.Delay(Delay, CancellationToken.None);
-            return Will(operations);
-        }
-
-        public Task DidApplyAsync(IReadOnlyList<FileOperation> operations, CancellationToken cancellationToken)
-        {
-            did.Writer.TryWrite(operations);
-            return Task.CompletedTask;
-        }
-
-        public async Task<IReadOnlyList<FileOperation>> NextDidAsync() =>
-            await did.Reader.ReadAsync(TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-    }
-
-    private sealed class OpeningEditors(IDocumentService documents) : IEditorService
-    {
-        public List<IDocument> Closed { get; } = [];
-
-        public IEditorView? ActiveEditor => null;
-
-        public IReadOnlyList<IEditorView> Editors => [.. documents.Documents.Select(d => new View(d))];
-
-        public event EventHandler? ActiveEditorChanged
-        {
-            add { }
-            remove { }
-        }
-
-        public async Task<IEditorView?> OpenAsync(string filePath, TextPosition? position = null, bool activate = true) => new View(await documents.OpenAsync(filePath));
-
-        public IEditorView Open(IDocument document, bool activate = true) => new View(document);
-
-        public Task<bool> CloseAsync(IEditorView editor)
-        {
-            Closed.Add(editor.Document);
-            documents.Close(editor.Document);
-            return Task.FromResult(true);
-        }
-
-        private sealed class View(IDocument document) : IEditorView
-        {
-            public IDocument Document => document;
-
-            public int CaretOffset { get; set; }
-
-            public TextSpan Selection => default;
-
-            public EditorCaretStyle CaretStyle { get; set; }
-
-            public event EventHandler? CaretMoved
-            {
-                add { }
-                remove { }
-            }
-
-            public void Select(TextSpan span)
-            {
-            }
-
-            public void ScrollTo(int offset)
-            {
-            }
-
-            public void Focus()
-            {
-            }
-        }
-    }
-
-    private sealed class TestSettings : ISettingsService
-    {
-        public IReadOnlyList<SettingDefinition> Definitions => [];
-
-        public event EventHandler<SettingChangedEventArgs>? Changed
-        {
-            add { }
-            remove { }
-        }
-
-        public T Get<T>(string key) => key == SettingKeys.DefaultLineEnding ? (T)(object)"lf" : default!;
-
-        public object? GetValue(string key, SettingScope scope) => null;
-
-        public SettingScope GetEffectiveScope(string key) => SettingScope.Default;
-
-        public void Set(string key, object value, SettingScope scope = SettingScope.User)
-        {
-        }
-
-        public void Reset(string key, SettingScope scope = SettingScope.User)
-        {
-        }
-    }
-
-    private sealed class TestLanguages : ILanguageRegistry
-    {
-        private static readonly LanguageDefinition Plain = new(ILanguageRegistry.PlainText, "Plain Text");
-
-        public IReadOnlyList<LanguageDefinition> Languages => [Plain];
-
-        public LanguageDefinition? Find(string languageId) => languageId == Plain.Id ? Plain : null;
-
-        public LanguageDefinition GetLanguageForFile(string filePath) => Plain;
-    }
 }

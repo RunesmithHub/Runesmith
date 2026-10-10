@@ -142,13 +142,24 @@ internal sealed class FakeNotifications : INotificationService
 
     public List<string> Notified { get; } = [];
 
+    /// <summary>Gets each notification as it was shown, in the order of <see cref="Notified"/>.</summary>
+    public List<(NotificationKind Kind, string Title, string? Message)> Shown { get; } = [];
+
+    /// <summary>Gets each question asked, in order.</summary>
+    public List<(string Title, string Message, string ConfirmText, bool IsDestructive)> Questions { get; } = [];
+
     public int Confirmations { get; private set; }
 
-    public void Notify(NotificationKind kind, string title, string? message = null, string? actionText = null, Action? action = null) => Notified.Add(title);
+    public void Notify(NotificationKind kind, string title, string? message = null, string? actionText = null, Action? action = null)
+    {
+        Notified.Add(title);
+        Shown.Add((kind, title, message));
+    }
 
     public Task<bool> ConfirmAsync(string title, string message, string confirmText = "OK", bool isDestructive = false)
     {
         Confirmations++;
+        Questions.Add((title, message, confirmText, isDestructive));
         return Task.FromResult(Confirm);
     }
 
