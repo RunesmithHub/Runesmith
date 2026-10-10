@@ -5,8 +5,7 @@ namespace Runesmith.Shell.Terminal;
 
 /// <summary>A pseudoterminal on Linux and macOS: a master from <c>posix_openpt</c>, and the program started with <c>posix_spawn</c> in a new
 /// session whose controlling terminal is the matching slave.</summary>
-/// <remarks><c>forkpty</c> would run managed code in the forked child, which is not safe in a process with a runtime's threads;
-/// <c>posix_spawn</c> does the session, the standard streams and the folder in the C library and runs no managed code there.</remarks>
+/// <remarks>The child runs no managed code: the C library sets up its session, standard streams and folder before it starts the program.</remarks>
 internal sealed class UnixPty : PtyProcess
 {
     private static readonly Lock Gate = new();
