@@ -520,15 +520,216 @@ public sealed class TerminalScreenTests
     }
 
     [Fact]
-    public void NarrowingCutsLinesAndKeepsTheCursorInside()
+    public void NarrowingWrapsALongLineAndWideningJoinsItAgain()
     {
-        var screen = Screen("abcdefghij", columns: 20);
+        var screen = Screen("0123456789abcde", columns: 20);
+
+        screen.Resize(10, 24);
+
+        Assert.Equal(["0123456789", "abcde"], Rows(screen, 2));
+        Assert.True(screen.Row(0).IsWrapped);
+        Assert.Equal((1, 5), (screen.CursorRow, screen.CursorColumn));
+
+        screen.Resize(20, 24);
+
+        Assert.Equal(["0123456789abcde", ""], Rows(screen, 2));
+        Assert.False(screen.Row(0).IsWrapped);
+        Assert.Equal((0, 15), (screen.CursorRow, screen.CursorColumn));
+    }
+
+    [Fact]
+    public void LinesThatWrappedAtTheEdgeJoinWhenTheTerminalWidens()
+    {
+        var line = "$ " + new string('x', 25);
+        var screen = Screen(line, columns: 10);
+        Assert.Equal(["$ xxxxxxxx", "xxxxxxxxxx", "xxxxxxx"], Rows(screen, 3));
+
+        screen.Resize(40, 24);
+
+        Assert.Equal([line, ""], Rows(screen, 2));
+        Assert.Equal((0, 27), (screen.CursorRow, screen.CursorColumn));
+        Assert.Equal(line, screen.GetAllText());
+    }
+
+    [Fact]
+    public void LineBreaksTheProgramWroteStayWhenTheWidthChanges()
+    {
+        var screen = Screen("one\r\ntwo\r\nthree", columns: 10);
+
+        screen.Resize(4, 24);
+        Assert.Equal(["one", "two", "thre", "e"], Rows(screen, 4));
+
+        screen.Resize(30, 24);
+        Assert.Equal(["one", "two", "three", ""], Rows(screen, 4));
+        Assert.Equal((2, 5), (screen.CursorRow, screen.CursorColumn));
+    }
+
+    [Fact]
+    public void TheScrollbackIsRewrappedAndThePromptOnTheBottomRowStaysThere()
+    {
+        var screen = new TerminalScreen(10, 3);
+        screen.Feed("first line is long\r\nsecond\r\nthird\r\nfourth\r\n$ ");
+        Assert.Equal(3, screen.ScrollbackCount);
+        var text = screen.GetAllText();
+
+        screen.Resize(20, 3);
+
+        Assert.Equal(2, screen.ScrollbackCount);
+        Assert.Equal("first line is long", screen.LineAt(0).GetText());
+        Assert.Equal(["third", "fourth", "$"], Rows(screen, 3));
+        Assert.Equal((2, 2), (screen.CursorRow, screen.CursorColumn));
+        Assert.Equal(text, screen.GetAllText());
+
+        screen.Resize(6, 3);
+
+        Assert.Equal(4, screen.ScrollbackCount);
+        Assert.Equal(["first", "line i", "s long", "second"], Enumerable.Range(0, 4).Select(i => screen.LineAt(i).GetText()));
+        Assert.Equal(["third", "fourth", "$"], Rows(screen, 3));
+        Assert.Equal(text, screen.GetAllText());
+    }
+
+    [Fact]
+    public void TextAboveEmptyRowsGrowsIntoThemInsteadOfScrollingAway()
+    {
+        var screen = Screen("0123456789abcdefghij\r\n$ ", columns: 20, rows: 5);
+
+        screen.Resize(10, 5);
+
+        Assert.Equal(0, screen.ScrollbackCount);
+        Assert.Equal(["0123456789", "abcdefghij", "$", "", ""], Rows(screen, 5));
+        Assert.Equal((2, 2), (screen.CursorRow, screen.CursorColumn));
+    }
+
+    [Fact]
+    public void ACursorInsideWrappedTextStaysOnItsCharacter()
+    {
+        var screen = Screen($"0123456789ABCDEFGHIJ\r{Esc}[12C", columns: 20);
+
+        screen.Resize(8, 24);
+
+        Assert.Equal(["01234567", "89ABCDEF", "GHIJ"], Rows(screen, 3));
+        Assert.Equal((1, 4), (screen.CursorRow, screen.CursorColumn));
+        Assert.Equal('C', screen.Cell(screen.CursorRow, screen.CursorColumn).Rune);
+    }
+
+    [Fact]
+    public void ACursorWaitingAtTheEdgeStillWrapsTheNextCharacter()
+    {
+        var screen = Screen("0123456789", columns: 10);
 
         screen.Resize(5, 24);
+        screen.Feed("x");
 
-        Assert.Equal("abcde", screen.RowText(0));
-        Assert.Equal(4, screen.CursorColumn);
-        Assert.Equal(5, screen.Columns);
+        Assert.Equal(["01234", "56789", "x"], Rows(screen, 3));
+        Assert.True(screen.Row(1).IsWrapped);
+    }
+
+    [Fact]
+    public void AWideCharacterThatNoLongerFitsMovesWholeToTheNextLine()
+    {
+        var screen = Screen("abc中文", columns: 10);
+
+        screen.Resize(4, 24);
+
+        Assert.Equal(["abc", "中文"], Rows(screen, 2));
+        Assert.True(screen.Row(0).IsWrapped);
+        Assert.Equal("abc中文", screen.GetAllText());
+
+        screen.Resize(10, 24);
+
+        Assert.Equal("abc中文", screen.RowText(0));
+        Assert.Equal((0, 7), (screen.CursorRow, screen.CursorColumn));
+    }
+
+    [Fact]
+    public void TheAlternateScreenIsCutWhileThePrimaryIsRewrappedBehindIt()
+    {
+        var screen = Screen("0123456789abcdefghij\r\n$ ", columns: 20, rows: 5);
+        screen.Feed($"{Esc}[?1049h{Esc}[HABCDEFGHIJKLMNOPQRST");
+
+        screen.Resize(10, 5);
+
+        Assert.Equal(["ABCDEFGHIJ", ""], Rows(screen, 2));
+
+        screen.Feed($"{Esc}[?1049l");
+
+        Assert.Equal(["0123456789", "abcdefghij", "$"], Rows(screen, 3));
+        Assert.Equal((2, 2), (screen.CursorRow, screen.CursorColumn));
+    }
+
+    [Fact]
+    public void ResizingMovesPointsWithTheirText()
+    {
+        var screen = new TerminalScreen(10, 3);
+        screen.Feed("0123456789abcdef\r\nnext\r\n$ ");
+        var f = screen.PointAt(1, 5);
+        Assert.Equal("f", screen.GetText(f, f with { Column = f.Column + 1 }));
+
+        var moved = screen.Resize(20, 3);
+
+        var point = moved(f);
+        Assert.Equal("f", screen.GetText(point, point with { Column = point.Column + 1 }));
+        Assert.Equal(screen.PointAt(0, 15), point);
+    }
+
+    [Fact]
+    public void RewrappedLinesBeyondAFullScrollbackAreDroppedOldestFirst()
+    {
+        var screen = new TerminalScreen(20, 2, scrollbackLines: 1);
+        screen.Feed("aaaaaaaaaabbbbbbbbbb\r\ncccccccccc\r\n$ ");
+        var b = screen.PointAt(0, 15);
+
+        var moved = screen.Resize(10, 2);
+
+        Assert.Equal(1, screen.DroppedLines);
+        Assert.Equal("bbbbbbbbbb", screen.LineAt(0).GetText());
+        Assert.Equal(["cccccccccc", "$"], Rows(screen, 2));
+        Assert.Equal(screen.PointAt(0, 5), moved(b));
+    }
+
+    [Fact]
+    public void CopyingTextThatWrappedAtASpaceKeepsTheSpace()
+    {
+        var screen = Screen("first line", columns: 6);
+
+        Assert.Equal(["first", "line"], Rows(screen, 2));
+        Assert.Equal("first line", screen.GetAllText());
+    }
+
+    [Fact]
+    public void RewrappingToWidthAfterWidthKeepsTheTextAndTheCursor()
+    {
+        var random = new Random(8);
+        var output = new StringBuilder();
+        for (var line = 0; line < 80; line++)
+        {
+            for (var length = random.Next(70); length > 0; length--)
+            {
+                output.Append(random.Next(16) switch
+                {
+                    0 => "中",
+                    1 => " ",
+                    2 => $"{Esc}[2C",
+                    3 => "é",
+                    _ => ((char)('a' + random.Next(26))).ToString(),
+                });
+            }
+
+            output.Append("\r\n");
+        }
+
+        var screen = new TerminalScreen(37, 9);
+        screen.Feed(output + "$>");
+        var text = screen.GetAllText();
+
+        foreach (var columns in new[] { 20, 5, 2, 3, 80, 13, 37 })
+        {
+            screen.Resize(columns, 9);
+            Assert.Equal(text, screen.GetAllText());
+        }
+
+        screen.Feed("Z");
+        Assert.Equal(text + "Z", screen.GetAllText());
     }
 
     [Fact]

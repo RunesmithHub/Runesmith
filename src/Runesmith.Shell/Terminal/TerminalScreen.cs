@@ -180,13 +180,15 @@ internal sealed class TerminalScreen : IVtHandler
     /// <summary>Gets the point of a line by its index among <see cref="TotalLines"/>.</summary>
     public TerminalPoint PointAt(int index, int column) => new(DroppedLines + index, column);
 
-    /// <summary>Gets the text between two points, joining wrapped lines and ending other lines with a line break.</summary>
+    /// <summary>Gets the text between two points, joining wrapped lines and ending other lines with a line break; each line of text is
+    /// without trailing spaces.</summary>
     public string GetText(TerminalPoint start, TerminalPoint end)
     {
         if (end < start)
             (start, end) = (end, start);
 
         var text = new StringBuilder();
+        var wrapped = new StringBuilder();
         var first = Math.Max(0, IndexOf(start));
         var last = Math.Min(TotalLines - 1, IndexOf(end));
         for (var index = first; index <= last; index++)
@@ -194,8 +196,15 @@ internal sealed class TerminalScreen : IVtHandler
             var line = LineAt((int)index);
             var from = index == IndexOf(start) ? start.Column : 0;
             var to = index == IndexOf(end) ? end.Column : line.Length;
-            text.Append(line.GetText(from, to));
-            if (index < last && !line.IsWrapped)
+            if (index < last && line.IsWrapped)
+            {
+                wrapped.Append(line.GetText(from, line.EndsWithPaddingBefore(LineAt((int)index + 1)) ? Math.Min(to, line.Length - 1) : to, keepSpaces: true));
+                continue;
+            }
+
+            text.Append(wrapped.Append(line.GetText(from, to, keepSpaces: true)).ToString().TrimEnd(' '));
+            wrapped.Clear();
+            if (index < last)
                 text.Append('\n');
         }
 
@@ -212,30 +221,25 @@ internal sealed class TerminalScreen : IVtHandler
         scrollbackStart = 0;
         var screen = Screen;
         var current = screen[cursorRow];
+        current.IsWrapped = false;
         for (var i = 0; i < Rows; i++)
             screen[i] = i == 0 ? current : new TerminalLine(Columns, CellStyle.Default);
         cursorRow = 0;
     }
 
-    /// <summary>Changes the size of the screen. Lines are cut or padded, not wrapped again; when the screen gets shorter, lines move into the
-    /// scrollback so the cursor stays on screen, and when it gets taller, they come back.</summary>
-    public void Resize(int columns, int rows)
+    /// <summary>Changes the size of the screen; a new width wraps the scrollback's and the normal screen's text again, keeping the cursor on its
+    /// character, while the alternate screen is cut or padded for its program to draw again.</summary>
+    /// <returns>Where a point of the text before the change is now.</returns>
+    public Func<TerminalPoint, TerminalPoint> Resize(int columns, int rows)
     {
         columns = Math.Max(2, columns);
         rows = Math.Max(1, rows);
         if (columns == Columns && rows == Rows)
-            return;
+            return static point => point;
 
-        foreach (var line in primary.Concat(alternate))
+        var moved = ResizePrimary(columns, rows);
+        foreach (var line in alternate)
             line.Resize(columns, CellStyle.Default);
-
-        var primaryRow = IsAlternateScreen ? savedPrimary.Row : cursorRow;
-        primary = ResizePrimary(primary, rows, ref primaryRow);
-        if (IsAlternateScreen)
-            savedPrimary = savedPrimary with { Row = primaryRow };
-        else
-            cursorRow = primaryRow;
-
         var resized = new TerminalLine[rows];
         for (var i = 0; i < rows; i++)
             resized[i] = i < alternate.Length ? alternate[i] : new TerminalLine(columns, CellStyle.Default);
@@ -248,52 +252,93 @@ internal sealed class TerminalScreen : IVtHandler
         tabStops = stops;
         scrollTop = 0;
         scrollBottom = rows - 1;
-        wrapPending = false;
-        cursorRow = Math.Clamp(cursorRow, 0, rows - 1);
-        cursorColumn = Math.Clamp(cursorColumn, 0, columns - 1);
-        savedPrimary = savedPrimary.Clamp(columns, rows);
+        if (IsAlternateScreen)
+        {
+            wrapPending = false;
+            cursorRow = Math.Clamp(cursorRow, 0, rows - 1);
+            cursorColumn = Math.Clamp(cursorColumn, 0, columns - 1);
+        }
+
         savedAlternate = savedAlternate.Clamp(columns, rows);
+        return moved;
     }
 
-    private TerminalLine[] ResizePrimary(TerminalLine[] lines, int rows, ref int row)
+    // Text that reached the bottom row keeps its last line there; otherwise the top line stays at the top and the text grows downwards.
+    private Func<TerminalPoint, TerminalPoint> ResizePrimary(int columns, int rows)
     {
-        var list = lines.ToList();
-        if (rows < list.Count)
+        var (row, column, pending) = IsAlternateScreen ? (savedPrimary.Row, savedPrimary.Column, savedPrimary.WrapPending) : (cursorRow, cursorColumn, wrapPending);
+        var bottom = row;
+        for (var i = Rows - 1; i > row; i--)
         {
-            var remove = list.Count - rows;
-            while (remove > 0 && list.Count - 1 > row && list[^1].IsBlank)
+            if (!primary[i].IsBlank)
             {
-                list.RemoveAt(list.Count - 1);
-                remove--;
-            }
-
-            for (var i = 0; i < remove; i++)
-            {
-                PushScrollback(list[0]);
-                list.RemoveAt(0);
-                row--;
+                bottom = i;
+                break;
             }
         }
+
+        var lines = new List<TerminalLine>(scrollbackCount + bottom + 1);
+        for (var i = 0; i < scrollbackCount; i++)
+            lines.Add(scrollback[(scrollbackStart + i) % scrollback.Length]);
+        var screenStart = lines.Count;
+        lines.AddRange(primary.AsSpan(0, bottom + 1));
+        var cursorLine = screenStart + row;
+        var oldCount = lines.Count;
+        var reflow = columns == Columns ? null : TerminalReflow.Rewrap(lines, columns, cursorLine, column, pending);
+        var laid = reflow?.Lines ?? lines;
+        (cursorLine, column, pending) = reflow?.Cursor ?? (cursorLine, column, pending);
+        var top = bottom == Rows - 1 ? laid.Count - rows : Math.Max(Place(screenStart, 0).Line, laid.Count - rows);
+        top = Math.Clamp(top, 0, cursorLine);
+
+        var dropped = Math.Max(0, top - scrollback.Length);
+        var droppedBefore = DroppedLines;
+        DroppedLines += dropped;
+        Array.Clear(scrollback);
+        scrollbackStart = 0;
+        scrollbackCount = top - dropped;
+        for (var i = 0; i < scrollbackCount; i++)
+            scrollback[i] = laid[dropped + i];
+
+        var screen = new TerminalLine[rows];
+        for (var i = 0; i < rows; i++)
+        {
+            if (top + i < laid.Count)
+            {
+                screen[i] = laid[top + i];
+                screen[i].Resize(columns, CellStyle.Default);
+            }
+            else
+                screen[i] = new TerminalLine(columns, CellStyle.Default);
+        }
+
+        primary = screen;
+        var newRow = cursorLine - top;
+        column = Math.Min(column, columns - 1);
+        if (IsAlternateScreen)
+            savedPrimary = savedPrimary with { Row = newRow, Column = column, WrapPending = pending && AutoWrap };
         else
         {
-            var add = rows - list.Count;
-            while (add > 0 && scrollbackCount > 0)
-            {
-                var line = scrollback[(scrollbackStart + scrollbackCount - 1) % scrollback.Length];
-                scrollbackCount--;
-                line.Resize(lines.Length > 0 ? lines[0].Length : Columns, CellStyle.Default);
-                list.Insert(0, line);
-                row++;
-                add--;
-            }
-
-            var columns = list.Count > 0 ? list[0].Length : Columns;
-            for (var i = 0; i < add; i++)
-                list.Add(new TerminalLine(columns, CellStyle.Default));
+            (cursorRow, cursorColumn, wrapPending) = (newRow, column, pending && AutoWrap);
+            var (savedLine, savedColumn) = Place(screenStart + savedPrimary.Row, savedPrimary.Column);
+            savedPrimary = savedPrimary with { Row = Math.Clamp(savedLine - top, 0, rows - 1), Column = Math.Min(savedColumn, columns - 1) };
         }
 
-        row = Math.Clamp(row, 0, rows - 1);
-        return [.. list];
+        var alternateShown = IsAlternateScreen;
+        return point =>
+        {
+            var index = point.Line - droppedBefore;
+            if (index < 0)
+                return point;
+            if (alternateShown && index >= screenStart)
+                return new TerminalPoint(droppedBefore + top + index - screenStart, Math.Min(point.Column, columns));
+            var (line, at) = Place((int)Math.Min(index, int.MaxValue), point.Column);
+            return new TerminalPoint(droppedBefore + line, at);
+        };
+
+        (int Line, int Column) Place(int index, int at) =>
+            index >= oldCount ? (laid.Count + index - oldCount, Math.Min(at, columns))
+            : reflow is null ? (index, Math.Min(at, columns))
+            : reflow.Map(index, at);
     }
 
     void IVtHandler.Print(int codePoint) => Print(codePoint);
@@ -344,7 +389,11 @@ internal sealed class TerminalScreen : IVtHandler
         if (intermediates == "#" && final == '8')
         {
             foreach (var line in Screen)
+            {
                 Array.Fill(line.Cells, new TerminalCell { Rune = 'E', Width = 1 });
+                line.IsWrapped = line.HasWidePadding = false;
+            }
+
             return;
         }
 
@@ -608,6 +657,7 @@ internal sealed class TerminalScreen : IVtHandler
             ClearWideAt(screen[cursorRow], cursorColumn);
             screen[cursorRow].Cells[cursorColumn] = TerminalCell.Blank(style.Erased);
             screen[cursorRow].IsWrapped = true;
+            screen[cursorRow].HasWidePadding = true;
             LineFeed();
             cursorColumn = 0;
             screen = Screen;
@@ -627,6 +677,7 @@ internal sealed class TerminalScreen : IVtHandler
 
         if (cursorColumn + width >= Columns)
         {
+            line.HasWidePadding = false;
             cursorColumn = Columns - 1;
             wrapPending = AutoWrap;
         }
@@ -656,6 +707,7 @@ internal sealed class TerminalScreen : IVtHandler
             cells[i] = TerminalCell.Blank(style.Erased);
         if (cells[Columns - 1].Width == 2)
             cells[Columns - 1] = TerminalCell.Blank(cells[Columns - 1].Style);
+        line.HasWidePadding = false;
     }
 
     private void LineFeed()
@@ -688,6 +740,8 @@ internal sealed class TerminalScreen : IVtHandler
             Array.Copy(screen, scrollTop + 1, screen, scrollTop, scrollBottom - scrollTop);
             screen[scrollBottom] = new TerminalLine(Columns, style.Erased);
         }
+
+        Unwrap(scrollTop - 1);
     }
 
     private void ScrollDown(int count)
@@ -699,6 +753,16 @@ internal sealed class TerminalScreen : IVtHandler
             Array.Copy(screen, scrollTop, screen, scrollTop + 1, scrollBottom - scrollTop);
             screen[scrollTop] = new TerminalLine(Columns, style.Erased);
         }
+
+        Unwrap(scrollTop - 1);
+        Unwrap(scrollBottom);
+    }
+
+    // A line whose next line moved away no longer wraps into it.
+    private void Unwrap(int row)
+    {
+        if (row >= 0 && row < Rows)
+            Screen[row].IsWrapped = false;
     }
 
     private void PushScrollback(TerminalLine line)
@@ -732,6 +796,8 @@ internal sealed class TerminalScreen : IVtHandler
         Array.Copy(screen, cursorRow, screen, cursorRow + count, scrollBottom - cursorRow + 1 - count);
         for (var i = cursorRow; i < cursorRow + count; i++)
             screen[i] = new TerminalLine(Columns, style.Erased);
+        Unwrap(cursorRow - 1);
+        Unwrap(scrollBottom);
         cursorColumn = 0;
         wrapPending = false;
     }
@@ -746,6 +812,8 @@ internal sealed class TerminalScreen : IVtHandler
         Array.Copy(screen, cursorRow + count, screen, cursorRow, scrollBottom - cursorRow + 1 - count);
         for (var i = scrollBottom - count + 1; i <= scrollBottom; i++)
             screen[i] = new TerminalLine(Columns, style.Erased);
+        Unwrap(cursorRow - 1);
+        Unwrap(scrollBottom - count);
         cursorColumn = 0;
         wrapPending = false;
     }
@@ -769,6 +837,7 @@ internal sealed class TerminalScreen : IVtHandler
         for (var i = Columns - count; i < Columns; i++)
             cells[i] = TerminalCell.Blank(style.Erased);
         line.IsWrapped = false;
+        line.HasWidePadding = false;
         wrapPending = false;
     }
 
@@ -787,7 +856,7 @@ internal sealed class TerminalScreen : IVtHandler
         for (var i = Math.Max(0, from); i < Math.Min(to, line.Length); i++)
             line.Cells[i] = TerminalCell.Blank(style.Erased);
         if (to >= line.Length)
-            line.IsWrapped = false;
+            line.IsWrapped = line.HasWidePadding = false;
     }
 
     private void EraseInLine(int mode)

@@ -91,6 +91,9 @@ internal sealed class TerminalLine
     /// <summary>Gets or sets whether the line's text goes on in the next line.</summary>
     public bool IsWrapped { get; set; }
 
+    /// <summary>Gets or sets whether the last cell is a blank left at the right edge because the wide character after it did not fit there.</summary>
+    public bool HasWidePadding { get; set; }
+
     public int Length => Cells.Length;
 
     /// <summary>Gets whether every cell is empty and has the default background.</summary>
@@ -102,6 +105,7 @@ internal sealed class TerminalLine
         if (columns == Cells.Length)
             return;
 
+        HasWidePadding = false;
         var cells = new TerminalCell[columns];
         var keep = Math.Min(columns, Cells.Length);
         Array.Copy(Cells, cells, keep);
@@ -112,15 +116,21 @@ internal sealed class TerminalLine
         Cells = cells;
     }
 
-    /// <summary>Gets the text of the cells from <paramref name="start"/> to <paramref name="end"/>, without trailing spaces.</summary>
-    public string GetText(int start = 0, int end = int.MaxValue)
+    /// <summary>Gets the text of the cells from <paramref name="start"/> to <paramref name="end"/>, without trailing spaces unless
+    /// <paramref name="keepSpaces"/> is set, as for text that goes on in the next line.</summary>
+    public string GetText(int start = 0, int end = int.MaxValue, bool keepSpaces = false)
     {
         var text = new StringBuilder();
         end = Math.Min(end, Cells.Length);
         for (var i = Math.Max(0, start); i < end; i++)
             text.Append(Cells[i].Text);
-        return text.ToString().TrimEnd(' ');
+        return keepSpaces ? text.ToString() : text.ToString().TrimEnd(' ');
     }
+
+    /// <summary>Gets whether the line's last cell is the blank left at the right edge because the wide character that starts
+    /// <paramref name="next"/> did not fit there, so it is not part of the text.</summary>
+    public bool EndsWithPaddingBefore(TerminalLine next) =>
+        IsWrapped && HasWidePadding && Cells.Length > 0 && Cells[^1].IsEmpty && next.Cells.Length > 0 && next.Cells[0].Width == 2;
 
     /// <summary>Gets the column of the cell that holds the character a text offset falls in, for mapping text matches back to cells.</summary>
     public int ColumnOf(int offset)

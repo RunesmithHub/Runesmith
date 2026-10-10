@@ -71,6 +71,13 @@ how many.
 When a program reports the mouse, such as `htop` or `vim` with the mouse on, clicks and the wheel go to it. Hold <Keys>Shift</Keys> to
 select text anyway.
 
+## Resize the terminal
+
+The terminal takes the size of the panel. When the panel gets narrower or wider, lines that wrapped at the right edge join and wrap again
+at the new width, in the scrollback too, and the line breaks programs wrote stay. The cursor stays on the same character, and a prompt on
+the bottom row stays there. The selection and the place you scrolled to stay with their text. Full-screen programs, such as `vim` or
+`htop`, draw themselves again at the new size.
+
 ## Links
 
 Places in files and web addresses that a program writes are links. Point at one to underline it, and <Keys>Ctrl</Keys>+click it to open it:

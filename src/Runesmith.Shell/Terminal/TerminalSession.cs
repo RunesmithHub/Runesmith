@@ -140,17 +140,20 @@ internal sealed class TerminalSession : ITerminal, IDisposable
     }
 
     /// <summary>Changes the size of the screen and tells the program.</summary>
-    public void Resize(int columns, int rows)
+    /// <returns>Where a point of the text before the change is now, as the screen's lines may wrap differently.</returns>
+    public Func<TerminalPoint, TerminalPoint> Resize(int columns, int rows)
     {
+        Func<TerminalPoint, TerminalPoint> moved;
         lock (Gate)
         {
             if (Screen.Columns == columns && Screen.Rows == rows)
-                return;
-            Screen.Resize(columns, rows);
+                return static point => point;
+            moved = Screen.Resize(columns, rows);
         }
 
         pty.Resize(columns, rows);
         Changed?.Invoke(this, EventArgs.Empty);
+        return moved;
     }
 
     public void Show(bool takeFocus = true) => show(this, takeFocus);

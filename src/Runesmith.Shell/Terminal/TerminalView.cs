@@ -483,7 +483,12 @@ internal sealed partial class TerminalView : Control
 
         var columns = Math.Max(2, (int)Math.Floor((Bounds.Width - (2 * Padding) - ScrollBarStrip) / cellWidth));
         var rows = Math.Max(1, (int)Math.Floor((Bounds.Height - (2 * Padding)) / cellHeight));
-        session.Resize(columns, rows);
+        var moved = session.Resize(columns, rows);
+        selectionStart = selectionStart is { } start ? moved(start) : null;
+        selectionEnd = selectionEnd is { } end ? moved(end) : null;
+        if (topLine is { } line)
+            topLine = moved(new TerminalPoint(line, 0)).Line;
+        hovered = null;
         ScrollChanged?.Invoke(this, EventArgs.Empty);
     }
 
