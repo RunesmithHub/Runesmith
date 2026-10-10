@@ -3,10 +3,13 @@ using Runesmith.Dap;
 using Runesmith.Sdk.Debugging;
 using Runesmith.Sdk.Options;
 using Runesmith.Sdk.Running;
+using Runesmith.Sdk.Testing;
 using Runesmith.Shell.Debugging;
 using Runesmith.Shell.Running;
+using Runesmith.Shell.Testing;
 using Runesmith.Shell.Tests.Plugins;
 using Runesmith.Shell.Tests.Running;
+using Runesmith.Shell.Tests.Testing;
 using static Runesmith.Shell.Tests.Debugging.DebugTesting;
 
 namespace Runesmith.Shell.Tests.Debugging;
@@ -175,6 +178,33 @@ public sealed class DebugServiceTests : IAsyncDisposable
         Assert.True(run.WasStopped);
         Assert.Contains("terminate", program.Adapter.Commands);
         Assert.Contains("Stopped after", run.Console.GetText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DebuggingOneTestNamesTheSessionAfterTheTestAndItsClass() =>
+        Assert.Equal("Debug: CalculatorTests.Subtract", await DebugTestsAsync(Items.Id("Subtract")));
+
+    [Fact]
+    public async Task DebuggingSeveralTestsNamesTheSessionAfterHowManyThereAre() =>
+        Assert.Equal("Debug: 3 tests", await DebugTestsAsync());
+
+    // Debugs the tests with the ids given, or all of them, and gets the debug session's name.
+    private async Task<string> DebugTestsAsync(params string[] ids)
+    {
+        var service = Service(new FakeEngine());
+        var provider = new FakeTestProvider { Items = Items.Calculator("Add", "Subtract", "Divide"), CanDebug = true };
+        provider.Run = (_, run, token) => run.DebugAsync(Plan(Path.Combine(root, "Calculator.Tests.dll")), token);
+        var tests = new TestService([new Lazy<ITestProvider>(() => provider)], new FakeWorkspace(root), new FakeDiagnostics(), () => false, _ => { }, null, () => service);
+        await tests.DiscoverAllAsync();
+
+        var run = ids.Length == 0 ? await tests.RunAllAsync(RunMode.Debug) : await tests.RunAsync([.. ids.Select(id => tests.Tree.Find(provider, id)!)], RunMode.Debug);
+        await WaitAsync(() => service.Current is { State: DebugState.Running });
+        var name = service.Current!.Name;
+        await program.ExitAsync(0);
+
+        await run!.Completion.WaitAsync(WaitLimit, Token);
+        Assert.Contains($"Debugging {name} with Fake debugger.", run.Output.GetText(), StringComparison.Ordinal);
+        return name;
     }
 
     /// <summary>A configuration type that can be debugged, preparing the plan the test gives.</summary>
