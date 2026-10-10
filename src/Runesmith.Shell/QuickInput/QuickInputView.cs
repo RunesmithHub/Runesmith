@@ -483,6 +483,8 @@ internal sealed class QuickInputView : UserControl
         isSyncing = true;
         results.ItemsSource = model.Rows;
         isSyncing = false;
+        if (model.Rows.Count > 0)
+            results.ScrollIntoView(0);
         busy.IsVisible = model.IsBusy;
         var isEmpty = !model.Rows.Any(r => !r.IsSeparator);
         nothing.IsVisible = isEmpty;
