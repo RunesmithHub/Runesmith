@@ -87,6 +87,7 @@ public sealed record ServerCapabilities
     [JsonConverter(typeof(SemanticTokensOptionsConverter))]
     public SemanticTokensOptions? SemanticTokensProvider { get; init; }
 
+    public WorkspaceServerCapabilities? Workspace { get; init; }
 }
 
 /// <summary>The commands a server runs with <c>workspace/executeCommand</c>.</summary>
@@ -118,6 +119,16 @@ internal static class ClientCapabilities
                 ["documentChanges"] = true,
                 ["resourceOperations"] = new JsonArray("create", "rename", "delete"),
                 ["failureHandling"] = "transactional",
+            },
+            ["fileOperations"] = new JsonObject
+            {
+                ["dynamicRegistration"] = false,
+                ["didCreate"] = true,
+                ["willCreate"] = true,
+                ["didRename"] = true,
+                ["willRename"] = true,
+                ["didDelete"] = true,
+                ["willDelete"] = true,
             },
             ["executeCommand"] = new JsonObject { ["dynamicRegistration"] = false },
             ["inlayHint"] = new JsonObject { ["refreshSupport"] = true },

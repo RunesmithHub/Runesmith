@@ -82,6 +82,7 @@ public sealed partial class LanguageClient : IAsyncDisposable
             var result = await connection.SendRequestAsync<InitializeResult>("initialize", parameters, cancellationToken).ConfigureAwait(false)
                          ?? throw new LanguageServerException($"{_options.Command} answered initialize without a result.");
             Capabilities = result.Capabilities;
+            _fileOperationFilters = new FileOperationFilters(result.Capabilities.Workspace?.FileOperations);
             ServerInfo = result.ServerInfo;
             await connection.SendNotificationAsync("initialized", new Dictionary<string, object>()).ConfigureAwait(false);
         }
