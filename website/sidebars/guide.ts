@@ -9,6 +9,7 @@ const sidebars: SidebarsConfig = {
     'window',
     'appearance',
     'editor',
+    'open-with',
     'navigation',
     'language-features',
     'search',

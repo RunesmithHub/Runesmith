@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Composition;
 using System.Text;
 using Runesmith.Sdk.Documents;
@@ -23,6 +24,7 @@ public sealed class DocumentService : IDocumentService, IDisposable
     private readonly List<Document> _documents = [];
     private readonly Dictionary<string, Task<IDocument>> _opening = new(PathComparison.Comparer);
     private readonly Dictionary<string, FileWatcher> _watchers = new(PathComparison.Comparer);
+    private readonly ConcurrentDictionary<string, bool> _anyContent = new(PathComparison.Comparer);
 
     [ImportingConstructor]
     public DocumentService(ISettingsService settings, ILanguageRegistry languages)
@@ -58,6 +60,16 @@ public sealed class DocumentService : IDocumentService, IDisposable
         var task = OpenNewAsync(full, cancellationToken);
         _opening[full] = task;
         return task;
+    }
+
+    /// <summary>Opens a file as text even when it looks binary, or returns its document when it is open already. A binary file opens
+    /// read-only, each byte shown as one Latin-1 character.</summary>
+    /// <exception cref="IOException">The file cannot be read.</exception>
+    /// <exception cref="UnauthorizedAccessException">The file cannot be read.</exception>
+    public Task<IDocument> OpenAsTextAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        _anyContent[PathComparison.Normalize(filePath)] = true;
+        return OpenAsync(filePath, cancellationToken);
     }
 
     public IDocument CreateUntitled(string? languageId = null)
@@ -117,7 +129,10 @@ public sealed class DocumentService : IDocumentService, IDisposable
         var doc = Own(document);
         _documents.Remove(doc);
         if (doc.FilePath is { } path)
+        {
             Unwatch(path);
+            _anyContent.TryRemove(path, out _);
+        }
         Closed?.Invoke(this, new DocumentEventArgs(doc));
     }
 
@@ -169,10 +184,14 @@ public sealed class DocumentService : IDocumentService, IDisposable
             throw new IOException($"{info.Name} is {info.Length / (1024 * 1024)} MB; Runesmith opens files up to {MaxFileSize / (1024 * 1024)} MB.");
 
         var bytes = File.ReadAllBytes(path);
-        var (text, encoding) = TextFileReader.Decode(bytes)
-            ?? throw new IOException($"{info.Name} looks like a binary file, so it is not opened as text.");
+        var decoded = TextFileReader.Decode(bytes);
+        var isBinary = decoded is null;
+        if (isBinary && !_anyContent.ContainsKey(path))
+            throw new IOException($"{info.Name} looks like a binary file, so it is not opened as text.");
+
+        var (text, encoding) = decoded ?? (Encoding.Latin1.GetString(bytes), Encoding.Latin1);
         var lineEnding = LineEndings.Detect(text, DefaultLineEnding());
-        return new DiskFile(LineEndings.Normalize(text), encoding, lineEnding, IsReadOnly(info), (info.Length, info.LastWriteTimeUtc));
+        return new DiskFile(LineEndings.Normalize(text), encoding, lineEnding, isBinary || IsReadOnly(info), (info.Length, info.LastWriteTimeUtc));
     }
 
     private static bool IsReadOnly(FileInfo info)

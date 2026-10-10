@@ -105,7 +105,8 @@ When a file changes on disk while it is open:
 - If it has unsaved changes, a notification says so, and **Reload** takes the version on disk.
 - If it was deleted, the editor keeps the text and a notification says so; saving creates the file again.
 
-Runesmith does not open files over 50 MB, or files that look binary.
+The text editor does not open files over 50 MB. Files that look binary, such as images, open in their own editor, or read-only in the
+text editor with [Open With](./open-with.mdx).
 
 ## Changes and diffs
 
@@ -132,6 +133,7 @@ the sides, move between the differences.
 
 ## Related
 
+- [Open With and images](./open-with.mdx)
 - [Navigation](./navigation.mdx)
 - [Language features](./language-features.mdx)
 - [Settings](./settings.mdx)

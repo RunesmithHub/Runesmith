@@ -1,0 +1,137 @@
+---
+title: Custom editors
+description: Open files that are not text, such as images or diagrams, in an editor tab of your own, with unsaved changes, save, revert, undo and Open With.
+---
+
+A custom editor shows a file in an editor tab with a control of your own, for files that are not text, such as images, diagrams or
+designers. Runesmith opens matching files in it, offers it under **Open With**, keeps the tab's dot of unsaved changes, and routes
+**Save**, **Undo**, **Redo**, **Revert File** and **Close Editor** to it while its tab is active. Runesmith's own image viewer is built the
+same way.
+
+## Add an editor
+
+Export an `IEditorProvider`. Its `EditorProviderDefinition` names the editor, the file patterns it handles and whether it is their default
+editor. `CreateEditorAsync` reads the file and returns a `CustomEditor`.
+
+```csharp title="DiagramEditorProvider.cs"
+[Export(typeof(IEditorProvider))]
+public sealed class DiagramEditorProvider : IEditorProvider
+{
+    public EditorProviderDefinition Definition { get; } = new("acme.diagrams.editor", "Diagram Editor", ["*.diagram"]) { Icon = "spline" };
+
+    public async Task<CustomEditor> CreateEditorAsync(CustomEditorContext context, CancellationToken cancellationToken)
+    {
+        var text = await File.ReadAllTextAsync(context.FilePath, cancellationToken);
+        return new DiagramEditor(context.FilePath, Diagram.Parse(text), context.IsReadOnly);
+    }
+}
+```
+
+Throw an `IOException`, `UnauthorizedAccessException` or `InvalidDataException` when the file cannot be read; Runesmith tells the user and
+opens no tab.
+
+## Write the editor
+
+Derive from `CustomEditor`. A viewer only needs `Content`; an editor that changes the file sets `IsModified` and overrides what it
+supports.
+
+```csharp title="DiagramEditor.cs"
+public sealed class DiagramEditor : CustomEditor
+{
+    private readonly string _path;
+    private readonly DiagramCanvas _canvas;
+    private readonly UndoStack _undo = new();
+
+    public DiagramEditor(string path, Diagram diagram, bool isReadOnly)
+    {
+        _path = path;
+        _canvas = new DiagramCanvas(diagram) { IsEnabled = !isReadOnly };
+        _canvas.Edited += (_, _) => Edited();
+    }
+
+    public override Control Content => _canvas;
+
+    public override bool CanUndo => _undo.CanUndo;
+
+    public override bool CanRedo => _undo.CanRedo;
+
+    public override void Undo()
+    {
+        _undo.Undo(_canvas.Diagram);
+        Edited();
+    }
+
+    public override void Redo()
+    {
+        _undo.Redo(_canvas.Diagram);
+        Edited();
+    }
+
+    public override async Task SaveAsync(CancellationToken cancellationToken)
+    {
+        await File.WriteAllTextAsync(_path, _canvas.Diagram.ToText(), cancellationToken);
+        _undo.MarkSaved();
+        IsModified = false;
+    }
+
+    public override async Task RevertAsync(CancellationToken cancellationToken)
+    {
+        _canvas.Diagram = Diagram.Parse(await File.ReadAllTextAsync(_path, cancellationToken));
+        _undo.Clear();
+        IsModified = false;
+    }
+
+    private void Edited()
+    {
+        IsModified = !_undo.IsAtSavePoint;
+        OnStateChanged();
+    }
+}
+```
+
+| Member | What it does |
+| --- | --- |
+| `Content` | The control the tab shows. Runesmith keeps it while the tab is moved, floated or hidden. |
+| `IsModified` | Whether there are unsaved changes. Setting it updates the tab's dot and raises `StateChanged`. |
+| `SaveAsync` | Writes the changes. Throw an `IOException` or `UnauthorizedAccessException` when the file cannot be written; the changes stay. |
+| `RevertAsync` | Reads the file again and drops unsaved changes. Runesmith also calls it when the file changes on disk while the editor has none. |
+| `CanUndo`, `CanRedo`, `Undo`, `Redo` | The editor's own history, for **Edit › Undo** and **Redo** and their keys. Call `OnStateChanged` when they change. |
+| `Focus` | Gives the editor the keyboard focus when its tab is activated; the default focuses `Content`. |
+| `Dispose(bool)` | Releases what the editor holds, such as bitmaps; Runesmith calls it when the tab closes. |
+
+Runesmith calls every member on the UI thread.
+
+## Which editor opens a file
+
+`EditorProviderDefinition` decides where the editor is offered:
+
+| Property | Value |
+| --- | --- |
+| `Id` | A unique id, such as `acme.diagrams.editor`. The user's choice of default editor refers to it. |
+| `Name` | The name **Open With** shows. |
+| `FilePatterns` | File names the editor handles, such as `*.diagram` or `Dockerfile`. `*` and `?` are wildcards, matched against the file's name without case. |
+| `Priority` | `EditorPriority.Default` opens the files in this editor; `EditorPriority.Optional` only offers it under **Open With**. |
+| `Icon` | The name of the tab's icon, such as `image`; without one the tab shows the file's icon. |
+
+A file opens in the first editor of this list that applies:
+
+1. The editor the user chose as the default for its kind of file, with **Set Default Editor**. The choice is kept per pattern, such as
+   `*.png`, in `editor-associations.json` in Runesmith's settings folder.
+2. A custom editor with `EditorPriority.Default` whose pattern matches. Plugins' editors come before Runesmith's own, so a plugin can take
+   over images from the image viewer.
+3. The text editor.
+
+`IEditorService.OpenAsync` follows this order; it returns null when the file opened in a custom editor. To open a file in a particular
+editor, import `ICustomEditorService`: `GetChoices` lists the editors that can open a file, text editor first, and `OpenWithAsync` opens it
+in one of them, replacing the tab of another editor that has the file open. A file is open in one editor at a time.
+
+## Show web content
+
+A custom editor can show a web page made with HTML, CSS and JavaScript: put the control of an `IWebView` in `Content`. See
+[Web views](./web-views.mdx).
+
+## Related
+
+- [Web views](./web-views.mdx)
+- [API overview](./api.mdx)
+- [Open With and images](/guide/open-with), for users

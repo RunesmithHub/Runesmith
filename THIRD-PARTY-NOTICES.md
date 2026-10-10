@@ -15,6 +15,7 @@ Runesmith is licensed under the Apache License 2.0; see [LICENSE](LICENSE). It u
 | [HammerUI](https://github.com/RunesmithHub/HammerUI) 0.1.0 | Apache License 2.0 | The user interface; by the same author as Runesmith |
 | [Lucide](https://github.com/lucide-icons/lucide) icons, through HammerUI | ISC, partly MIT | The icons |
 | [Avalonia](https://github.com/AvaloniaUI/Avalonia) 12.1.3 and [MicroCom](https://github.com/kekekeks/MicroCom) | MIT | The user interface |
+| [Avalonia.Controls.WebView](https://github.com/AvaloniaUI/Avalonia.Controls.WebView) 12.1.0 | MIT, under the Avalonia license text below | Web views in plugins' panels and editors |
 | [Inter](https://github.com/rsms/inter), through Avalonia.Fonts.Inter 12.1.3 | SIL Open Font License 1.1 | The user interface's font |
 | [Tmds.DBus](https://github.com/tmds/Tmds.DBus), through Avalonia | MIT | Runesmith on Linux |
 | [TextMateSharp](https://github.com/danipen/TextMateSharp) and TextMateSharp.Grammars 2.0.4 | MIT | Syntax highlighting |

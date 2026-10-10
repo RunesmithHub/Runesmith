@@ -54,6 +54,7 @@ An installed plugin's folder holds the manifest the build writes, its assemblies
 | `plugin.json` | The packaged manifest: your manifest's fields, plus the file name and SHA-256 hash of every assembly. |
 | `lib/` | The contracts and implementation assemblies and the libraries the plugin carries. |
 | `icon/64.png`, `icon/128.png` | The plugin's icon. The build copies `icon.png` from the plugin's root to both, unless the `RunesmithPluginIcon64` and `RunesmithPluginIcon128` properties name other files. |
+| `web/` | The pages [web views](./web-views.mdx) show, copied from the `web` folder in the plugin's root when there is one. |
 
 `dotnet build -t:InstallPlugin` on the implementation project writes this folder into your plugins folder; see
 [Create a plugin](./create-a-plugin.mdx). To remove a plugin, delete its folder.
@@ -132,7 +133,8 @@ users read before they install it.
 | `dynamic-code` | Loads or generates code while running. |
 
 The SDK services that need a capability refuse a plugin that did not declare it, throw an `UnauthorizedAccessException` and write the
-reason to the **Plugins** output channel: `ISecretStore` needs `credentials` and `ILauncher` needs `process`.
+reason to the **Plugins** output channel: `ISecretStore` needs `credentials` and `ILauncher` needs `process`. Web views open
+`https` pages only on the hosts in `networkHosts`, and only with `network`; see [Web views](./web-views.mdx#security-rules).
 
 ## Your plugin's data
 

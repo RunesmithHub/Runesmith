@@ -13,6 +13,7 @@ using Runesmith.Sdk.Workspace;
 using Runesmith.Shell.Appearance;
 using Runesmith.Shell.Commands;
 using Runesmith.Shell.Docking;
+using Runesmith.Shell.Editors.Custom;
 using Runesmith.Shell.Palette;
 using Runesmith.Shell.Services;
 using Runesmith.Shell.ToolWindows;
@@ -42,6 +43,7 @@ public sealed class EditorService : IEditorService
     private readonly ChangeBases changeBases;
     private readonly Lazy<IDiffService> diffs;
     private readonly Lazy<CommandService> commands;
+    private readonly Lazy<CustomEditorService> customEditors;
     private readonly Dictionary<IDocument, DocumentPanel> panels = [];
     private readonly Dictionary<IDocument, DispatcherTimer> autoSaveTimers = [];
     private readonly Dictionary<IDocument, int> borrowed = [];
@@ -65,7 +67,8 @@ public sealed class EditorService : IEditorService
         Lazy<ExplorerToolWindow> explorer,
         ChangeBases changeBases,
         Lazy<IDiffService> diffs,
-        Lazy<CommandService> commands)
+        Lazy<CommandService> commands,
+        Lazy<CustomEditorService> customEditors)
     {
         this.documents = documents;
         this.editorServices = editorServices;
@@ -80,6 +83,7 @@ public sealed class EditorService : IEditorService
         this.changeBases = changeBases;
         this.diffs = diffs;
         this.commands = commands;
+        this.customEditors = customEditors;
         options = ReadOptions();
         settings.Changed += OnSettingChanged;
         documents.ChangedOnDisk += OnChangedOnDisk;
@@ -101,10 +105,25 @@ public sealed class EditorService : IEditorService
 
     public async Task<IEditorView?> OpenAsync(string filePath, TextPosition? position = null, bool activate = true)
     {
+        if (await customEditors.Value.TryOpenAsync(filePath, activate, toText: position is not null))
+            return null;
+
+        var editor = (TextEditor?)await OpenInTextEditorAsync(filePath, activate);
+        if (editor is not null && position is { } at)
+            editor.GoTo(at);
+        return editor;
+    }
+
+    /// <summary>Opens a file in the text editor whatever its default editor is; with <paramref name="anyContent"/> a file that looks binary
+    /// opens read-only. Returns null when it could not be opened, and the user has been told why.</summary>
+    internal async Task<IEditorView?> OpenInTextEditorAsync(string filePath, bool activate = true, bool anyContent = false)
+    {
         IDocument document;
         try
         {
-            document = await documents.OpenAsync(filePath);
+            document = anyContent && documents is Workspace.Documents.DocumentService service
+                ? await service.OpenAsTextAsync(filePath)
+                : await documents.OpenAsync(filePath);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -112,10 +131,7 @@ public sealed class EditorService : IEditorService
             return null;
         }
 
-        var editor = (TextEditor)Open(document, activate);
-        if (position is { } at)
-            editor.GoTo(at);
-        return editor;
+        return Open(document, activate);
     }
 
     public IEditorView Open(IDocument document, bool activate = true)
@@ -198,6 +214,7 @@ public sealed class EditorService : IEditorService
         }
 
         panels.Clear();
+        await customEditors.Value.CloseAllAsync();
         SetActive(null);
         return true;
     }
@@ -206,10 +223,11 @@ public sealed class EditorService : IEditorService
     public async Task<bool> ConfirmLosingChangesAsync()
     {
         var modified = panels.Keys.Concat(borrowed.Keys).Distinct().Where(d => d.IsModified).ToList();
-        if (modified.Count == 0)
+        var custom = customEditors.Value.Panels.Where(p => p.IsModified).ToList();
+        if (modified.Count + custom.Count == 0)
             return true;
 
-        var title = modified.Count == 1 ? modified[0].Name : $"{modified.Count} files";
+        var title = modified.Count + custom.Count == 1 ? modified.FirstOrDefault()?.Name ?? custom[0].Title : $"{modified.Count + custom.Count} files";
         switch (await notifications.Dialogs.AskToSaveChangesAsync(title))
         {
             case UnsavedChangesChoice.Cancel:
@@ -218,6 +236,12 @@ public sealed class EditorService : IEditorService
                 foreach (var document in modified)
                 {
                     if (!await SaveAsync(document))
+                        return false;
+                }
+
+                foreach (var panel in custom)
+                {
+                    if (!await customEditors.Value.SaveAsync(panel))
                         return false;
                 }
 
@@ -357,6 +381,9 @@ public sealed class EditorService : IEditorService
     {
         foreach (var document in panels.Keys.Where(d => d.IsModified).ToList())
             await SaveAsync(document);
+
+        foreach (var panel in customEditors.Value.Panels.Where(p => p.IsModified).ToList())
+            await customEditors.Value.SaveAsync(panel);
     }
 
     /// <summary>Opens a new, empty document.</summary>
@@ -473,6 +500,8 @@ public sealed class EditorService : IEditorService
     {
         if (layout.Layout.FocusedGroup?.ActivePanel is { } id && panels.Values.FirstOrDefault(p => p.Id == id) is { } panel)
             SetActive(panel.Editor);
+        else if (layout.Layout.FocusedGroup?.ActivePanel is { } other && CustomEditorPanel.IsCustomEditorPanel(other))
+            SetActive(null);
     };
 
     private void SetActive(TextEditor? editor)

@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Controls.WebView" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Runesmith.Composition\Runesmith.Composition.csproj" />

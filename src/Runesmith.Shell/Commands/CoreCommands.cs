@@ -5,6 +5,7 @@ using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.Workspace;
 using Runesmith.Shell.Editors;
+using Runesmith.Shell.Editors.Custom;
 using Runesmith.Shell.Pages;
 using Runesmith.Shell.Running;
 using Runesmith.Shell.Services;
@@ -26,7 +27,8 @@ public sealed class CoreCommands(
     PageService pages,
     Lazy<NewProjectService> newProject,
     Lazy<RunService> runs,
-    Lazy<IRunConfigurationService> runConfigurations) : ICommandContributor
+    Lazy<IRunConfigurationService> runConfigurations,
+    CustomEditorService customEditors) : ICommandContributor
 {
     public const string FindNext = "edit.findNext";
     public const string FindPrevious = "edit.findPrevious";
@@ -67,6 +69,7 @@ public sealed class CoreCommands(
 
         bool HasEditor() => Editor is not null;
         bool HasEditorOrText() => Editor is not null || shell.FocusedTextBox is not null;
+        bool HasCustomEditor() => customEditors.Active is not null;
         bool HasChanges() => Editor?.Area.LineChanges.Count > 0;
 
         Sync(CommandIds.NewFile, "New File", "File", "file-plus", "Ctrl+N", editors.NewFile, menu: Menus.File, group: "1-new");
@@ -74,16 +77,16 @@ public sealed class CoreCommands(
         Add(CommandIds.OpenFile, "Open File...", "File", "file", "Ctrl+O", OpenFileAsync, menu: Menus.File, group: "1-new");
         Add(CommandIds.OpenFolder, "Open Folder...", "File", "folder-open", "Ctrl+Shift+O", OpenFolderAsync, menu: Menus.File, group: "1-new");
         registry.AddMenuItem(new MenuItemDefinition(Menus.File, CommandIds.CloneRepository, "1-new", order++));
-        Add(CommandIds.Save, "Save", "File", "save", "Ctrl+S", () => editors.SaveAsync(Editor!.Document), HasEditor, Menus.File, "2-save");
+        Add(CommandIds.Save, "Save", "File", "save", "Ctrl+S", () => customEditors.Active is { } custom ? customEditors.SaveAsync(custom) : editors.SaveAsync(Editor!.Document), () => HasCustomEditor() || HasEditor(), Menus.File, "2-save");
         Add(CommandIds.SaveAs, "Save As...", "File", null, "Ctrl+Shift+S", () => editors.SaveAsAsync(Editor!.Document), HasEditor, Menus.File, "2-save");
         Add(CommandIds.SaveAll, "Save All", "File", null, "Ctrl+Alt+S", editors.SaveAllAsync, menu: Menus.File, group: "2-save");
-        Add(CommandIds.Close, "Close Editor", "File", "x", "Ctrl+W | Ctrl+F4", () => editors.CloseAsync(Editor!), HasEditor, Menus.File, "3-close");
+        Add(CommandIds.Close, "Close Editor", "File", "x", "Ctrl+W | Ctrl+F4", () => customEditors.Active is { } custom ? customEditors.CloseAsync(custom.Id) : editors.CloseAsync(Editor!), () => HasCustomEditor() || HasEditor(), Menus.File, "3-close");
         Add(CommandIds.CloseFolder, "Close Folder", "File", null, null, workbench.CloseFolderAsync, () => workspace.RootPath is not null, Menus.File, "3-close");
         Sync(CommandIds.Settings, "Settings", "File", "settings", "Ctrl+,", pages.ShowSettings, menu: Menus.File, group: "4-settings");
         Sync(CommandIds.Exit, "Exit", "File", null, "Ctrl+Q", shell.Close, menu: Menus.File, group: "5-exit");
 
-        Sync(CommandIds.Undo, "Undo", "Edit", "undo", "Ctrl+Z", () => (shell.FocusedTextBox is { } box ? (Action)box.Undo : Editor!.Undo)(), HasEditorOrText, Menus.Edit, "1-undo");
-        Sync(CommandIds.Redo, "Redo", "Edit", "redo", "Ctrl+Y | Ctrl+Shift+Z", () => (shell.FocusedTextBox is { } box ? (Action)box.Redo : Editor!.Redo)(), HasEditorOrText, Menus.Edit, "1-undo");
+        Sync(CommandIds.Undo, "Undo", "Edit", "undo", "Ctrl+Z", () => (shell.FocusedTextBox is { } box ? (Action)box.Undo : customEditors.Active is { } custom ? custom.Editor.Undo : Editor!.Undo)(), () => HasEditorOrText() || HasCustomEditor(), Menus.Edit, "1-undo");
+        Sync(CommandIds.Redo, "Redo", "Edit", "redo", "Ctrl+Y | Ctrl+Shift+Z", () => (shell.FocusedTextBox is { } box ? (Action)box.Redo : customEditors.Active is { } custom ? custom.Editor.Redo : Editor!.Redo)(), () => HasEditorOrText() || HasCustomEditor(), Menus.Edit, "1-undo");
         Add(CommandIds.Cut, "Cut", "Edit", "cut", "Ctrl+X", () => shell.FocusedTextBox is { } box ? Run(box.Cut) : Editor!.CutAsync(), HasEditorOrText, Menus.Edit, "2-clipboard");
         Add(CommandIds.Copy, "Copy", "Edit", "copy", "Ctrl+C", () => shell.FocusedTextBox is { } box ? Run(box.Copy) : Editor!.CopyAsync(), HasEditorOrText, Menus.Edit, "2-clipboard");
         Add(CommandIds.Paste, "Paste", "Edit", "paste", "Ctrl+V", () => shell.FocusedTextBox is { } box ? Run(box.Paste) : Editor!.PasteAsync(), HasEditorOrText, Menus.Edit, "2-clipboard");
