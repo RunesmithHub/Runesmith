@@ -12,6 +12,8 @@ namespace Runesmith.Editor.Tests;
 /// <summary>Editor services whose language features are scripted by the test.</summary>
 internal sealed class FakeEditorServices
 {
+    public FakeLanguageFeatures Language { get; } = new();
+
     public FakeEditorFeatures Features { get; } = new();
 
     public FakeWorkspaceEdits Edits { get; } = new();
@@ -21,7 +23,7 @@ internal sealed class FakeEditorServices
     public List<IEditorKeyHook> Hooks { get; } = [];
 
     public EditorServices Create() => new(
-        new NoLanguageFeatures(),
+        Language,
         new NoHighlighting(),
         new NoDiagnostics(),
         new NoLanguages(),
@@ -127,13 +129,23 @@ internal sealed class FakeCommands : ICommandService
     public string? GetKeyBinding(string commandId) => null;
 }
 
-internal sealed class NoLanguageFeatures : ILanguageFeatures
+internal sealed class FakeLanguageFeatures : ILanguageFeatures
 {
+    public CompletionList Completions { get; set; } = CompletionList.Empty;
+
+    public Func<CompletionItem, CompletionItem> Resolve { get; set; } = item => item;
+
     public bool IsCompletionTrigger(IDocument document, char character) => false;
 
-    public Task<CompletionList> GetCompletionsAsync(CompletionRequest request, CancellationToken cancellationToken) => Task.FromResult(CompletionList.Empty);
+    public Task<CompletionList> GetCompletionsAsync(CompletionRequest request, CancellationToken cancellationToken) => Task.FromResult(Completions);
 
-    public Task<CompletionItem> ResolveCompletionAsync(CompletionItem item, CancellationToken cancellationToken) => Task.FromResult(item);
+    public int Resolves { get; private set; }
+
+    public Task<CompletionItem> ResolveCompletionAsync(CompletionItem item, CancellationToken cancellationToken)
+    {
+        Resolves++;
+        return Task.FromResult(Resolve(item));
+    }
 
     public Task<HoverInfo?> GetHoverAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken) => Task.FromResult<HoverInfo?>(null);
 

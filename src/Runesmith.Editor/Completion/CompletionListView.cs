@@ -32,7 +32,7 @@ internal sealed class CompletionListView : Control
         ActualThemeVariantChanged += (_, _) => ResetPalette();
     }
 
-    /// <summary>Raised when another suggestion is selected.</summary>
+    /// <summary>Raised when another suggestion is selected, also when new entries put another item at the selected row.</summary>
     public event EventHandler? SelectedChanged;
 
     /// <summary>Raised when a suggestion is double-clicked.</summary>
@@ -56,11 +56,13 @@ internal sealed class CompletionListView : Control
     public void SetEntries(IReadOnlyList<CompletionEntry> value, int selected)
     {
         var heightChanged = Math.Min(entries.Count, visibleRows) != Math.Min(value.Count, visibleRows);
+        var previous = Selected?.Item;
         entries = value;
         if (layouts.Count > 512)
             layouts.Clear();
         firstVisible = 0;
-        Select(value.Count == 0 ? -1 : Math.Clamp(selected, 0, value.Count - 1));
+        var index = value.Count == 0 ? -1 : Math.Clamp(selected, 0, value.Count - 1);
+        Select(index, !ReferenceEquals(previous, index >= 0 ? value[index].Item : null));
         if (heightChanged)
             InvalidateMeasure();
         InvalidateVisual();
@@ -134,9 +136,9 @@ internal sealed class CompletionListView : Control
         layouts.Clear();
     }
 
-    private void Select(int index)
+    private void Select(int index, bool itemChanged = false)
     {
-        var changed = index != selectedIndex;
+        var changed = itemChanged || index != selectedIndex;
         selectedIndex = index;
         if (index >= 0)
         {

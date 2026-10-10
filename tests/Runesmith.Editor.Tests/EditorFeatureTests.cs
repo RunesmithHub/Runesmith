@@ -1,7 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Runesmith.Editor.Completion;
 using Runesmith.Sdk.Documents;
 using Runesmith.Sdk.Languages;
 using Runesmith.Text;
@@ -172,6 +175,33 @@ public sealed class EditorFeatureTests
         Assert.Equal(0, provider.Requests);
         Assert.Equal(0, editor.Area.Decorations.Count);
     });
+
+    [Fact]
+    public Task ANewListShowsAndResolvesTheDetailsOfItsOwnFirstItem() => Run(async () =>
+    {
+        var fakes = new FakeEditorServices();
+        fakes.Language.Completions = new CompletionList([new CompletionItem("Console", CompletionItemKind.Class) { Detail = "class System.Console" }]);
+        using var editor = new TextEditor(new FileTestDocument(FilePath, ""), fakes.Create());
+        var window = Show(editor);
+        var popup = editor.GetVisualDescendants().OfType<CompletionPopup>().Single();
+
+        editor.TriggerCompletion();
+        await WaitAsync(() => ShownDetail(popup) == "class System.Console" && fakes.Language.Resolves == 1);
+
+        var backgroundColor = new CompletionItem("BackgroundColor", CompletionItemKind.Property);
+        fakes.Language.Completions = new CompletionList([backgroundColor]);
+        fakes.Language.Resolve = item => item with { Detail = "ConsoleColor Console.BackgroundColor" };
+        editor.TriggerCompletion();
+
+        await WaitAsync(() => ShownDetail(popup) == "ConsoleColor Console.BackgroundColor");
+        Assert.Same(backgroundColor, popup.Selected?.Item);
+        window.Close();
+    });
+
+    private static string? ShownDetail(CompletionPopup popup) =>
+        popup.Child?.GetLogicalDescendants().OfType<ScrollViewer>().Single().IsVisible == true
+            ? popup.Child.GetLogicalDescendants().OfType<SelectableTextBlock>().FirstOrDefault()?.Text
+            : null;
 
     private static Window Show(Control content)
     {
