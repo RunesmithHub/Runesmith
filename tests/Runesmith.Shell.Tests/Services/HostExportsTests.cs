@@ -7,6 +7,7 @@ using Runesmith.Sdk.Plugins;
 using Runesmith.Sdk.Shell;
 using Runesmith.Shell.Appearance;
 using Runesmith.Shell.Diffs;
+using Runesmith.Shell.QuickInput;
 using Runesmith.Shell.Services;
 
 namespace Runesmith.Shell.Tests.Services;
@@ -29,6 +30,8 @@ public sealed class HostExportsTests
             Assert.Same(result.Exports.GetExportedValue<ISecretStore>(), result.Exports.GetExportedValue<ISecretStore>());
             Assert.IsType<DiffService>(result.Exports.GetExportedValue<IDiffService>());
             Assert.IsType<PluginStorage>(result.Exports.GetExportedValue<IPluginStorage>());
+            Assert.IsType<ClipboardService>(result.Exports.GetExportedValue<IClipboard>());
+            Assert.Same(result.Exports.GetExportedValue<QuickInputService>(), result.Exports.GetExportedValue<IQuickInputService>());
             var appearance = result.Exports.GetExportedValue<AppearanceCatalog>();
             Assert.Equal(["dark", "light", "runesmith-low-contrast-dark", "runesmith-low-contrast-light"], appearance.Themes.Select(e => e.Theme.Id));
             Assert.Equal(["runesmith-dark", "runesmith-light", "runesmith-low-contrast-dark", "runesmith-low-contrast-light"], appearance.Schemes.Select(e => e.Scheme.Id));

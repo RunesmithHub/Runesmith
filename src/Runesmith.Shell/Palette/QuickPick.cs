@@ -29,18 +29,11 @@ internal sealed class QuickPick : UserControl, IDisposable
         this.sources = sources;
         this.close = close;
 
-        query = new TextBox { Text = initialQuery, FontSize = 15, Padding = new Thickness(10, 12), BorderThickness = new Thickness(0), Classes = { "bare" } };
-        query.Resources["TextControlBorderBrushFocused"] = Brushes.Transparent;
-        query.Resources["TextControlBorderBrushPointerOver"] = Brushes.Transparent;
-        query.Resources["TextControlBackgroundFocused"] = Brushes.Transparent;
-        query.Resources["TextControlBackgroundPointerOver"] = Brushes.Transparent;
-        query.Resources["TextControlBackground"] = Brushes.Transparent;
-        query.FocusAdorner = null;
+        query = PaletteChrome.QueryBox(initialQuery);
         query.TextChanged += (_, _) => Refresh();
         query.AddHandler(KeyDownEvent, OnQueryKeyDown, RoutingStrategies.Tunnel);
 
-        var searchIcon = new SymbolIcon { Data = Icons.Search, Size = 18 };
-        searchIcon[!SymbolIcon.ForegroundProperty] = new DynamicResourceExtension("TextMutedBrush");
+        var searchIcon = PaletteChrome.MutedIcon(Icons.Search, 18);
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), Margin = new Thickness(16, 4, 12, 4) };
         Grid.SetColumn(query, 1);
         var escape = new ShortcutBadge { Text = "Esc", VerticalAlignment = VerticalAlignment.Center };
@@ -57,8 +50,8 @@ internal sealed class QuickPick : UserControl, IDisposable
         };
         results.DoubleTapped += (_, _) => Accept();
 
-        var nothingIcon = new SymbolIcon { Data = Icons.Search, Size = 22, HorizontalAlignment = HorizontalAlignment.Center };
-        nothingIcon[!SymbolIcon.ForegroundProperty] = new DynamicResourceExtension("TextMutedBrush");
+        var nothingIcon = PaletteChrome.MutedIcon(Icons.Search, 22);
+        nothingIcon.HorizontalAlignment = HorizontalAlignment.Center;
         nothing = new StackPanel
         {
             Margin = new Thickness(24),
@@ -69,31 +62,20 @@ internal sealed class QuickPick : UserControl, IDisposable
         };
 
         var footer = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(16, 8) };
-        footer.Children.AddRange([new ShortcutBadge { Text = "↑" }, new ShortcutBadge { Text = "↓" }, Caption("Navigate", 16), new ShortcutBadge { Text = "Enter" }, Caption("Open", 16)]);
+        footer.Children.AddRange([new ShortcutBadge { Text = "↑" }, new ShortcutBadge { Text = "↓" }, PaletteChrome.Caption("Navigate", 16), new ShortcutBadge { Text = "Enter" }, PaletteChrome.Caption("Open", 16)]);
         foreach (var source in sources.Where(s => s.Prefix.Length > 0))
-            footer.Children.AddRange([new ShortcutBadge { Text = source.Prefix }, Caption(source.Name, 14)]);
+            footer.Children.AddRange([new ShortcutBadge { Text = source.Prefix }, PaletteChrome.Caption(source.Name, 14)]);
 
         var layout = new DockPanel();
         DockPanel.SetDock(header, Dock.Top);
-        var topLine = Divider();
+        var topLine = PaletteChrome.Divider();
         DockPanel.SetDock(topLine, Dock.Top);
         DockPanel.SetDock(footer, Dock.Bottom);
-        var bottomLine = Divider();
+        var bottomLine = PaletteChrome.Divider();
         DockPanel.SetDock(bottomLine, Dock.Bottom);
         layout.Children.AddRange([header, topLine, footer, bottomLine, new Panel { Children = { results, nothing } }]);
 
-        var card = new Border
-        {
-            Width = 660,
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(8),
-            ClipToBounds = true,
-            Child = layout,
-        };
-        card[!Border.BackgroundProperty] = new DynamicResourceExtension("Surface2Brush");
-        card[!Border.BorderBrushProperty] = new DynamicResourceExtension("OutlineBrush");
-        card[!Border.BoxShadowProperty] = new DynamicResourceExtension("ShadowPopup");
-        Content = card;
+        Content = PaletteChrome.Card(layout);
     }
 
     public void Dispose()
@@ -199,44 +181,10 @@ internal sealed class QuickPick : UserControl, IDisposable
             close(item, current);
     }
 
-    private static TextBlock Caption(string text, double rightMargin) =>
-        new() { Text = text, Classes = { "caption", "muted" }, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, rightMargin, 0) };
-
-    private static Border Divider() => new() { Classes = { "divider-h" }, Margin = new Thickness(0) };
-
     private static Grid Row(QuickPickItem item)
     {
-        var icon = new Border { Width = 28, Height = 28, CornerRadius = new CornerRadius(7), Child = new SymbolIcon { Data = item.Icon ?? Icons.ChevronRight, Size = 14, IsFilled = item.IsIconFilled } };
-        if (item.IconBrush is { } brush)
-            ((SymbolIcon)icon.Child).Foreground = brush;
-        icon[!Border.BackgroundProperty] = new DynamicResourceExtension("SurfaceSunkenBrush");
-
-        var title = new TextBlock { TextTrimming = TextTrimming.CharacterEllipsis };
-        var matched = item.Matches.ToHashSet();
-        if (matched.Count == 0)
-        {
-            title.Text = item.Title;
-        }
-        else
-        {
-            for (var i = 0; i < item.Title.Length;)
-            {
-                var isMatch = matched.Contains(i);
-                var end = i;
-                while (end < item.Title.Length && matched.Contains(end) == isMatch)
-                    end++;
-                var run = new Run(item.Title[i..end]);
-                if (isMatch)
-                {
-                    run.FontWeight = FontWeight.SemiBold;
-                    run[!TextElement.ForegroundProperty] = new DynamicResourceExtension("AccentBrush");
-                }
-
-                title.Inlines!.Add(run);
-                i = end;
-            }
-        }
-
+        var icon = PaletteChrome.IconTile(item.Icon, item.IconBrush, item.IsIconFilled);
+        var title = PaletteChrome.Highlighted(item.Title, item.Matches);
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 1, Children = { title } };
         if (item.HasSubtitle)
             text.Children.Add(new TextBlock { Text = item.Subtitle, Classes = { "caption", "muted" }, TextTrimming = TextTrimming.CharacterEllipsis });
