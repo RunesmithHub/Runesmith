@@ -4,11 +4,11 @@ using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Composition;
 using Runesmith.Sdk.Appearance;
 using Runesmith.Sdk.Languages;
 using Runesmith.Sdk.Settings;
 using Runesmith.Sdk.Shell;
-using Runesmith.Shell.Services;
 
 namespace Runesmith.Shell.Appearance;
 

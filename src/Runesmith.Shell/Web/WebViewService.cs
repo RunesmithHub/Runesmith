@@ -2,7 +2,6 @@ using System.Composition;
 using Runesmith.Composition;
 using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.Web;
-using Runesmith.Shell.Services;
 
 namespace Runesmith.Shell.Web;
 

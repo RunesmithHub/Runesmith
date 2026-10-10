@@ -7,7 +7,6 @@ using Runesmith.Sdk.Running;
 using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.Workspace;
 using Runesmith.Shell.Running;
-using Runesmith.Shell.Services;
 using RunesmithHub.Protocol;
 
 namespace Runesmith.Shell.Debugging;
