@@ -15,6 +15,7 @@ using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.Workspace;
 using Runesmith.Shell.Appearance;
 using Runesmith.Shell.Services;
+using Runesmith.Shell.Views;
 using Runesmith.Workspace.Settings;
 
 namespace Runesmith.Shell.Pages;
@@ -235,7 +236,7 @@ internal sealed class SettingsPage : DockPanel
         return controls;
     }
 
-    private SettingRow Row(SettingDefinition definition)
+    private Border Row(SettingDefinition definition)
     {
         var target = Scope;
         var effective = settings.GetEffectiveScope(definition.Key);
@@ -253,7 +254,7 @@ internal sealed class SettingsPage : DockPanel
 
         var editor = Editor(definition, current, value => Set(definition, value, target));
         editor.IsEnabled = !userOnly;
-        var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Children = { editor } };
+        var content = new WrapPanel { ItemSpacing = 8, LineSpacing = 8, VerticalAlignment = VerticalAlignment.Center, Children = { editor } };
         if (settings.GetValue(definition.Key, target) is not null)
         {
             var reset = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.RotateCcw, Size = 14 } };
@@ -262,8 +263,29 @@ internal sealed class SettingsPage : DockPanel
             content.Children.Insert(0, reset);
         }
 
-        return new SettingRow { Title = definition.Title, Description = description, Content = content };
+        return SettingCard(definition.Title, description, content);
     }
+
+    /// <summary>A setting's row, with the control beside the title and description while they keep room to read, and under them when not.</summary>
+    private static Border SettingCard(string title, string description, Control control)
+    {
+        var text = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(Hub.HubVisuals.Themed(new TextBlock { Text = title, FontWeight = FontWeight.Medium, TextWrapping = TextWrapping.Wrap }, TextBlock.ForegroundProperty, "TextPrimaryBrush"));
+        if (!string.IsNullOrEmpty(description))
+            text.Children.Add(Hub.HubVisuals.Themed(new TextBlock { Text = description, FontSize = 12, TextWrapping = TextWrapping.Wrap }, TextBlock.ForegroundProperty, "TextMutedBrush"));
+
+        control.HorizontalAlignment = HorizontalAlignment.Left;
+        var card = new Border
+        {
+            Padding = new Thickness(14, 10),
+            CornerRadius = new CornerRadius(8),
+            BorderThickness = new Thickness(1),
+            MinHeight = 56,
+            Child = new SideBySidePanel { MinMainWidth = 260, Spacing = 16, Children = { text, control } },
+        };
+        return Hub.HubVisuals.Themed(Hub.HubVisuals.Themed(card, Border.BackgroundProperty, "SurfaceBrush"), Border.BorderBrushProperty, "BorderSubtleBrush");
+    }
+
 
     private object GetEffective(SettingDefinition definition) =>
         settings.GetValue(definition.Key, SettingScope.Workspace) ?? settings.GetValue(definition.Key, SettingScope.User) ?? definition.DefaultValue;

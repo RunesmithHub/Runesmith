@@ -61,7 +61,7 @@ internal static class AppearancePickers
         {
             ItemsSource = choices,
             SelectedItem = selected,
-            MinWidth = 220,
+            MinWidth = 160,
             ItemTemplate = new FuncDataTemplate<AppearanceChoice?>((choice, _) => choice is null ? new Panel() : Entry(choice)),
         };
         box.SelectionChanged += (_, _) =>
@@ -78,7 +78,7 @@ internal static class AppearancePickers
     /// <summary>Creates the accent color's swatches and hex field, and a button back to the theme's own accent.</summary>
     /// <param name="current">The accent set, or an empty text for the theme's own.</param>
     /// <param name="themeAccent">The accent of the theme that shows, shown while <paramref name="current"/> is empty.</param>
-    public static StackPanel Accent(string current, Color themeAccent, Action<string> set)
+    public static WrapPanel Accent(string current, Color themeAccent, Action<string> set)
     {
         var hasColor = Color.TryParse(current, out var color);
         var picker = new ColorSwatchPicker { Colors = Accents, SelectedColor = hasColor ? color : themeAccent };
@@ -89,7 +89,7 @@ internal static class AppearancePickers
         };
         var themeDefault = new Button { Classes = { "small" }, Content = "Theme default", IsEnabled = hasColor, VerticalAlignment = VerticalAlignment.Center };
         themeDefault.Click += (_, _) => set("");
-        return new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { picker, themeDefault } };
+        return new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { picker, themeDefault } };
     }
 
     private static string? Source(PluginInfo? plugin, string? kind) =>
@@ -101,20 +101,37 @@ internal static class AppearancePickers
             _ => $"{kind}, {plugin.Manifest.Name}",
         };
 
-    private static StackPanel Entry(AppearanceChoice choice)
+    private static DockPanel Entry(AppearanceChoice choice)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var row = new DockPanel();
         if (choice.Swatch.Count > 0)
         {
-            var swatch = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            var swatch = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
             foreach (var color in choice.Swatch)
                 swatch.Children.Add(new ColorSwatch { Color = color, Width = 10, Height = 14, CornerRadius = new CornerRadius(2) });
+            DockPanel.SetDock(swatch, Dock.Left);
             row.Children.Add(swatch);
         }
 
-        row.Children.Add(new TextBlock { Text = choice.Title, VerticalAlignment = VerticalAlignment.Center });
+        var title = new TextBlock { Text = choice.Title, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         if (choice.Detail is { } detail)
-            row.Children.Add(new TextBlock { Text = detail, Classes = { "caption", "muted" }, VerticalAlignment = VerticalAlignment.Center });
+        {
+            DockPanel.SetDock(title, Dock.Left);
+            row.Children.Add(title);
+            row.Children.Add(new TextBlock
+            {
+                Text = detail,
+                Classes = { "caption", "muted" },
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(8, 0, 0, 0),
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            });
+        }
+        else
+        {
+            row.Children.Add(title);
+        }
+
         return row;
     }
 }
