@@ -187,6 +187,49 @@ public sealed class FileOperationsTests : IDisposable
     });
 
     [Fact]
+    public Task CreatesFoldersThatUndoWhileTheyAreEmpty() => Run(async () =>
+    {
+        var service = Create();
+        var folder = Path.Combine(root, "Models", "Billing");
+        var file = Write("File.txt", "a file");
+
+        Assert.True(await service.ApplyAsync(Edit(new CreateFolderOperation(folder))));
+        Assert.True(Directory.Exists(folder));
+        Assert.Contains("Create Billing", notifications.Notified);
+        Assert.True(await service.ApplyAsync(Edit(new CreateFolderOperation(folder) { IgnoreIfExists = true })));
+        Assert.False(await service.ApplyAsync(Edit(new CreateFolderOperation(folder))));
+        Assert.False(await service.ApplyAsync(Edit(new CreateFolderOperation(file) { IgnoreIfExists = true })));
+
+        Assert.True(await service.UndoAsync());
+        Assert.False(Directory.Exists(Path.Combine(root, "Models")));
+        Assert.False(service.CanUndo);
+
+        Assert.True(await service.RedoAsync());
+        Assert.True(Directory.Exists(folder));
+        File.WriteAllText(Path.Combine(folder, "Order.cs"), "class Order {}");
+        Assert.False(await service.UndoAsync());
+        Assert.True(File.Exists(Path.Combine(folder, "Order.cs")));
+        Assert.Contains("The edit was not undone", notifications.Notified);
+    });
+
+    [Fact]
+    public Task ParticipantsHearOfAnUndoneFolderDeleteAsAFolderCreated() => Run(async () =>
+    {
+        var participant = new Participant();
+        participants.Add(participant);
+        var service = Create();
+        var folder = Path.Combine(root, "Old");
+        Write(Path.Combine("Old", "A.cs"), "a");
+
+        Assert.True(await service.ApplyAsync(Edit(new DeleteFileOperation(folder) { Recursive = true })));
+        Assert.IsType<DeleteFileOperation>(Assert.Single(await participant.NextDidAsync()));
+        Assert.True(await service.UndoAsync());
+
+        Assert.Equal(new CreateFolderOperation(folder), Assert.Single(await participant.NextDidAsync()));
+        Assert.Equal("a", File.ReadAllText(Path.Combine(folder, "A.cs")));
+    });
+
+    [Fact]
     public Task ClosesTheDocumentsOfDeletedFiles() => Run(async () =>
     {
         var service = Create();

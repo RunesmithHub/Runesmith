@@ -427,6 +427,7 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
     private FileAction ToAction(FileOperation operation) => operation switch
     {
         CreateFileOperation create => new CreateFileAction(this, create),
+        CreateFolderOperation create => new CreateFolderAction(this, create),
         RenameFileOperation rename => new RenameFileAction(this, rename),
         DeleteFileOperation delete => new DeleteFileAction(this, delete),
         _ => throw new ArgumentException("Unknown file operation.", nameof(operation)),
@@ -619,6 +620,7 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
     private static string Describe(IReadOnlyList<FileOperation> operations, int textFiles) => operations switch
     {
         [CreateFileOperation create] => $"Create {Path.GetFileName(create.FilePath)}",
+        [CreateFolderOperation create] => $"Create {Path.GetFileName(create.FolderPath)}",
         [RenameFileOperation rename] when PathComparison.Comparer.Equals(Path.GetDirectoryName(rename.OldPath), Path.GetDirectoryName(rename.NewPath)) =>
             $"Rename {Path.GetFileName(rename.OldPath)} to {Path.GetFileName(rename.NewPath)}",
         [RenameFileOperation rename] => $"Move {Path.GetFileName(rename.OldPath)} to {Path.GetFileName(Path.GetDirectoryName(rename.NewPath))}",
@@ -632,6 +634,7 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
         var lines = operations.Select(operation => operation switch
         {
             CreateFileOperation create => $"Create {create.FilePath}",
+            CreateFolderOperation create => $"Create the folder {create.FolderPath}",
             RenameFileOperation rename => $"Rename {rename.OldPath} to {rename.NewPath}",
             DeleteFileOperation delete => $"Delete {delete.Path}",
             _ => "",

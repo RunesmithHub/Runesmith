@@ -154,6 +154,7 @@ public sealed class ArchiveCommands(IEditorService editors, IWorkspaceEditServic
 | Operation | Options |
 | --- | --- |
 | `CreateFileOperation(FilePath)` | `Content`, written as UTF-8; `Overwrite` replaces a file that exists; `IgnoreIfExists` leaves it and goes on. Missing folders are created. |
+| `CreateFolderOperation(FolderPath)` | Creates an empty folder, and the missing folders above it. `IgnoreIfExists` leaves a folder that exists and goes on. |
 | `RenameFileOperation(OldPath, NewPath)` | Renames or moves a file or folder. `Overwrite` replaces a file at the new path; `IgnoreIfExists` skips the rename. |
 | `DeleteFileOperation(Path)` | `Recursive` deletes a folder that is not empty; `IgnoreIfMissing` goes on when the path does not exist; `UseTrash`, on by default, sends the files to the system's trash. |
 
@@ -172,9 +173,10 @@ public sealed class ArchiveCommands(IEditorService editors, IWorkspaceEditServic
 6. Open editors follow renamed files, editors of deleted files close, and `FilesChangedMessage` is published.
 
 The edit is one step of the workspace's undo history. **Edit › Undo Workspace Edit** and `UndoAsync` take back its text changes and then
-its operations: renamed files move back, created files go and deleted files come back. When the edit's text change is the last change of a
-file, <Keys>Ctrl+Z</Keys> in that file's editor undoes the whole edit too. **Redo Workspace Edit** and `RedoAsync` make it again. An undo
-that would lose work, such as when a renamed file was changed again since, is refused with the reason. Runesmith keeps the last 20 edits.
+its operations: renamed files move back, created files and folders go and deleted files come back. When the edit's text change is the last
+change of a file, <Keys>Ctrl+Z</Keys> in that file's editor undoes the whole edit too. **Redo Workspace Edit** and `RedoAsync` make it again.
+An undo that would lose work, such as when a renamed file was changed again since or a created folder has files in it now, is refused with
+the reason. Runesmith keeps the last 20 edits.
 
 Deleted files go to the system's trash where Runesmith can use it: the desktop trash on Linux, for files on its drive, and `~/.Trash` on
 macOS. Otherwise, and with `UseTrash` off, Runesmith keeps the files while the edit can be undone, and deletes them for good once the edit

@@ -16,6 +16,24 @@ internal static class FileMoves
         return created;
     }
 
+    /// <summary>Creates a folder and the folders it needs, and returns the ones it created, outermost first.</summary>
+    public static List<string> CreateFolder(string folder)
+    {
+        var created = CreateParents(folder);
+        try
+        {
+            Directory.CreateDirectory(folder);
+        }
+        catch
+        {
+            DeleteIfEmpty(created);
+            throw;
+        }
+
+        created.Add(folder);
+        return created;
+    }
+
     /// <summary>Deletes folders that <see cref="CreateParents"/> created, innermost first, as long as they are empty.</summary>
     public static void DeleteIfEmpty(IReadOnlyList<string> folders)
     {

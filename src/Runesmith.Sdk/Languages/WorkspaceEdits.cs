@@ -30,7 +30,7 @@ public sealed record WorkspaceEdit(IReadOnlyList<DocumentEdit> Documents)
 }
 
 /// <summary>A file or folder that a <see cref="WorkspaceEdit"/> creates, renames or deletes: a <see cref="CreateFileOperation"/>,
-/// <see cref="RenameFileOperation"/> or <see cref="DeleteFileOperation"/>.</summary>
+/// <see cref="CreateFolderOperation"/>, <see cref="RenameFileOperation"/> or <see cref="DeleteFileOperation"/>.</summary>
 /// <remarks>Added in plugin API 0.1.2.</remarks>
 public abstract record FileOperation
 {
@@ -51,6 +51,15 @@ public sealed record CreateFileOperation(string FilePath) : FileOperation
     public bool Overwrite { get; init; }
 
     /// <summary>Gets whether to leave a file that exists as it is and go on; <see cref="Overwrite"/> wins when both are set.</summary>
+    public bool IgnoreIfExists { get; init; }
+}
+
+/// <summary>Creates an empty folder, and the folders it needs. Undoing the edit deletes the folder, and is refused once something is in it.</summary>
+/// <param name="FolderPath">The new folder's full path.</param>
+/// <remarks>Added in plugin API 0.1.2. By default the edit is not applied when something exists at the path.</remarks>
+public sealed record CreateFolderOperation(string FolderPath) : FileOperation
+{
+    /// <summary>Gets whether to leave a folder that exists as it is and go on.</summary>
     public bool IgnoreIfExists { get; init; }
 }
 
@@ -170,7 +179,7 @@ public interface IFileOperationParticipant
         Task.FromResult<WorkspaceEdit?>(null);
 
     /// <summary>Called after the operations were made, and after the edit is undone or redone, with the operations that were made: for an
-    /// undo, the reverse ones, such as the rename back, or a delete for a file the edit created.</summary>
+    /// undo, the reverse ones, such as the rename back, a delete for a file or folder the edit created, or a create for one it deleted.</summary>
     Task DidApplyAsync(IReadOnlyList<FileOperation> operations, CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
