@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Runesmith.Composition;
 using Runesmith.Sdk;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Messaging;
 using Runesmith.Sdk.Settings;
 using Runesmith.Workspace.Files;
@@ -14,15 +15,18 @@ namespace Runesmith.Workspace.Settings;
 /// strength.</summary>
 /// <remarks>Both files are read again when they change on disk. A value of the wrong type, or outside a setting's choices, is ignored. A plugin
 /// changes only its own settings: those whose keys start with its id and a dot, and those it contributes. The settings in
-/// <see cref="CoreSettings.UserOnly"/> count only in the user's file.</remarks>
+/// <see cref="CoreSettings.UserOnly"/> count only in the user's file. The titles and descriptions of the settings are read from their
+/// contributors again after the language changes.</remarks>
 [Export(typeof(ISettingsService))]
 [Export(typeof(SettingsService))]
 [Shared]
 public sealed class SettingsService : ISettingsService, IDisposable
 {
     private readonly Lock _gate = new();
-    private readonly Dictionary<string, SettingDefinition> _definitions = new(StringComparer.Ordinal);
+    private readonly List<ISettingContributor> _contributors;
     private readonly Dictionary<string, string> _owners = new(StringComparer.Ordinal);
+    private volatile Dictionary<string, SettingDefinition> _definitions = new(StringComparer.Ordinal);
+    private volatile IReadOnlyList<SettingDefinition> _list = [];
     private readonly Func<PluginInfo?> _caller;
     private readonly SettingsFile _user;
     private readonly FileSystemWatcher? _userWatcher;
@@ -44,7 +48,8 @@ public sealed class SettingsService : ISettingsService, IDisposable
     {
         _caller = caller ?? PluginCallers.Current;
         ownerOf ??= contributor => PluginCallers.Of(contributor.GetType().Assembly);
-        foreach (var contributor in contributors)
+        _contributors = [.. contributors];
+        foreach (var contributor in _contributors)
         {
             var owner = ownerOf(contributor)?.Manifest.Id;
             foreach (var definition in contributor.Settings)
@@ -54,7 +59,8 @@ public sealed class SettingsService : ISettingsService, IDisposable
             }
         }
 
-        Definitions = [.. _definitions.Values];
+        _list = [.. _definitions.Values];
+        Localized.Changed += OnLanguageChanged;
 
         _user = new SettingsFile(userSettingsPath);
         _user.Load();
@@ -64,7 +70,7 @@ public sealed class SettingsService : ISettingsService, IDisposable
         _filesSubscription = messageBus.Subscribe<FilesChangedMessage>(OnFilesChanged);
     }
 
-    public IReadOnlyList<SettingDefinition> Definitions { get; }
+    public IReadOnlyList<SettingDefinition> Definitions => _list;
 
     public event EventHandler<SettingChangedEventArgs>? Changed;
 
@@ -131,10 +137,40 @@ public sealed class SettingsService : ISettingsService, IDisposable
 
     public void Dispose()
     {
+        Localized.Changed -= OnLanguageChanged;
         _userWatcher?.Dispose();
         _reloadTimer.Dispose();
         _workspaceSubscription.Dispose();
         _filesSubscription.Dispose();
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        var named = new Dictionary<string, SettingDefinition>(StringComparer.Ordinal);
+        foreach (var contributor in _contributors)
+        {
+            try
+            {
+                foreach (var definition in contributor.Settings)
+                    named.TryAdd(definition.Key, definition);
+            }
+            catch (Exception)
+            {
+                // A contributor that fails now keeps the names it gave before.
+            }
+        }
+
+        var current = _list;
+        var renamed = new Dictionary<string, SettingDefinition>(current.Count, StringComparer.Ordinal);
+        foreach (var definition in current)
+        {
+            renamed[definition.Key] = named.TryGetValue(definition.Key, out var fresh) && fresh.ValueType == definition.ValueType
+                ? definition with { Title = fresh.Title, Category = fresh.Category, Description = fresh.Description, ChoiceTitles = fresh.ChoiceTitles }
+                : definition;
+        }
+
+        _definitions = renamed;
+        _list = [.. renamed.Values];
     }
 
     private void CheckOwner(string key)

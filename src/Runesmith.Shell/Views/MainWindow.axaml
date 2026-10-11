@@ -105,7 +105,7 @@
 
   <ui:DialogHost x:Name="Dialogs">
     <Panel>
-      <Grid RowDefinitions="Auto,Auto,*,Auto" Background="{DynamicResource Surface0Brush}">
+      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Background="{DynamicResource Surface0Brush}">
         <!-- Main toolbar, the title bar where the platform allows -->
         <Border x:Name="TitleBar" Grid.Row="0" Classes="toolbar appbar" BorderThickness="0" Padding="4,0,0,0" Height="40">
           <views:TitleBarPanel>
@@ -159,8 +159,11 @@
           <Menu x:Name="MainMenu" VerticalAlignment="Center" />
         </Border>
 
+        <!-- The suggestion to install the language pack of the system's language -->
+        <ContentControl x:Name="LanguageNotice" Grid.Row="2" IsVisible="False" />
+
         <!-- The workbench, or the welcome screen while nothing is open -->
-        <Panel x:Name="Body" Grid.Row="2">
+        <Panel x:Name="Body" Grid.Row="3">
           <DockPanel x:Name="EditorArea">
             <ContentControl x:Name="FolderNotice" DockPanel.Dock="Top" IsVisible="False" />
             <Panel>
@@ -174,7 +177,7 @@
         </Panel>
 
         <!-- Status bar -->
-        <Border Grid.Row="3" Classes="statusbar" BorderThickness="0">
+        <Border Grid.Row="4" Classes="statusbar" BorderThickness="0">
           <Grid ColumnDefinitions="*,Auto,*">
             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" ClipToBounds="True">
               <ContentControl x:Name="StatusPathHost" VerticalAlignment="Center" />

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>The Runesmith window: docking, commands, menus, the command palette, settings, the status bar and the tool windows.</Description>
+    <RunesmithLocalizable>true</RunesmithLocalizable>
     <UsesHammerUI>true</UsesHammerUI>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
@@ -11,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Runesmith.Composition\Runesmith.Composition.csproj" />
     <ProjectReference Include="..\Runesmith.Hub\Runesmith.Hub.csproj" />
+    <ProjectReference Include="..\Runesmith.Localization\Runesmith.Localization.csproj" />
     <ProjectReference Include="..\Runesmith.Workspace\Runesmith.Workspace.csproj" />
     <ProjectReference Include="..\Runesmith.Languages\Runesmith.Languages.csproj" />
     <ProjectReference Include="..\Runesmith.Editor\Runesmith.Editor.csproj" />

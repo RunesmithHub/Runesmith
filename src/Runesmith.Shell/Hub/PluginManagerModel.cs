@@ -59,6 +59,15 @@ public sealed record InstalledRow(
 
     /// <summary>Gets the plugin's folder, for its icon.</summary>
     public string? Folder { get; init; }
+
+    /// <summary>Gets the language the plugin adds when it is a language pack, or null.</summary>
+    public PluginLanguagePack? LanguagePack { get; init; }
+
+    /// <summary>Gets the languages the plugin says it carries translations in, or null.</summary>
+    public IReadOnlyList<string>? Languages { get; init; }
+
+    /// <summary>Gets whether the plugin's code runs, so its own messages are there to count.</summary>
+    public bool IsRunning { get; init; }
 }
 
 /// <summary>What the plugin manager shows: the installed plugins with their notices, the updates, the catalog and plugin pages. It holds the
@@ -151,17 +160,26 @@ public sealed class PluginManagerModel
             {
                 Badge = report.ChangedFiles.ContainsKey(id) ? NoticeKind.FilesChanged : catalog is not null && hub is not null ? Badge(catalog, hub) : null,
                 Folder = plugin.Directory,
+                LanguagePack = plugin.Manifest.LanguagePack,
+                Languages = plugin.Manifest.Languages,
+                IsRunning = plugin.State == PluginState.Loaded && !plugin.Manifest.IsLanguagePack,
             });
         }
 
         foreach (var hub in state.Plugins.Where(p => !shown.Contains(p.Id)))
         {
-            var name = catalog?.FindPlugin(hub.Id)?.Name ?? hub.Id;
-            var note = IsSafeMode && !state.IsPending(hub.Id) ? "Off in safe mode, which loads no plugins." : "Installed. Restart Runesmith to start it.";
-            rows.Add(new InstalledRow(hub.Id, name, hub.Version, Enum.TryParse<PluginTier>(hub.Tier, true, out var tier) ? tier : null, InstalledSource.Hub, note,
+            var listing = catalog?.FindPlugin(hub.Id);
+            var version = SemanticVersion.TryParse(hub.Version, out var installed) ? listing?.FindVersion(installed) : null;
+            var pack = version?.LanguagePack is { } declared ? new PluginLanguagePack(declared.Language, declared.Name, declared.EnglishName) : null;
+            var note = IsSafeMode && !state.IsPending(hub.Id) ? "Off in safe mode, which loads no plugins."
+                : pack is not null ? Strings.LocalizationPackInstalled
+                : "Installed. Restart Runesmith to start it.";
+            rows.Add(new InstalledRow(hub.Id, listing?.Name ?? hub.Id, hub.Version, Enum.TryParse<PluginTier>(hub.Tier, true, out var tier) ? tier : null, InstalledSource.Hub, note,
                 IsProblem: false, IsEnabled: !off.Contains(hub.Id), CanToggle: true)
             {
                 Folder = client.Paths.PluginFolder(hub.Id),
+                LanguagePack = pack,
+                Languages = version?.Languages,
             });
         }
 
@@ -186,6 +204,26 @@ public sealed class PluginManagerModel
     /// <summary>Gets the version that runs now of a plugin, from the hub or the user's folder, or null.</summary>
     public string? RunningVersion(string id) =>
         plugins().FirstOrDefault(p => p.Manifest.Id == id && IsRunningCopy(p))?.Manifest.Version;
+
+    /// <summary>Gets whether a plugin's code runs now.</summary>
+    public bool IsRunning(string id) => plugins().Any(p => p.Manifest.Id == id && p.State == PluginState.Loaded && !p.Manifest.IsLanguagePack);
+
+    /// <summary>Gets whether a plugin is a language pack, which carries translations and needs no restart: by its manifest when Runesmith
+    /// found it at start, and otherwise by what the hub says of its installed or newest version.</summary>
+    public bool IsLanguagePack(string id)
+    {
+        if (plugins().FirstOrDefault(p => p.Manifest.Id == id && IsRunningCopy(p)) is { } found)
+            return found.Manifest.IsLanguagePack;
+        if (client.Catalog?.FindPlugin(id) is not { } listing)
+            return false;
+
+        var installed = client.State.Find(id) is { } hub && SemanticVersion.TryParse(hub.Version, out var version) ? listing.FindVersion(version) : null;
+        return (installed ?? (listing.Versions is [var newest, ..] ? newest : null))?.LanguagePack is not null;
+    }
+
+    /// <summary>Gets a plugin's name: the hub's, or else its manifest's, or else its id.</summary>
+    public string NameOf(string id) =>
+        client.Catalog?.FindPlugin(id)?.Name ?? plugins().FirstOrDefault(p => p.Manifest.Id == id && IsRunningCopy(p))?.Manifest.Name ?? id;
 
     /// <summary>Gets the capabilities the installed plugins have between them, for marking the ones an install plan adds.</summary>
     public IReadOnlySet<string> HeldCapabilities()
@@ -301,7 +339,7 @@ public sealed class PluginManagerModel
             return (fallback, true);
         if (plugin.State == PluginState.Disabled && plugin.Error is { } reason)
             return (reason, true);
-        if (hub is not null && state.IsPending(hub.Id))
+        if (hub is not null && state.IsPending(hub.Id) && !plugin.Manifest.IsLanguagePack)
             return (hub.Version == plugin.Manifest.Version ? "Restart Runesmith to finish the change." : $"Version {hub.Version} is installed. Restart Runesmith to start it.", false);
         if (state.Pending?.Removed.Contains(plugin.Manifest.Id) == true)
             return ("Removed. Restart Runesmith to finish.", false);

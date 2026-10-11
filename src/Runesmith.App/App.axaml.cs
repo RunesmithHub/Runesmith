@@ -34,6 +34,7 @@ public sealed class App : Application
                 IsSafeMode = Program.IsSafeMode,
                 HubStartup = Program.HubReport,
                 Link = Program.Arguments.Link,
+                PluginFolders = Program.PluginFolders,
             };
             var window = ShellStartup.CreateMainWindow(composition, options, Program.Timings);
             window.Icon = new WindowIcon(new Bitmap(AssetLoader.Open(new Uri("avares://Runesmith.Shell/Assets/runesmith.png"))));

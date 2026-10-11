@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Folders, solutions, the file tree and watcher, the file index, documents on disk and find in files.</Description>
+    <RunesmithLocalizable>true</RunesmithLocalizable>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Runesmith.Sdk\Runesmith.Sdk.csproj" />

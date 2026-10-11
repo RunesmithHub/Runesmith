@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>The text editor control: layout, rendering, input, completion, hover, diagnostics and the find bar.</Description>
+    <RunesmithLocalizable>true</RunesmithLocalizable>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>

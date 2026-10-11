@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>The language registry, TextMate highlighting and the bridge that turns language servers into editor features.</Description>
+    <RunesmithLocalizable>true</RunesmithLocalizable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="TextMateSharp" />

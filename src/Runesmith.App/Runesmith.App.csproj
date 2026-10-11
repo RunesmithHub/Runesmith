@@ -2,6 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <Description>Runesmith, the code editor.</Description>
+    <RunesmithLocalizable>true</RunesmithLocalizable>
     <AssemblyName>runesmith</AssemblyName>
     <RootNamespace>Runesmith.App</RootNamespace>
     <ApplicationIcon>Assets\runesmith.ico</ApplicationIcon>

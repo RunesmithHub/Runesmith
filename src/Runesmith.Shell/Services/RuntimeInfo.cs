@@ -10,6 +10,9 @@ public sealed class RuntimeInfo
 {
     public IReadOnlyList<PluginInfo> Plugins { get; set; } = [];
 
+    /// <summary>Gets or sets the folders the plugins were looked for in, and where the plugins in each come from; none in safe mode.</summary>
+    public IReadOnlyList<(string Path, PluginSource Source)> PluginFolders { get; set; } = [];
+
     /// <summary>Gets or sets the problems composition found in parts.</summary>
     public IReadOnlyList<string> CompositionErrors { get; set; } = [];
 

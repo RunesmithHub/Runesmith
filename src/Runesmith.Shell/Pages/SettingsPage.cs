@@ -10,10 +10,12 @@ using Avalonia.VisualTree;
 using HammerUI;
 using HammerUI.Controls;
 using Runesmith.Sdk;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Settings;
 using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.Workspace;
 using Runesmith.Shell.Appearance;
+using Runesmith.Shell.Localization;
 using Runesmith.Shell.Services;
 using Runesmith.Shell.Views;
 using Runesmith.Workspace.Settings;
@@ -35,9 +37,16 @@ internal sealed class SettingsPage : DockPanel
     private readonly Func<Control>? sdksSection;
     private readonly Action? openPlugins;
     private readonly ThemeService? themes;
+    private readonly ShellLocalization? localization;
     private readonly List<ISettingsSectionProvider> pluginSections;
-    private readonly ListBox categories = new() { Classes = { "sidebar" }, Width = 200, Margin = new Thickness(12, 8, 0, 12) };
-    private readonly ComboBox categoryPicker = new() { HorizontalAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(28, 8, 28, 0), IsVisible = false };
+    private readonly ListBox categories = new() { Classes = { "sidebar" }, Width = 200, Margin = new Thickness(12, 8, 0, 12), ItemTemplate = CategoryTemplate };
+    private readonly ComboBox categoryPicker = new()
+    {
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        Margin = new Thickness(28, 8, 28, 0),
+        IsVisible = false,
+        ItemTemplate = CategoryTemplate,
+    };
     private readonly StackPanel sections = new() { Spacing = 24, Margin = new Thickness(28, 16, 28, 40) };
     private readonly SearchBox search = new() { PlaceholderText = "Search settings", Width = 280 };
     private readonly SegmentedControl scope = new();
@@ -45,9 +54,10 @@ internal sealed class SettingsPage : DockPanel
 
     /// <param name="openPlugins">Shows the plugin manager.</param>
     public SettingsPage(ISettingsService settings, IWorkspace workspace, RuntimeInfo runtime, NotificationService notifications, Func<string, Task> openFile, Func<Control>? sdksSection = null,
-        IEnumerable<Lazy<ISettingsSectionProvider>>? pluginSections = null, Action? openPlugins = null, ThemeService? themes = null)
+        IEnumerable<Lazy<ISettingsSectionProvider>>? pluginSections = null, Action? openPlugins = null, ThemeService? themes = null, ShellLocalization? localization = null)
     {
         this.themes = themes;
+        this.localization = localization;
         this.sdksSection = sdksSection;
         this.openPlugins = openPlugins;
         this.pluginSections = Resolve(pluginSections ?? [], notifications);
@@ -111,6 +121,11 @@ internal sealed class SettingsPage : DockPanel
             refreshTimer.Start();
         });
         workspace.Changed += (_, _) => UpdateScope();
+        localization?.Changed += (_, _) =>
+        {
+            refreshTimer.Stop();
+            refreshTimer.Start();
+        };
 
         var names = Categories();
         categories.ItemsSource = names;
@@ -143,7 +158,7 @@ internal sealed class SettingsPage : DockPanel
     {
         var names = settings.Definitions.Where(d => d.Category != PluginsCategory && d.Category != SdksSection.Category).Select(d => d.Category)
             .Concat(pluginSections.Select(p => p.Category)).Distinct().ToList();
-        string[] order = ["Appearance", "Editor", "Files", "Window", "Languages"];
+        string[] order = ["Appearance", LocalizationSettings.Category, "Editor", "Files", "Window", "Languages"];
         names.Sort((a, b) =>
         {
             var ia = Array.IndexOf(order, a);
@@ -191,7 +206,7 @@ internal sealed class SettingsPage : DockPanel
                 .Where(d => query.Length == 0 || Matches(d, query))
                 .Select(Row)
                 .ToList();
-            var own = query.Length == 0 || category.Contains(query, StringComparison.OrdinalIgnoreCase) ? PluginSections(category) : [];
+            var own = query.Length == 0 || CategoryTitle(category).Contains(query, StringComparison.OrdinalIgnoreCase) ? PluginSections(category) : [];
             if (rows.Count == 0 && own.Count == 0)
                 continue;
 
@@ -209,9 +224,16 @@ internal sealed class SettingsPage : DockPanel
         || definition.Key.Contains(query, StringComparison.OrdinalIgnoreCase)
         || definition.Description?.Contains(query, StringComparison.OrdinalIgnoreCase) == true;
 
-    private static StackPanel Section(string title, IEnumerable<Control>? rows)
+    // A category is a key that stays the same in every language; this is its name in the language that shows.
+    internal static string CategoryTitle(string? category) => category == LocalizationSettings.Category ? LocalizationSettings.CategoryTitle : category ?? "";
+
+    private static FuncDataTemplate<string?> CategoryTemplate { get; } =
+        new((category, _) => new TextBlock().Localize(TextBlock.TextProperty, () => CategoryTitle(category)), supportsRecycling: false);
+
+    private static StackPanel Section(string category, IEnumerable<Control>? rows)
     {
-        var section = new StackPanel { Spacing = 10, Children = { new TextBlock { Text = title, FontSize = 16, FontWeight = FontWeight.SemiBold } } };
+        var title = new TextBlock { FontSize = 16, FontWeight = FontWeight.SemiBold }.Localize(TextBlock.TextProperty, () => CategoryTitle(category));
+        var section = new StackPanel { Spacing = 10, Children = { title } };
         if (rows is not null)
         {
             var card = new Border { Classes = { "card" }, Child = new StackPanel { Spacing = 4, Children = { } } };
@@ -363,6 +385,9 @@ internal sealed class SettingsPage : DockPanel
             case string when themes is not null && AppearanceChoices(definition.Key) is { } appearance:
                 return AppearancePickers.Picker(appearance, (string)value, v => set(v));
 
+            case string when definition.Key == SettingKeys.Language && localization is not null:
+                return LanguagePicker.Create(localization, (string)value, v => set(v));
+
             case string when definition.Choices is { Count: > 0 } choices:
             {
                 var box = new ComboBox
@@ -370,7 +395,7 @@ internal sealed class SettingsPage : DockPanel
                     ItemsSource = choices,
                     SelectedItem = value as string,
                     MinWidth = 160,
-                    ItemTemplate = new FuncDataTemplate<string?>((choice, _) => new TextBlock { Text = Display(choice) }),
+                    ItemTemplate = new FuncDataTemplate<string?>((choice, _) => new TextBlock { Text = ChoiceTitle(definition, choice) }),
                 };
                 box.SelectionChanged += (_, _) =>
                 {
@@ -398,6 +423,21 @@ internal sealed class SettingsPage : DockPanel
                 return box;
             }
         }
+    }
+
+    /// <summary>Gets the name a choice shows by: the one the setting gives it, or else its value as words.</summary>
+    internal static string ChoiceTitle(SettingDefinition definition, string? choice)
+    {
+        if (definition.Choices is { } choices && definition.ChoiceTitles is { } titles)
+        {
+            for (var index = 0; index < Math.Min(choices.Count, titles.Count); index++)
+            {
+                if (choices[index] == choice)
+                    return titles[index];
+            }
+        }
+
+        return Display(choice);
     }
 
     // Choices are stored as written in the settings file, such as afterDelay or official-only, and shown as words, such as "After delay".

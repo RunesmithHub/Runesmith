@@ -12,6 +12,22 @@
     <PackageReference Include="RunesmithHub.Protocol" Condition="!Exists('$(HubProtocolProject)')" />
   </ItemGroup>
 
+  <!-- Projects that set RunesmithLocalizable show text from Fluent files, as plugins do with the SDK package: the files in locales/ are
+       embedded, the English ones generate the Strings class, and every build checks them. The SDK's build tools come from their projects. -->
+  <PropertyGroup Condition="'$(RunesmithLocalizable)' == 'true'">
+    <RunesmithSdkTasksAssembly>$(MSBuildThisFileDirectory)src/Runesmith.Sdk.Tasks/bin/$(Configuration)/netstandard2.0/Runesmith.Sdk.Tasks.dll</RunesmithSdkTasksAssembly>
+    <!-- A build node that stays alive would keep the task's assembly loaded while the next build writes it. -->
+    <RunesmithSdkTasksOutOfProcess>true</RunesmithSdkTasksOutOfProcess>
+    <!-- Flags text users see that is written in the code; .editorconfig sets how loud. -->
+    <RunesmithLocalize>true</RunesmithLocalize>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(RunesmithLocalizable)' == 'true'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src/Runesmith.Sdk.Analyzers/Runesmith.Sdk.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src/Runesmith.Sdk.Analyzers.CodeFixes/Runesmith.Sdk.Analyzers.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src/Runesmith.Sdk.Tasks/Runesmith.Sdk.Tasks.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+  <Import Project="$(MSBuildThisFileDirectory)src/Runesmith.Sdk/build/Runesmith.Sdk.Localization.targets" Condition="'$(RunesmithLocalizable)' == 'true'" />
+
   <!-- Published applications carry the licenses of what they ship in a licenses folder: Runesmith's own, and the license and notices
        files of every NuGet package that contributes files. -->
   <Target Name="PublishLicenses" AfterTargets="ComputeResolvedFilesToPublishList" Condition="'$(OutputType)' == 'Exe' or '$(OutputType)' == 'WinExe'">

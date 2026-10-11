@@ -20,7 +20,10 @@ public sealed class CoreSettings : ISettingContributor
     public const string AllowLocalOverrides = PluginDiscovery.AllowLocalOverridesSetting;
 
     /// <summary>Gets the settings that count only in the user's settings, never in an open folder's.</summary>
-    public static IReadOnlySet<string> UserOnly { get; } = new HashSet<string>(StringComparer.Ordinal) { AllowLocalOverrides };
+    public static IReadOnlySet<string> UserOnly { get; } = new HashSet<string>(StringComparer.Ordinal)
+    {
+        AllowLocalOverrides, SettingKeys.Language, SettingKeys.UntranslatedPlugins, SettingKeys.MinimumCoverage, SettingKeys.PseudoLocalization,
+    };
 
     /// <summary>The globs <see cref="SettingKeys.Exclude"/> starts with.</summary>
     public const string DefaultExclude = "**/.git;**/bin;**/obj;**/node_modules;**/.vs;**/.idea";

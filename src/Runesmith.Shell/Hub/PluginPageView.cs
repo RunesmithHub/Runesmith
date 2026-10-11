@@ -6,6 +6,8 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
+using Runesmith.Shell.Localization;
 using Runesmith.Shell.Views;
 using RunesmithHub.Protocol.Index;
 
@@ -72,6 +74,8 @@ internal sealed class PluginPageView : StackPanel
 
         var left = new StackPanel { Spacing = 12, Children = { Review(record), Versions(record) } };
         var right = new StackPanel { Spacing = 12, Children = { Capabilities(), Dependencies() } };
+        if (page.Version?.LanguagePack is { } pack)
+            right.Children.Insert(0, Translations(record, pack));
         if (compact)
         {
             Children.Add(right);
@@ -94,6 +98,10 @@ internal sealed class PluginPageView : StackPanel
         meta.Children.Add(HubVisuals.TierBadge(record.Tier));
         if (page.Version is { } version)
             meta.Children.Add(new TextBlock { Text = $"Version {version.Version}", Classes = { "caption" }, VerticalAlignment = VerticalAlignment.Center });
+        if (page.Version?.LanguagePack is { } pack)
+            meta.Children.Add(HubVisuals.LanguageBadge(() => PluginTranslations.Language(pack)));
+        else if (owner.Translations is { } translations && PluginManagerView.CoverageBadge(() => translations.Coverage(record, page.Version)) is { } coverage)
+            meta.Children.Add(coverage);
 
         var text = new StackPanel
         {
@@ -108,7 +116,9 @@ internal sealed class PluginPageView : StackPanel
         };
 
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Top, HorizontalAlignment = HorizontalAlignment.Right };
-        if (page.IsPending)
+        if (page.IsPending && page.Version?.LanguagePack is not null)
+            actions.Children.Add(HubVisuals.StateBadge(Strings.LocalizationPackInstalledBadge, "Check", "SuccessBrush"));
+        else if (page.IsPending)
             actions.Children.Add(HubVisuals.StateBadge("Installed, restart to enable", "Check", "SuccessBrush"));
         else if (page.CanInstall && !page.IsSelectedInstalled)
             actions.Children.Add(InstallButton(page.IsUpdate ? "Update" : page.IsInstalled ? $"Install {page.Version!.Version}" : "Install", opened, () => _ = hub.InstallAsync(page.PluginId, page.Version?.Version)));
@@ -212,6 +222,28 @@ internal sealed class PluginPageView : StackPanel
         }
 
         card.Children.Add(facts);
+        return Wrap(card);
+    }
+
+    // What a language pack translates: with how much of each once it is installed, and until then what the hub lists.
+    private Border Translations(PluginRecord record, LanguagePackSummary pack)
+    {
+        var card = new StackPanel { Spacing = 6, Name = "LanguagePackTargets" };
+        card.Children.Add(new TextBlock { FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, 0, 2) }.Localize(TextBlock.TextProperty, () => Strings.LocalizationPackTitle));
+        card.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, Classes = { "secondary" } }.Localize(TextBlock.TextProperty, () => PluginTranslations.Language(pack)));
+        var targets = owner.Translations?.Targets(record.Id, pack.Targets) ?? TranslationLabels.Targets(pack.Targets, hub.Model.NameOf);
+        for (var index = 0; index < targets.Count; index++)
+        {
+            var position = index;
+            IReadOnlyList<TranslatedTarget> Current() => owner.Translations?.Targets(record.Id, pack.Targets) ?? TranslationLabels.Targets(pack.Targets, hub.Model.NameOf);
+            var detail = new TextBlock { Classes = { "caption", "mono" }, VerticalAlignment = VerticalAlignment.Center }
+                .Localize(TextBlock.TextProperty, () => Current() is var now && position < now.Count ? now[position].Detail ?? "" : "");
+            var name = new TextBlock { TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center }
+                .Localize(TextBlock.TextProperty, () => Current() is var now && position < now.Count ? now[position].Name : "");
+            DockPanel.SetDock(detail, Dock.Right);
+            card.Children.Add(new DockPanel { Margin = new Thickness(0, 3), Children = { detail, name } });
+        }
+
         return Wrap(card);
     }
 

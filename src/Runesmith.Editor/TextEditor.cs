@@ -38,6 +38,8 @@ public sealed partial class TextEditor : UserControl, IEditorView, IDisposable
     {
         ArgumentNullException.ThrowIfNull(document);
         this.services = services ?? throw new ArgumentNullException(nameof(services));
+        // Code runs left to right in every language, also in a window laid out from right to left.
+        FlowDirection = Avalonia.Media.FlowDirection.LeftToRight;
         Document = document;
         Area = new TextArea(document) { Language = services.Languages.Find(document.LanguageId), Workspace = services.Workspace?.Value };
         Area.Highlighter = services.Highlighters.Create(document);

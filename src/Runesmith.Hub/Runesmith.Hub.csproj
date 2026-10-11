@@ -1,8 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>The plugin hub client: the verified index, install plans, installs and updates, and what the hub's states mean for installed plugins.</Description>
+    <RunesmithLocalizable>true</RunesmithLocalizable>
     <UsesHubProtocol>true</UsesHubProtocol>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- For the Strings class, which finds its messages through the SDK. -->
+    <ProjectReference Include="..\Runesmith.Sdk\Runesmith.Sdk.csproj" />
+  </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Runesmith.Hub.Tests" />
   </ItemGroup>

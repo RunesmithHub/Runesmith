@@ -40,6 +40,7 @@ public sealed class PageService
         Lazy<SdksSection> sdks,
         Lazy<Hub.HubService> hub,
         Lazy<ThemeService> themes,
+        Lazy<Localization.ShellLocalization> localization,
         [ImportMany] IEnumerable<Lazy<ISettingsSectionProvider>> sections)
     {
         this.layout = layout;
@@ -49,7 +50,7 @@ public sealed class PageService
         this.runtime = runtime;
         layout.AddFactory(id => id switch
         {
-            ShellLayout.SettingsPanel => new DockablePanel(id, "Settings", () => Opened(new SettingsPage(settings.Value, workspace.Value, runtime, notifications, path => editors.Value.OpenAsync(path), () => sdks.Value.Create(), [.. sections], () => hub.Value.Show(Hub.PluginManagerTab.Installed), themes.Value))) { Icon = Icons.Settings },
+            ShellLayout.SettingsPanel => new DockablePanel(id, "Settings", () => Opened(new SettingsPage(settings.Value, workspace.Value, runtime, notifications, path => editors.Value.OpenAsync(path), () => sdks.Value.Create(), [.. sections], () => hub.Value.Show(Hub.PluginManagerTab.Installed), themes.Value, localization.Value))) { Icon = Icons.Settings },
             ShortcutsPanel => new DockablePanel(id, "Keyboard Shortcuts", () => new ShortcutsPage(commands.Value, notifications)) { Icon = Icons.Keyboard },
             _ => null,
         });

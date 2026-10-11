@@ -27,6 +27,9 @@ public sealed record StartupOptions(IReadOnlyList<string> Paths, string WorkingD
 
     /// <summary>Gets a <c>runesmith://</c> link to open once the window shows.</summary>
     public string? Link { get; init; }
+
+    /// <summary>Gets the folders plugins were looked for in, and where the plugins in each come from; none when no plugins load.</summary>
+    public IReadOnlyList<(string Path, PluginSource Source)> PluginFolders { get; init; } = [];
 }
 
 /// <summary>Creates the main window from the composed parts and does the work that follows once it shows.</summary>
@@ -43,9 +46,14 @@ public static class ShellStartup
         runtime.IsDiagnosticsEnabled = options.IsDiagnosticsEnabled;
         runtime.IsSafeMode = options.IsSafeMode;
         runtime.HubStartup = options.HubStartup;
+        runtime.PluginFolders = options.PluginFolders;
         runtime.Timings.AddRange(timings);
 
         var stopwatch = Stopwatch.StartNew();
+        exports.GetExportedValue<Localization.ShellLocalization>();
+        runtime.Timings.Add(("Read the translations", stopwatch.Elapsed));
+
+        stopwatch.Restart();
         exports.GetExportedValue<ThemeService>();
         var window = new MainWindow(exports);
         runtime.Timings.Add(("Create the main window", stopwatch.Elapsed));

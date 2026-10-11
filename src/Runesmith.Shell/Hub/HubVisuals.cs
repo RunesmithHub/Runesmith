@@ -8,6 +8,7 @@ using HammerUI;
 using HammerUI.Controls;
 using Runesmith.Hub;
 using Runesmith.Hub.Enforcement;
+using Runesmith.Sdk.Localization;
 using Runesmith.Shell.Views;
 using RunesmithHub.Protocol.Index;
 
@@ -115,6 +116,21 @@ internal static class HubVisuals
         var badge = Tinted(brush, row, new CornerRadius(999), outline: 0);
         badge.VerticalAlignment = VerticalAlignment.Center;
         badge.HorizontalAlignment = HorizontalAlignment.Left;
+        return badge;
+    }
+
+    /// <summary>A badge that says how a plugin is translated, or which language a language pack adds; its text follows the language.</summary>
+    public static Control LanguageBadge(Func<string> text, Func<string>? tip = null)
+    {
+        var label = Themed(new TextBlock { FontSize = 11.5, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center }, TextBlock.ForegroundProperty, "TextSecondaryBrush")
+            .Localize(TextBlock.TextProperty, text);
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(7, 2, 8, 2), Children = { Symbol("globe", 12, "TextSecondaryBrush"), label } };
+        var badge = Tinted("TextSecondaryBrush", row, new CornerRadius(999), fill: 0.08, outline: 0.3);
+        badge.VerticalAlignment = VerticalAlignment.Center;
+        badge.HorizontalAlignment = HorizontalAlignment.Left;
+        badge.Name = "LanguageBadge";
+        if (tip is not null)
+            badge.Localize(ToolTip.TipProperty, tip);
         return badge;
     }
 

@@ -10,6 +10,8 @@ using Runesmith.Hub.Catalog;
 using Runesmith.Hub.Enforcement;
 using Runesmith.Hub.Updates;
 using Runesmith.Sdk;
+using Runesmith.Sdk.Localization;
+using Runesmith.Shell.Localization;
 using Runesmith.Shell.Pages;
 using Runesmith.Shell.Services;
 using Runesmith.Shell.Views;
@@ -41,10 +43,12 @@ internal sealed class PluginManagerView : DockPanel
 
     /// <param name="compact">Whether the view sits in a narrow tool window rather than a page.</param>
     /// <param name="openSettings">Shows the plugin hub's settings.</param>
-    public PluginManagerView(HubService hub, NotificationService notifications, OutputService output, bool compact, Action? openSettings)
+    /// <param name="localization">Says how plugins are translated into the language that shows; without it, the view says nothing about that.</param>
+    public PluginManagerView(HubService hub, NotificationService notifications, OutputService output, bool compact, Action? openSettings, ShellLocalization? localization = null)
     {
         this.hub = hub;
         model = hub.Model;
+        Translations = localization is null ? null : new PluginTranslations(localization, model);
         this.compact = compact;
         this.openSettings = openSettings;
         Notifications = notifications;
@@ -117,6 +121,13 @@ internal sealed class PluginManagerView : DockPanel
     public NotificationService Notifications { get; }
 
     public OutputService Output { get; }
+
+    /// <summary>Gets what to say about translations, or null when the view says nothing about them.</summary>
+    public PluginTranslations? Translations { get; }
+
+    /// <summary>The badge that says how much of a plugin the language that shows translates, or null when there is nothing to say.</summary>
+    internal static Control? CoverageBadge(Func<string?> coverage) =>
+        coverage() is null ? null : HubVisuals.LanguageBadge(() => coverage() ?? "", () => Strings.LocalizationCoverageTip);
 
     private void Fill()
     {
@@ -282,10 +293,18 @@ internal sealed class PluginManagerView : DockPanel
             title.Children.Add(badge);
         if (HubVisuals.LocalCopyBadge(row.LocalCopy) is { } copy)
             title.Children.Add(copy);
+        if (Translations is { } translations && CoverageBadge(() => translations.Coverage(row)) is { } coverage)
+            title.Children.Add(coverage);
 
         var note = new TextBlock { Text = row.Note, Classes = { "caption" }, TextWrapping = TextWrapping.Wrap };
         if (row.IsProblem)
             HubVisuals.Themed(note, TextBlock.ForegroundProperty, row.Badge is NoticeKind.Blocked or NoticeKind.Quarantined or NoticeKind.FilesChanged ? "DangerBrush" : "WarningBrush");
+        var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center, Children = { title, note } };
+        if (row.LanguagePack is { } pack)
+        {
+            text.Children.Add(new TextBlock { Classes = { "caption" }, TextWrapping = TextWrapping.Wrap, Name = "LanguagePackSummary" }
+                .Localize(TextBlock.TextProperty, () => Translations?.Summary(row) ?? PluginTranslations.Language(pack)));
+        }
 
         var toggle = new ToggleSwitch { IsChecked = row.IsEnabled, OnContent = null, OffContent = null, IsEnabled = row.CanToggle, VerticalAlignment = VerticalAlignment.Center };
         ToolTip.SetTip(toggle, row.CanToggle ? "Turn the plugin on or off from the next start" : "A plugin Runesmith turned off for your safety can't be turned on here");
@@ -297,7 +316,7 @@ internal sealed class PluginManagerView : DockPanel
         icon.Margin = new Thickness(0, 0, compact ? 10 : 12, 0);
         icon.VerticalAlignment = compact ? VerticalAlignment.Top : VerticalAlignment.Center;
         toggle.Margin = new Thickness(8, 0, 0, 0);
-        line.Children.AddRange([icon, toggle, new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center, Children = { title, note } }]);
+        line.Children.AddRange([icon, toggle, text]);
 
         var button = Card(line);
         ToolTip.SetTip(button, record is null ? null : $"Open {row.Name}'s page");
@@ -459,7 +478,8 @@ internal sealed class PluginManagerView : DockPanel
     private Button PluginCard(PluginRecord plugin)
     {
         var catalog = model.Client.Catalog!;
-        var newest = catalog.GetInstallableVersions(plugin.Id, model.Client.Host, model.Preferences.AllowedTiers) is [var version, ..] ? version.Version.ToString() : null;
+        var installable = catalog.GetInstallableVersions(plugin.Id, model.Client.Host, model.Preferences.AllowedTiers) is [var version, ..] ? version : null;
+        var newest = installable?.Version.ToString();
         var icon = HubVisuals.PluginIcon(model.Client, plugin.Id, plugin.Name, plugin.Tier, plugin.Icon.Size64, null, 40);
         var title = new WrapPanel { ItemSpacing = 6, LineSpacing = 4 };
         title.Children.Add(new TextBlock { Text = plugin.Name, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center });
@@ -468,6 +488,11 @@ internal sealed class PluginManagerView : DockPanel
             title.Children.Add(HubVisuals.StateBadge(NoticeKind.Frozen)!);
         if (plugin.State == RunesmithHub.Protocol.Index.PluginState.Deprecated)
             title.Children.Add(HubVisuals.StateBadge(NoticeKind.Deprecated)!);
+        var shown = installable ?? (plugin.Versions is [var first, ..] ? first : null);
+        if (shown?.LanguagePack is { } pack)
+            title.Children.Add(HubVisuals.LanguageBadge(() => PluginTranslations.Language(pack)));
+        else if (Translations is { } translations && CoverageBadge(() => translations.Coverage(plugin, shown)) is { } coverage)
+            title.Children.Add(coverage);
 
         var publisher = catalog.FindPublisher(plugin.Publisher)?.DisplayName ?? plugin.Publisher;
         var installed = model.RunningVersion(plugin.Id) is { } running ? $" · {running} installed" : "";
@@ -520,9 +545,16 @@ internal sealed class PluginManagerView : DockPanel
         return HubVisuals.Themed(border, Border.BackgroundProperty, "Surface0Brush");
     }
 
-    internal static Button SmallButton(string text, Action click, bool accent = false)
+    internal static Button SmallButton(string text, Action click, bool accent = false) => SmallButton(new TextBlock { Text = text }, click, accent);
+
+    /// <summary>A small button whose text follows the language.</summary>
+    internal static Button SmallButton(Func<string> text, Action click, bool accent = false) =>
+        SmallButton(new TextBlock().Localize(TextBlock.TextProperty, text), click, accent);
+
+    private static Button SmallButton(TextBlock text, Action click, bool accent)
     {
-        var button = new Button { Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap }, Classes = { "small" } };
+        text.TextWrapping = TextWrapping.Wrap;
+        var button = new Button { Content = text, Classes = { "small" } };
         if (accent)
             button.Classes.Add("accent");
         button.Click += (_, _) => click();

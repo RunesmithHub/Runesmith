@@ -31,6 +31,9 @@ internal static class Program
     /// <summary>Gets what the plugin hub decided before plugins loaded.</summary>
     public static HubStartupReport HubReport { get; private set; } = HubStartupReport.Empty;
 
+    /// <summary>Gets the folders plugins are looked for in; none in safe mode or with <c>--no-plugins</c>.</summary>
+    public static IReadOnlyList<(string Path, PluginSource Source)> PluginFolders { get; private set; } = [];
+
     /// <summary>Gets or sets the arguments to start Runesmith with again once it closes, or null to not restart.</summary>
     public static IReadOnlyList<string>? RestartArguments { get; set; }
 
@@ -120,6 +123,7 @@ internal static class Program
         (string Path, PluginSource Source)[] folders = Arguments.ArePluginsDisabled || IsSafeMode
             ? []
             : [(hub.Plugins, PluginSource.Hub), (RunesmithPaths.UserPlugins, PluginSource.Local)];
+        PluginFolders = folders;
 
         var options = new CompositionOptions(
             [.. hostAssemblies.Select(name => System.Reflection.Assembly.Load(name))],

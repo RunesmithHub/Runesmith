@@ -123,23 +123,30 @@ public sealed class PluginSuggestions
     public void StopSuggesting(SuggestedPlugin plugin)
     {
         ArgumentNullException.ThrowIfNull(plugin);
-        var declined = Declined();
-        if (declined.Add(plugin.PluginId))
+        Decline(settings, plugin.PluginId);
+    }
+
+    /// <summary>Gets the ids of the plugins the user said not to suggest again.</summary>
+    internal static HashSet<string> Declined(ISettingsService settings) =>
+        settings.Get<string>(HubSettings.DeclinedSuggestions).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Remembers not to suggest a plugin again.</summary>
+    internal static void Decline(ISettingsService settings, string pluginId)
+    {
+        var declined = Declined(settings);
+        if (declined.Add(pluginId))
             settings.Set(HubSettings.DeclinedSuggestions, string.Join(';', declined.Order(StringComparer.Ordinal)));
     }
 
     private SuggestedPlugin? Suggest(SuggestedPlugin plugin)
     {
-        if (suggested.Contains(plugin.PluginId) || Declined().Contains(plugin.PluginId) || !canInstall() || isInstalled(plugin.PluginId))
+        if (suggested.Contains(plugin.PluginId) || Declined(settings).Contains(plugin.PluginId) || !canInstall() || isInstalled(plugin.PluginId))
             return null;
 
         suggested.Add(plugin.PluginId);
         return plugin;
     }
-
-    private HashSet<string> Declined() =>
-        settings.Get<string>(HubSettings.DeclinedSuggestions).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     private static bool HasFolderFile(string folder, SuggestedPlugin plugin)
     {

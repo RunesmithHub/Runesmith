@@ -5,7 +5,8 @@ namespace Runesmith.Composition;
 
 /// <summary>Loads plugins in dependency order, each into its own load context, with every plugin's contracts in one shared context.</summary>
 /// <remarks>A plugin loads after the plugins it depends on, and does not load when one of them is missing, turned off, of a version
-/// outside its range or failed; its <see cref="PluginInfo.Error"/> says which.</remarks>
+/// outside its range or failed; its <see cref="PluginInfo.Error"/> says which. A language pack counts as loaded without its assemblies being
+/// loaded: Runesmith reads its translations from the file.</remarks>
 internal sealed class PluginLoader
 {
     private readonly List<PluginInfo> plugins;
@@ -48,6 +49,10 @@ internal sealed class PluginLoader
                 continue;
             }
 
+            // A language pack is read for its translations and runs no code.
+            if (plugins[index].Manifest.IsLanguagePack)
+                continue;
+
             try
             {
                 if (LoadPlugin(plugins[index]) is { } assembly)
@@ -78,6 +83,8 @@ internal sealed class PluginLoader
                 return $"It needs {name}, which could not load.";
             if (found.Manifest.IsLegacy)
                 return $"It needs {name}, whose manifest has no contracts for other plugins.";
+            if (found.Manifest.IsLanguagePack)
+                return $"It needs {name}, which is a language pack and has no contracts for other plugins.";
             if (!SemanticVersion.TryParse(found.Manifest.Version, out var version) || !dependency.Range.Contains(version))
                 return $"It needs {name} {dependency.Range}, and version {found.Manifest.Version} is installed.";
         }

@@ -58,6 +58,8 @@ internal sealed partial class TerminalView : Control
         this.resolver = resolver;
         this.openFile = openFile;
         this.openUrl = openUrl;
+        // A terminal's grid runs left to right in every language, also in a window laid out from right to left.
+        FlowDirection = FlowDirection.LeftToRight;
         Focusable = true;
         ClipToBounds = true;
         Cursor = new Cursor(StandardCursorType.Ibeam);

@@ -158,7 +158,8 @@ public sealed class HubService
         else
             disabled.Add(id);
         settings.Set(ShellSettings.DisabledPlugins, string.Join(';', disabled.Order(StringComparer.Ordinal)));
-        PromptRestart($"{name} is turned {(enabled ? "on" : "off")} from the next start.");
+        if (!Model.IsLanguagePack(id))
+            PromptRestart($"{name} is turned {(enabled ? "on" : "off")} from the next start.");
         Model.Refresh();
     }
 
@@ -253,8 +254,16 @@ public sealed class HubService
         }
 
         progress.Close();
-        output.GetChannel(Channel).AppendLine($"{model.Title}: {string.Join(", ", model.Rows.Select(r => $"{r.Name} {r.Change}"))}. Takes effect at the next start.");
         var names = Names(model.Rows.Select(r => r.Name).ToList());
+        if (model.Plan.Changes.All(change => change.Kind == OperationKind.Remove ? Model.IsLanguagePack(change.PluginId) : change.Record?.LanguagePack is not null))
+        {
+            output.GetChannel(Channel).AppendLine($"{model.Title}: {string.Join(", ", model.Rows.Select(r => $"{r.Name} {r.Change}"))}.");
+            if (model.Rows.Any(r => r.Kind != OperationKind.Remove))
+                notifications.Notify(NotificationKind.Success, Strings.LocalizationPackInstalledTitle(names), Strings.LocalizationPackInstalled);
+            return true;
+        }
+
+        output.GetChannel(Channel).AppendLine($"{model.Title}: {string.Join(", ", model.Rows.Select(r => $"{r.Name} {r.Change}"))}. Takes effect at the next start.");
         await InstallDialogs.RestartAsync(notifications.Dialogs, model.Rows.All(r => r.Kind == OperationKind.Remove) ? $"{names} {(model.Rows.Count == 1 ? "is" : "are")} removed when Runesmith restarts." : $"{names} {(model.Rows.Count == 1 ? "takes" : "take")} effect after a restart.", restart.CanRestart, () => Restart());
         return true;
     }

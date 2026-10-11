@@ -54,6 +54,9 @@ public partial class MainWindow : Window
     private readonly OutputService? output;
     private readonly ThemeService? themes;
     private readonly Hub.PluginSuggestions? suggestions;
+    private readonly Localization.ShellLocalization? localization;
+    private readonly Localization.LanguagePackSuggestions? languagePacks;
+    private readonly List<Window> dockWindows = [];
     private readonly WorkbenchView? workbenchView;
     private readonly DispatcherTimer menuRefresh = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private WelcomePage? welcome;
@@ -89,7 +92,12 @@ public partial class MainWindow : Window
         output = exports.GetExportedValue<OutputService>();
         themes = exports.GetExportedValue<ThemeService>();
         suggestions = exports.GetExportedValue<Hub.PluginSuggestions>();
+        localization = exports.GetExportedValue<Localization.ShellLocalization>();
+        languagePacks = exports.GetExportedValue<Localization.LanguagePackSuggestions>();
         hub.ShowRequested += (_, _) => ShowPlugins();
+        hub.Client.Changed += (_, _) => UiThread.Run(SuggestLanguagePack);
+        localization.Changed += (_, _) => ApplyFlowDirection();
+        ApplyFlowDirection();
 
         notifications.Host.Attach(this, Dialogs, Toasts);
         commands.Initialize();
@@ -161,6 +169,28 @@ public partial class MainWindow : Window
         UpdateBody();
         FollowActiveEditor();
         SuggestFolderPlugin();
+        SuggestLanguagePack();
+    }
+
+    // Text and layouts run from the right in languages written that way; floating panel windows follow the main window.
+    private void ApplyFlowDirection()
+    {
+        FlowDirection = localization!.FlowDirection;
+        foreach (var window in dockWindows)
+            window.FlowDirection = FlowDirection;
+    }
+
+    private void SuggestLanguagePack()
+    {
+        if (LanguageNotice.Content is not null || languagePacks!.Next() is not { } pack)
+            return;
+
+        LanguageNotice.Content = Localization.LanguagePackSuggestionBar.Create(pack, languagePacks, () =>
+        {
+            LanguageNotice.Content = null;
+            LanguageNotice.IsVisible = false;
+        });
+        LanguageNotice.IsVisible = true;
     }
 
     private void SuggestFolderPlugin()
@@ -222,6 +252,9 @@ public partial class MainWindow : Window
     private void OnDockWindowOpened(object? sender, DockWindowOpenedEventArgs e)
     {
         e.Window.Icon = Icon;
+        e.Window.FlowDirection = FlowDirection;
+        dockWindows.Add(e.Window);
+        e.Window.Closed += (_, _) => dockWindows.Remove(e.Window);
         e.Window.AddHandler(KeyDownEvent, OnShortcutKeyDown, RoutingStrategies.Bubble);
     }
 
@@ -254,7 +287,7 @@ public partial class MainWindow : Window
         var showWelcome = welcomeRequested || (workspace!.RootPath is null && !hasPanels);
         if (showWelcome && welcome is null)
         {
-            welcome = new WelcomePage(commands!, recent!, workbench!, settings!, themes!, () => new Hub.PluginManagerView(hub!, notifications!, output!, compact: false, () => pages!.ShowSettings(Hub.HubSettings.Category)), () =>
+            welcome = new WelcomePage(commands!, recent!, workbench!, settings!, themes!, () => new Hub.PluginManagerView(hub!, notifications!, output!, compact: false, () => pages!.ShowSettings(Hub.HubSettings.Category), localization), () =>
             {
                 welcomeRequested = false;
                 UpdateBody();
