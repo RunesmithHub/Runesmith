@@ -61,7 +61,7 @@ internal sealed class QuickPick : UserControl, IDisposable
             Children = { nothingIcon, new TextBlock { Text = Strings.ShellNothingMatches, Classes = { "muted" }, HorizontalAlignment = HorizontalAlignment.Center } },
         };
 
-        var footer = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(16, 8) };
+        var footer = new WrapPanel { ItemSpacing = 6, LineSpacing = 4, Margin = new Thickness(16, 8) };
         footer.Children.AddRange([new ShortcutBadge { Text = "↑" }, new ShortcutBadge { Text = "↓" }, PaletteChrome.Caption(Strings.ShellNavigate, 14), new ShortcutBadge { Text = Strings.ShellKeyEnter }, PaletteChrome.Caption(Strings.ShellOpen, 14)]);
         foreach (var source in sources.Where(s => s.Prefix.Length > 0))
             footer.Children.AddRange([new ShortcutBadge { Text = source.Prefix }, PaletteChrome.Caption(source.Name, 12)]);
