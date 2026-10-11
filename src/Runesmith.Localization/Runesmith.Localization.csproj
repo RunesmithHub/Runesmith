@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Resolves Runesmith's and plugins' messages in the user's language: Fluent bundles from embedded resources and language packs, the language chain, coverage, pseudo-localization and live switching.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Linguini.Bundle" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Sdk\Runesmith.Sdk.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Localization.Tests" />
+  </ItemGroup>
+</Project>

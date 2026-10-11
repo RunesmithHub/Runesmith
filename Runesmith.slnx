@@ -9,6 +9,7 @@
     <Project Path="src/Runesmith.Sdk.Analyzers.CodeFixes/Runesmith.Sdk.Analyzers.CodeFixes.csproj" />
     <Project Path="src/Runesmith.Sdk.Tasks/Runesmith.Sdk.Tasks.csproj" />
     <Project Path="src/Runesmith.Composition/Runesmith.Composition.csproj" />
+    <Project Path="src/Runesmith.Localization/Runesmith.Localization.csproj" />
     <Project Path="src/Runesmith.Hub/Runesmith.Hub.csproj" />
     <Project Path="src/Runesmith.Workspace/Runesmith.Workspace.csproj" />
     <Project Path="src/Runesmith.Languages/Runesmith.Languages.csproj" />
