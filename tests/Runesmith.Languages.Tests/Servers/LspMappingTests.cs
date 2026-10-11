@@ -87,6 +87,32 @@ public sealed class LspMappingTests : IDisposable
     }
 
     [Fact]
+    public void WorkspaceEditsSentAsChangesReadEachFileToo()
+    {
+        var openPath = Path.Combine(folder, "Open.cs");
+        var closedPath = Path.Combine(folder, "Closed.cs");
+        File.WriteAllText(closedPath, "one\r\ntwo\r\n");
+        var documents = new TestDocuments();
+        var open = new TestDocument(openPath, "Open.cs", "alpha\nbeta");
+        documents.Add(open);
+        var edit = new Protocol.WorkspaceEdit
+        {
+            Changes = new Dictionary<string, IReadOnlyList<Protocol.TextEdit>>
+            {
+                [LspUri.FromPath(openPath)] = [new Protocol.TextEdit(Range(1, 0, 1, 4), "BETA")],
+                [LspUri.FromPath(closedPath)] = [new Protocol.TextEdit(Range(1, 0, 1, 3), "TWO")],
+            },
+        };
+
+        var converted = LspConvert.ToWorkspaceEdit(edit, documents);
+
+        var opened = converted.Documents.Single(d => d.FilePath == openPath);
+        Assert.Same(open.Buffer.Current, opened.Snapshot);
+        Assert.Equal(new TextChange(new TextSpan(6, 4), "BETA"), Assert.Single(opened.Changes));
+        Assert.Equal(new TextChange(new TextSpan(4, 3), "TWO"), Assert.Single(converted.Documents.Single(d => d.FilePath == closedPath).Changes));
+    }
+
+    [Fact]
     public void ResourceOperationsBecomeFileOperationsAndTextEditsNameTheirFilesAsTheyEndUp()
     {
         var program = Path.Combine(folder, "Program.cs");

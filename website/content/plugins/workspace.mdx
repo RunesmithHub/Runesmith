@@ -154,6 +154,7 @@ public sealed class ArchiveCommands(IEditorService editors, IWorkspaceEditServic
 | Operation | Options |
 | --- | --- |
 | `CreateFileOperation(FilePath)` | `Content`, written as UTF-8; `Overwrite` replaces a file that exists; `IgnoreIfExists` leaves it and goes on. Missing folders are created. |
+| `CreateFolderOperation(FolderPath)` | Creates an empty folder, and the missing folders above it. `IgnoreIfExists` leaves a folder that exists and goes on. |
 | `RenameFileOperation(OldPath, NewPath)` | Renames or moves a file or folder. `Overwrite` replaces a file at the new path; `IgnoreIfExists` skips the rename. |
 | `DeleteFileOperation(Path)` | `Recursive` deletes a folder that is not empty; `IgnoreIfMissing` goes on when the path does not exist; `UseTrash`, on by default, sends the files to the system's trash. |
 
@@ -162,7 +163,8 @@ public sealed class ArchiveCommands(IEditorService editors, IWorkspaceEditServic
 1. Runesmith checks every operation against the disk as the operations before it leave it, and every text change against its file. When
    one fails, such as a file that exists without `Overwrite`, a file to delete or replace with unsaved changes, or a document that changed
    since `Snapshot`, nothing is changed and the user is told why.
-2. It asks the [participants](#take-part-in-file-operations) for text changes to make with the operations.
+2. It asks the [participants](#take-part-in-file-operations) and the [language servers](#language-servers) for text changes to make with
+   the operations.
 3. With `Confirmation` set to `WhenLarge`, the default for this overload, it asks the user first when the edit touches more than
    `LargeEditThreshold` files, 20 by default, counting the files in folders it renames or deletes. `Always` always asks, and `Never`
    never does. The question lists the changes.
@@ -172,13 +174,19 @@ public sealed class ArchiveCommands(IEditorService editors, IWorkspaceEditServic
 6. Open editors follow renamed files, editors of deleted files close, and `FilesChangedMessage` is published.
 
 The edit is one step of the workspace's undo history. **Edit › Undo Workspace Edit** and `UndoAsync` take back its text changes and then
-its operations: renamed files move back, created files go and deleted files come back. When the edit's text change is the last change of a
-file, <Keys>Ctrl+Z</Keys> in that file's editor undoes the whole edit too. **Redo Workspace Edit** and `RedoAsync` make it again. An undo
-that would lose work, such as when a renamed file was changed again since, is refused with the reason. Runesmith keeps the last 20 edits.
+its operations: renamed files move back, created files and folders go and deleted files come back. When the edit's text change is the last
+change of a file, <Keys>Ctrl+Z</Keys> in that file's editor undoes the whole edit too. **Redo Workspace Edit** and `RedoAsync` make it again.
+An undo that would lose work, such as when a renamed file was changed again since or a created folder has files in it now, is refused with
+the reason. Runesmith keeps the last 20 edits.
 
-Deleted files go to the system's trash where Runesmith can use it: the desktop trash on Linux, for files on its drive, and `~/.Trash` on
-macOS. Otherwise, and with `UseTrash` off, Runesmith keeps the files while the edit can be undone, and deletes them for good once the edit
-leaves the history or Runesmith closes.
+The **Explorer** makes its renames, deletes and new files and folders as workspace edits too, so they are steps of the same history and
+participants and language servers hear of them. <Keys>Ctrl+Z</Keys> and <Keys>Ctrl+Y</Keys> in the Explorer undo and redo the last
+workspace edit.
+
+Deleted files go to the system's trash where Runesmith can use it: the Recycle Bin on Windows, for files on local drives, `~/.Trash` on
+macOS, and the desktop trash on Linux, for files on its drive. When Windows cannot recycle a file, such as one larger than the Recycle Bin,
+it asks before it deletes the file for good. Otherwise, and with `UseTrash` off, Runesmith keeps the files while the edit can be undone, and
+deletes them for good once the edit leaves the history or Runesmith closes.
 
 The overload without `WorkspaceEditOptions`, which plugins built for 0.1.1 call, never asks. Edits from language servers apply this way too:
 Runesmith declares the `create`, `rename` and `delete` resource operations, so servers can send them in `documentChanges`.
@@ -218,6 +226,24 @@ public sealed class NamespaceParticipant(IWorkspace workspace) : IFileOperationP
 Runesmith calls the participants at the same time, on a background thread, and gives them `IFileOperationParticipant.TimeBudget`, 3
 seconds, together. Then it cancels the token and goes on without the participants that have not answered; it logs them, and those that
 throw, to the **Plugins** channel. File operations in a participant's edit are ignored.
+
+A participant cannot stop an edit. Text changes it asks for that do not fit, such as ones that overlap the edit's own changes or another
+participant's, or name a file the edit deletes, are left out and logged to the **Plugins** channel, and the rest of the edit is made.
+
+### Language servers
+
+The running language servers take part in every file operation, whether a plugin, the Explorer or a server's own edit makes it. Runesmith
+declares `workspace.fileOperations` and sends each server the requests and notifications its `fileOperations` capability asks for, with
+the files and folders its filters match by glob, by file or folder, and with or without case:
+
+- Before the operations, `workspace/willCreateFiles`, `willRenameFiles` and `willDeleteFiles`. The text changes a server answers with join
+  the edit, as a participant's do: where they overlap the edit's own, as when a server renames a file in its own edit and answers
+  `willRenameFiles` with the same changes, only the edit's own are made. Resource operations in the answer are ignored. Servers get 2.5
+  seconds, within the participants' budget, and a server that has not answered by then is left out, with a line in its channel of the
+  **Output** panel.
+- After the operations, and after the edit is undone or redone, `workspace/didCreateFiles`, `didRenameFiles` and `didDeleteFiles`.
+
+A rename matches a filter by its old or its new path. A folder that is renamed or deleted is sent as the folder, not as the files in it.
 
 ## Capabilities
 

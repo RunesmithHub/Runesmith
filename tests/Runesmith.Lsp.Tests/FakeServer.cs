@@ -1,5 +1,6 @@
 using System.IO.Pipes;
 using System.Text.Json;
+using System.Threading.Channels;
 
 namespace Runesmith.Lsp.Tests;
 
@@ -26,10 +27,21 @@ internal sealed class FakeServer : IAsyncDisposable
     /// <summary>Gets the parameters of every request the server got, by method.</summary>
     public List<(string Method, JsonElement? Parameters)> Received { get; } = [];
 
-    public async Task StartAsync()
+    public Task StartAsync() => ConnectAsync(Client);
+
+    /// <summary>Starts another client against this server, such as one a language server session creates.</summary>
+    public async Task ConnectAsync(LanguageClient client)
     {
         Connection.Start();
-        await Client.StartAsync(new AnonymousPipeClientStream(PipeDirection.In, toClient.ClientSafePipeHandle), toServer, TestContext.Current.CancellationToken);
+        await client.StartAsync(new AnonymousPipeClientStream(PipeDirection.In, toClient.ClientSafePipeHandle), toServer, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Gets the parameters of the notifications of a method the server gets from now on, as they arrive.</summary>
+    public ChannelReader<JsonElement?> Listen(string method)
+    {
+        var received = Channel.CreateUnbounded<JsonElement?>();
+        Connection.OnNotification(method, parameters => received.Writer.TryWrite(parameters?.Clone()));
+        return received.Reader;
     }
 
     /// <summary>Answers a method with JSON made from the request's parameters.</summary>

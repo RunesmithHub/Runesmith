@@ -2,7 +2,6 @@ using Runesmith.Composition;
 using Runesmith.Sdk.Documents;
 using Runesmith.Sdk.Languages;
 using Runesmith.Sdk.Messaging;
-using Runesmith.Sdk.Settings;
 using Runesmith.Shell.Editors;
 using Runesmith.Shell.Editors.FileOperations;
 using Runesmith.Shell.Tests.Plugins;
@@ -72,8 +71,9 @@ public sealed class FileOperationsTests : IDisposable
         Assert.Equal("class C\n{\n}\n", documents.Find(created)!.Buffer.Current.GetText());
         Assert.Equal("class A { Renamed o; }", documents.Find(other)!.Buffer.Current.GetText());
         Assert.False(File.Exists(gone));
-        Assert.True(File.Exists(Path.Combine(Trash, "files", "Gone.txt")));
-        Assert.Contains($"Path={gone}", File.ReadAllText(Path.Combine(Trash, "info", "Gone.txt.trashinfo")), StringComparison.Ordinal);
+        Assert.Equal("bye", File.ReadAllText(Trashed("Gone.txt")));
+        if (SystemTrash.UsesFreedesktopTrash)
+            Assert.Equal(gone, TrashedFrom("Gone.txt"));
         Assert.Contains(renamed, Assert.Single(changed).Paths);
         Assert.Contains("3 file operations", notifications.Notified);
         Assert.True(service.CanUndo);
@@ -90,6 +90,7 @@ public sealed class FileOperationsTests : IDisposable
         Assert.False(Directory.Exists(Path.Combine(root, "Models")));
         Assert.Equal("class A { Old o; }", documents.Find(other)!.Buffer.Current.GetText());
         Assert.Equal("bye", File.ReadAllText(gone));
+        Assert.False(File.Exists(Trashed("Gone.txt")));
         Assert.False(File.Exists(Path.Combine(Trash, "info", "Gone.txt.trashinfo")));
         Assert.True(service.CanRedo);
 
@@ -187,6 +188,49 @@ public sealed class FileOperationsTests : IDisposable
     });
 
     [Fact]
+    public Task CreatesFoldersThatUndoWhileTheyAreEmpty() => Run(async () =>
+    {
+        var service = Create();
+        var folder = Path.Combine(root, "Models", "Billing");
+        var file = Write("File.txt", "a file");
+
+        Assert.True(await service.ApplyAsync(Edit(new CreateFolderOperation(folder))));
+        Assert.True(Directory.Exists(folder));
+        Assert.Contains("Create Billing", notifications.Notified);
+        Assert.True(await service.ApplyAsync(Edit(new CreateFolderOperation(folder) { IgnoreIfExists = true })));
+        Assert.False(await service.ApplyAsync(Edit(new CreateFolderOperation(folder))));
+        Assert.False(await service.ApplyAsync(Edit(new CreateFolderOperation(file) { IgnoreIfExists = true })));
+
+        Assert.True(await service.UndoAsync());
+        Assert.False(Directory.Exists(Path.Combine(root, "Models")));
+        Assert.False(service.CanUndo);
+
+        Assert.True(await service.RedoAsync());
+        Assert.True(Directory.Exists(folder));
+        File.WriteAllText(Path.Combine(folder, "Order.cs"), "class Order {}");
+        Assert.False(await service.UndoAsync());
+        Assert.True(File.Exists(Path.Combine(folder, "Order.cs")));
+        Assert.Contains("The edit was not undone", notifications.Notified);
+    });
+
+    [Fact]
+    public Task ParticipantsHearOfAnUndoneFolderDeleteAsAFolderCreated() => Run(async () =>
+    {
+        var participant = new RecordingParticipant();
+        participants.Add(participant);
+        var service = Create();
+        var folder = Path.Combine(root, "Old");
+        Write(Path.Combine("Old", "A.cs"), "a");
+
+        Assert.True(await service.ApplyAsync(Edit(new DeleteFileOperation(folder) { Recursive = true })));
+        Assert.IsType<DeleteFileOperation>(Assert.Single(await participant.NextDidAsync()));
+        Assert.True(await service.UndoAsync());
+
+        Assert.Equal(new CreateFolderOperation(folder), Assert.Single(await participant.NextDidAsync()));
+        Assert.Equal("a", File.ReadAllText(Path.Combine(folder, "A.cs")));
+    });
+
+    [Fact]
     public Task ClosesTheDocumentsOfDeletedFiles() => Run(async () =>
     {
         var service = Create();
@@ -245,7 +289,7 @@ public sealed class FileOperationsTests : IDisposable
     {
         var file = Write(Path.Combine("Models", "Order.cs"), "namespace App.Models;\nclass Order {}\n");
         var moved = Path.Combine(root, "Billing", "Order.cs");
-        var namespaces = new Participant
+        var namespaces = new RecordingParticipant
         {
             Will = operations => operations is [RenameFileOperation rename]
                 ? new WorkspaceEdit([new DocumentEdit(rename.NewPath, [Replace(14, 6, "Billing")])])
@@ -268,8 +312,8 @@ public sealed class FileOperationsTests : IDisposable
     [Fact]
     public Task ParticipantsThatAreTooSlowOrFailAreSkippedAndReported() => Run(async () =>
     {
-        participants.Add(new Participant { Will = _ => throw new InvalidOperationException("Broken participant") });
-        participants.Add(new Participant { Delay = TimeSpan.FromSeconds(30), Will = _ => new WorkspaceEdit([new DocumentEdit(Path.Combine(root, "A.cs"), [Insert(0, "late")])]) });
+        participants.Add(new RecordingParticipant { Will = _ => throw new InvalidOperationException("Broken participant") });
+        participants.Add(new RecordingParticipant { Delay = TimeSpan.FromSeconds(30), Will = _ => new WorkspaceEdit([new DocumentEdit(Path.Combine(root, "A.cs"), [Insert(0, "late")])]) });
         var service = Create(budget: TimeSpan.FromMilliseconds(200));
         var file = Write("A.cs", "a");
         var started = DateTime.UtcNow;
@@ -280,6 +324,39 @@ public sealed class FileOperationsTests : IDisposable
         Assert.Equal("a", File.ReadAllText(Path.Combine(root, "B.cs")));
         Assert.Contains(log, line => line.Contains("Broken participant", StringComparison.Ordinal));
         Assert.Contains(log, line => line.Contains("took longer than 0.2 seconds", StringComparison.Ordinal));
+    });
+
+    [Fact]
+    public Task ParticipantChangesThatDoNotFitTheEditAreLeftOutAndTheEditIsMade() => Run(async () =>
+    {
+        var file = Write("A.cs", "class A {}");
+        var gone = Write("Gone.cs", "class Gone {}");
+        var renamed = Path.Combine(root, "B.cs");
+        participants.Add(new RecordingParticipant
+        {
+            Will = _ => new WorkspaceEdit(
+            [
+                new DocumentEdit(file, [Replace(6, 1, "B")]),
+                new DocumentEdit(renamed, [Insert(0, "// moved\n")]),
+                new DocumentEdit(gone, [Insert(0, "// gone\n")]),
+            ]),
+        });
+        var service = Create();
+
+        Assert.True(await service.ApplyAsync(new WorkspaceEdit([new DocumentEdit(file, [Replace(6, 1, "B")])])
+        {
+            FileOperations = [new RenameFileOperation(file, renamed), new DeleteFileOperation(gone)],
+        }));
+
+        Assert.Equal("// moved\nclass B {}", documents!.Find(renamed)!.Buffer.Current.GetText());
+        Assert.False(File.Exists(gone));
+        Assert.Contains(log, line => line.Contains("changes to B.cs that were left out: B.cs has overlapping changes", StringComparison.Ordinal));
+        Assert.Contains(log, line => line.Contains("left out: Gone.cs is deleted by the same edit.", StringComparison.Ordinal));
+
+        Assert.True(await service.UndoAsync());
+
+        Assert.Equal("class A {}", File.ReadAllText(file));
+        Assert.Equal("class Gone {}", File.ReadAllText(gone));
     });
 
     [Fact]
@@ -334,38 +411,50 @@ public sealed class FileOperationsTests : IDisposable
         service.Dispose();
 
         Assert.Empty(Directory.EnumerateFiles(Stash, "*", SearchOption.AllDirectories));
-        Assert.False(Directory.Exists(Path.Combine(Trash, "files")) && Directory.EnumerateFiles(Path.Combine(Trash, "files")).Any());
+        Assert.False(Directory.Exists(Trash) && Directory.EnumerateFiles(Trash, "*", SearchOption.AllDirectories).Any());
     });
 
     [Fact]
     public void TheDesktopTrashRecordsWhereEachFileCameFromAndPicksFreeNames()
     {
+        Assert.SkipUnless(SystemTrash.UsesFreedesktopTrash, "Runesmith uses the freedesktop trash only on Linux and the BSDs.");
         var trash = new FreedesktopTrash(Trash);
-        var first = Write("Same.txt", "1");
+        var first = Write("Same name.txt", "1");
 
         var one = trash.TryMoveToTrash(first);
-        Write("Same.txt", "2");
+        Write("Same name.txt", "2");
         var two = trash.TryMoveToTrash(first);
 
-        Assert.Equal(Path.Combine(Trash, "files", "Same.txt"), one);
-        Assert.Equal(Path.Combine(Trash, "files", "Same.2.txt"), two);
-        Assert.Contains($"Path={first}", File.ReadAllText(Path.Combine(Trash, "info", "Same.2.txt.trashinfo")), StringComparison.Ordinal);
+        Assert.Equal(Path.Combine(Trash, "files", "Same name.txt"), one);
+        Assert.Equal(Path.Combine(Trash, "files", "Same name.2.txt"), two);
+        Assert.Contains("Same%20name.txt", File.ReadAllText(Path.Combine(Trash, "info", "Same name.2.txt.trashinfo")), StringComparison.Ordinal);
+        Assert.Equal(first, TrashedFrom("Same name.2.txt"));
 
         trash.Restore(two!, first);
         Assert.Equal("2", File.ReadAllText(first));
-        Assert.False(File.Exists(Path.Combine(Trash, "info", "Same.2.txt.trashinfo")));
+        Assert.False(File.Exists(Path.Combine(Trash, "info", "Same name.2.txt.trashinfo")));
     }
 
     private WorkspaceEditService Create(TimeSpan? budget = null)
     {
-        documents = new DocumentService(new TestSettings(), new TestLanguages());
+        documents = new DocumentService(new LineFeedSettings(), new PlainTextLanguages());
         editors = new OpeningEditors(documents);
         return new WorkspaceEditService(documents, new Lazy<IEditorService>(() => editors), notifications, new FakeWorkspace(root), messages,
             [.. participants.Select(p => new Lazy<IFileOperationParticipant>(() => p))], documents, () => caller, log.Add,
-            new Lazy<FileStash>(() => new FileStash(Stash, new FreedesktopTrash(Trash))))
+            new Lazy<FileStash>(() => new FileStash(Stash, SystemTrash.UsesFreedesktopTrash ? new FreedesktopTrash(Trash) : new FolderTrash(Trash))))
         {
             ParticipantBudget = budget ?? TimeSpan.FromSeconds(5),
         };
+    }
+
+    // Where the tests' trash keeps a deleted file: the freedesktop trash where the system uses it, and a plain folder in place of the others.
+    private string Trashed(string name) => SystemTrash.UsesFreedesktopTrash ? Path.Combine(Trash, "files", name) : Path.Combine(Trash, name);
+
+    // Reads where a file in the freedesktop trash came from, which its note percent-encodes.
+    private string TrashedFrom(string name)
+    {
+        var note = File.ReadAllLines(Path.Combine(Trash, "info", name + ".trashinfo"));
+        return Uri.UnescapeDataString(note.Single(line => line.StartsWith("Path=", StringComparison.Ordinal))["Path=".Length..]);
     }
 
     private string Write(string relative, string text)
@@ -395,120 +484,4 @@ public sealed class FileOperationsTests : IDisposable
             await test();
             return true;
         }, TestContext.Current.CancellationToken);
-
-    private sealed class Participant : IFileOperationParticipant
-    {
-        private readonly System.Threading.Channels.Channel<IReadOnlyList<FileOperation>> did = System.Threading.Channels.Channel.CreateUnbounded<IReadOnlyList<FileOperation>>();
-
-        public Func<IReadOnlyList<FileOperation>, WorkspaceEdit?> Will { get; init; } = _ => null;
-
-        public TimeSpan Delay { get; init; }
-
-        public async Task<WorkspaceEdit?> WillApplyAsync(IReadOnlyList<FileOperation> operations, CancellationToken cancellationToken)
-        {
-            if (Delay > TimeSpan.Zero)
-                await Task.Delay(Delay, CancellationToken.None);
-            return Will(operations);
-        }
-
-        public Task DidApplyAsync(IReadOnlyList<FileOperation> operations, CancellationToken cancellationToken)
-        {
-            did.Writer.TryWrite(operations);
-            return Task.CompletedTask;
-        }
-
-        public async Task<IReadOnlyList<FileOperation>> NextDidAsync() =>
-            await did.Reader.ReadAsync(TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-    }
-
-    private sealed class OpeningEditors(IDocumentService documents) : IEditorService
-    {
-        public List<IDocument> Closed { get; } = [];
-
-        public IEditorView? ActiveEditor => null;
-
-        public IReadOnlyList<IEditorView> Editors => [.. documents.Documents.Select(d => new View(d))];
-
-        public event EventHandler? ActiveEditorChanged
-        {
-            add { }
-            remove { }
-        }
-
-        public async Task<IEditorView?> OpenAsync(string filePath, TextPosition? position = null, bool activate = true) => new View(await documents.OpenAsync(filePath));
-
-        public IEditorView Open(IDocument document, bool activate = true) => new View(document);
-
-        public Task<bool> CloseAsync(IEditorView editor)
-        {
-            Closed.Add(editor.Document);
-            documents.Close(editor.Document);
-            return Task.FromResult(true);
-        }
-
-        private sealed class View(IDocument document) : IEditorView
-        {
-            public IDocument Document => document;
-
-            public int CaretOffset { get; set; }
-
-            public TextSpan Selection => default;
-
-            public EditorCaretStyle CaretStyle { get; set; }
-
-            public event EventHandler? CaretMoved
-            {
-                add { }
-                remove { }
-            }
-
-            public void Select(TextSpan span)
-            {
-            }
-
-            public void ScrollTo(int offset)
-            {
-            }
-
-            public void Focus()
-            {
-            }
-        }
-    }
-
-    private sealed class TestSettings : ISettingsService
-    {
-        public IReadOnlyList<SettingDefinition> Definitions => [];
-
-        public event EventHandler<SettingChangedEventArgs>? Changed
-        {
-            add { }
-            remove { }
-        }
-
-        public T Get<T>(string key) => key == SettingKeys.DefaultLineEnding ? (T)(object)"lf" : default!;
-
-        public object? GetValue(string key, SettingScope scope) => null;
-
-        public SettingScope GetEffectiveScope(string key) => SettingScope.Default;
-
-        public void Set(string key, object value, SettingScope scope = SettingScope.User)
-        {
-        }
-
-        public void Reset(string key, SettingScope scope = SettingScope.User)
-        {
-        }
-    }
-
-    private sealed class TestLanguages : ILanguageRegistry
-    {
-        private static readonly LanguageDefinition Plain = new(ILanguageRegistry.PlainText, "Plain Text");
-
-        public IReadOnlyList<LanguageDefinition> Languages => [Plain];
-
-        public LanguageDefinition? Find(string languageId) => languageId == Plain.Id ? Plain : null;
-
-        public LanguageDefinition GetLanguageForFile(string filePath) => Plain;
-    }
 }

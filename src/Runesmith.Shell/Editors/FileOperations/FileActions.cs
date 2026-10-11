@@ -136,6 +136,38 @@ internal sealed class CreateFileAction(IFileActionHost host, CreateFileOperation
     }
 }
 
+internal sealed class CreateFolderAction(IFileActionHost host, CreateFolderOperation operation) : FileAction(host)
+{
+    private List<string> _folders = [];
+
+    public override FileOperation Operation => operation;
+
+    public override FileOperation Reverse => new DeleteFileOperation(operation.FolderPath);
+
+    public override IReadOnlyList<string> Paths => [operation.FolderPath];
+
+    public override string? CannotUndo()
+    {
+        if (!Directory.Exists(operation.FolderPath))
+            return $"{Name(operation.FolderPath)} no longer exists.";
+        return Directory.EnumerateFileSystemEntries(operation.FolderPath).Any() ? $"{Name(operation.FolderPath)} is no longer empty." : null;
+    }
+
+    public override string? CannotRedo() => FileMoves.Exists(operation.FolderPath) ? $"{Name(operation.FolderPath)} exists again." : null;
+
+    public override void Discard()
+    {
+    }
+
+    protected override void DoCore() => _folders = FileMoves.CreateFolder(operation.FolderPath);
+
+    protected override void UndoCore()
+    {
+        Directory.Delete(operation.FolderPath);
+        FileMoves.DeleteIfEmpty(_folders);
+    }
+}
+
 internal sealed class RenameFileAction(IFileActionHost host, RenameFileOperation operation) : FileAction(host)
 {
     private string? _replaced;
@@ -207,10 +239,11 @@ internal sealed class DeleteFileAction(IFileActionHost host, DeleteFileOperation
 {
     private string? _trashed;
     private string? _kept;
+    private bool _folder;
 
     public override FileOperation Operation => operation;
 
-    public override FileOperation Reverse => new CreateFileOperation(operation.Path);
+    public override FileOperation Reverse => _folder ? new CreateFolderOperation(operation.Path) : new CreateFileOperation(operation.Path);
 
     public override IReadOnlyList<string> Paths => [operation.Path];
 
@@ -232,6 +265,7 @@ internal sealed class DeleteFileAction(IFileActionHost host, DeleteFileOperation
 
     protected override void DoCore()
     {
+        _folder = Directory.Exists(operation.Path);
         _trashed = operation.UseTrash ? Host.Stash.Trash.TryMoveToTrash(operation.Path) : null;
         if (_trashed is null)
             _kept = Host.Stash.Stash(operation.Path);

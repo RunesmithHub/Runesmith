@@ -37,6 +37,7 @@ internal sealed class FileOperationPlan
     public IEnumerable<string> Paths => _operations.SelectMany(operation => operation switch
     {
         CreateFileOperation create => [create.FilePath],
+        CreateFolderOperation create => [create.FolderPath],
         RenameFileOperation rename => new[] { rename.OldPath, rename.NewPath },
         DeleteFileOperation delete => [delete.Path],
         _ => [],
@@ -86,6 +87,10 @@ internal sealed class FileOperationPlan
                 if (create.Overwrite)
                     return (create, null);
                 return create.IgnoreIfExists ? (null, null) : (null, $"{Path.GetFileName(create.FilePath)} already exists.");
+            case CreateFolderOperation create:
+                if (!Exists(create.FolderPath, now))
+                    return (create, null);
+                return create.IgnoreIfExists && IsFolder(create.FolderPath, now) ? (null, null) : (null, $"{Path.GetFileName(create.FolderPath)} already exists.");
             case RenameFileOperation rename:
                 if (!Exists(rename.OldPath, now))
                     return (null, $"{Path.GetFileName(rename.OldPath)} does not exist.");
@@ -128,6 +133,8 @@ internal sealed class FileOperationPlan
                     return (path, true, false);
                 case CreateFileOperation create when PathComparison.IsInside(create.FilePath, path):
                     return (path, true, true);
+                case CreateFolderOperation create when PathComparison.IsInside(create.FolderPath, path):
+                    return (path, true, true);
                 case RenameFileOperation rename when PathComparison.IsInside(path, rename.NewPath):
                     path = rename.OldPath + path[rename.NewPath.Length..];
                     break;
@@ -163,6 +170,7 @@ internal sealed class FileOperationPlan
     private static FileOperation Normalize(FileOperation operation) => operation switch
     {
         CreateFileOperation create => create with { FilePath = PathComparison.Normalize(create.FilePath) },
+        CreateFolderOperation create => create with { FolderPath = PathComparison.Normalize(create.FolderPath) },
         RenameFileOperation rename => rename with { OldPath = PathComparison.Normalize(rename.OldPath), NewPath = PathComparison.Normalize(rename.NewPath) },
         DeleteFileOperation delete => delete with { Path = PathComparison.Normalize(delete.Path) },
         _ => operation,

@@ -133,6 +133,7 @@ public sealed class EditingServicesTests : IDisposable
 
         Assert.Empty(result.Errors);
         Assert.IsType<WorkspaceEditService>(result.Exports.GetExportedValue<IWorkspaceEditService>());
+        Assert.Single(result.Exports.GetExports<IFileOperationParticipant>());
         Assert.IsType<Languages.Features.EditorFeatures>(result.Exports.GetExportedValue<IEditorFeatures>());
         Assert.NotNull(result.Exports.GetExportedValue<EditorKeyHooks>());
         Assert.Equal(2, result.Exports.GetExports<ICodeActionProvider, LanguageMetadata>().Count());
