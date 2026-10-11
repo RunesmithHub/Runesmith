@@ -86,6 +86,9 @@ internal sealed class TerminalSession : ITerminal, IDisposable
     /// <summary>Raised when the program rings the bell.</summary>
     public event EventHandler? Bell;
 
+    /// <summary>Raised after the screen got a new number of columns and rows.</summary>
+    public event EventHandler<(int Columns, int Rows)>? Resized;
+
     /// <summary>Raised with the text the program writes; the first handler added also gets what it wrote before, up to 64 KB.</summary>
     public event EventHandler<TerminalDataEventArgs>? Data
     {
@@ -140,17 +143,22 @@ internal sealed class TerminalSession : ITerminal, IDisposable
     }
 
     /// <summary>Changes the size of the screen and tells the program.</summary>
-    public void Resize(int columns, int rows)
+    /// <returns>Where a point of the text before the change is now, as the screen's lines may wrap differently.</returns>
+    public Func<TerminalPoint, TerminalPoint> Resize(int columns, int rows)
     {
+        Func<TerminalPoint, TerminalPoint> moved;
         lock (Gate)
         {
             if (Screen.Columns == columns && Screen.Rows == rows)
-                return;
-            Screen.Resize(columns, rows);
+                return static point => point;
+            moved = Screen.Resize(columns, rows);
+            (columns, rows) = (Screen.Columns, Screen.Rows);
         }
 
         pty.Resize(columns, rows);
         Changed?.Invoke(this, EventArgs.Empty);
+        Resized?.Invoke(this, (columns, rows));
+        return moved;
     }
 
     public void Show(bool takeFocus = true) => show(this, takeFocus);

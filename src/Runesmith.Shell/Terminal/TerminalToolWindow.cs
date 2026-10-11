@@ -208,7 +208,7 @@ public sealed class TerminalToolWindow : IToolWindowProvider
         {
             foreach (var gone in hosts.Keys.Where(s => !owner.terminals.Tabs.Contains(s)).ToList())
                 hosts.Remove(gone);
-            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems?[0] is TerminalSession added)
+            if (e.Action is NotifyCollectionChangedAction.Add or NotifyCollectionChangedAction.Replace && e.NewItems?[0] is TerminalSession added)
                 tabs.SelectedItem = added;
             else if (tabs.SelectedItem is null && owner.terminals.Tabs.Count > 0)
                 tabs.SelectedIndex = owner.terminals.Tabs.Count - 1;

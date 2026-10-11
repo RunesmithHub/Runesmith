@@ -71,6 +71,13 @@ how many.
 When a program reports the mouse, such as `htop` or `vim` with the mouse on, clicks and the wheel go to it. Hold <Keys>Shift</Keys> to
 select text anyway.
 
+## Resize the terminal
+
+The terminal takes the size of the panel. When the panel gets narrower or wider, lines that wrapped at the right edge join and wrap again
+at the new width, in the scrollback too, and the line breaks programs wrote stay. The cursor stays on the same character, and a prompt on
+the bottom row stays there. The selection and the place you scrolled to stay with their text. Full-screen programs, such as `vim` or
+`htop`, draw themselves again at the new size.
+
 ## Links
 
 Places in files and web addresses that a program writes are links. Point at one to underline it, and <Keys>Ctrl</Keys>+click it to open it:
@@ -85,11 +92,21 @@ files open in the editor at the line, and web addresses in the browser.
 
 Relative paths are found from the shell's folder and from the open folder.
 
+Programs can also write text as a link to an address of their own, with the OSC 8 escape sequence, as `ls --hyperlink=auto` does for
+file names. Point at such a link to underline it and see where it leads in its tooltip, and <Keys>Ctrl</Keys>+click it to open it:
+`http` and `https` links open in the browser, and `file` links to files on this computer open in the editor, at the line when the link
+ends in `#12` or `#L12`. Links of other kinds are not opened. Try it in your shell:
+
+```bash
+printf '\e]8;;https://hub.runesmith.dev\e\\Runesmith plugin hub\e]8;;\e\\\n'
+```
+
 ## Run configurations in the terminal
 
 Turn on **Run in the terminal** (`run.useTerminal`) to run configurations in a tab of the Terminal panel instead of the **Run** panel's
-console, so programs that read keys or draw on the whole screen work. The **Run** panel still shows the run, with **Stop** and the exit
-code, and debugging still uses it.
+console, so programs that read keys or draw on the whole screen work. Type into the program in its tab. The **Run** panel still shows the
+run, with **Stop** and the exit code, and debugging still uses it. The tab stays when the program ends, until the configuration runs again
+and its new run takes the tab.
 
 ## Settings
 

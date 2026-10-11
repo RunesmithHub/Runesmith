@@ -125,18 +125,25 @@ internal static class TerminalShells
         return (login ? ["-l"] : [], environment);
     }
 
-    /// <summary>Gets the variables every terminal sets: the terminal's type and colors, and a UTF-8 locale when none is set.</summary>
-    public static Dictionary<string, string?> BaseEnvironment()
+    /// <summary>Gets the variables every terminal sets: the terminal's type and colors, a UTF-8 locale when none is set, and where its
+    /// description is when only <c>TERMINFO_DIRS</c> says.</summary>
+    /// <param name="variable">Reads Runesmith's environment variables; null reads the process's.</param>
+    public static Dictionary<string, string?> BaseEnvironment(Func<string, string?>? variable = null)
     {
+        variable ??= Environment.GetEnvironmentVariable;
         var environment = new Dictionary<string, string?>
         {
             ["TERM"] = "xterm-256color",
             ["COLORTERM"] = "truecolor",
             ["TERM_PROGRAM"] = "Runesmith",
         };
-        if (!OperatingSystem.IsWindows() && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LANG"))
-            && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LC_ALL")) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LC_CTYPE")))
+        if (!OperatingSystem.IsWindows() && string.IsNullOrEmpty(variable("LANG")) && string.IsNullOrEmpty(variable("LC_ALL")) && string.IsNullOrEmpty(variable("LC_CTYPE")))
             environment["LANG"] = OperatingSystem.IsMacOS() ? "en_US.UTF-8" : "C.UTF-8";
+
+        // .NET reads TERMINFO but not TERMINFO_DIRS, which systems without /usr/share/terminfo, such as NixOS, set instead.
+        if (string.IsNullOrEmpty(variable("TERMINFO")) && variable("TERMINFO_DIRS") is { Length: > 0 } folders
+            && Running.RunProcess.FindTerminfo(folders, "xterm-256color") is { } folder)
+            environment["TERMINFO"] = folder;
         return environment;
     }
 

@@ -24,6 +24,7 @@ public sealed class TerminalService : ITerminalService, IDisposable
     private readonly Lock gate = new();
     private readonly List<TerminalSession> all = [];
     private int shellCount;
+    private (int Columns, int Rows) size = (80, 24);
 
     [ImportingConstructor]
     public TerminalService(IWorkspace workspace, ISettingsService settings, IOutputService output)
@@ -97,22 +98,33 @@ public sealed class TerminalService : ITerminalService, IDisposable
     }
 
     /// <summary>Starts a program in a new tab, such as a run configuration's, without the capability check plugins get.</summary>
-    internal TerminalSession StartProgram(string name, string program, IReadOnlyList<string> arguments, string folder, IReadOnlyDictionary<string, string> variables)
+    /// <param name="replacing">A terminal whose program ended, such as the last run's, whose tab the new one takes.</param>
+    internal TerminalSession StartProgram(string name, string program, IReadOnlyList<string> arguments, string folder, IReadOnlyDictionary<string, string> variables,
+        TerminalSession? replacing = null)
     {
         var environment = TerminalShells.BaseEnvironment();
         foreach (var (key, value) in variables)
             environment[key] = value;
         var session = Start(name, program, arguments, folder, environment, hidden: false, closesOnSuccess: false);
-        Show(session, focus: true);
+        Show(session, focus: true, replacing is { HasExited: true } ? replacing : null);
         return session;
     }
 
-    /// <summary>Shows a terminal's tab, adding it to the panel when it was hidden.</summary>
-    internal void Show(TerminalSession session, bool focus) => UiThread.Run(() =>
+    /// <summary>Shows a terminal's tab, adding it to the panel when it was hidden, in the place of <paramref name="replacing"/>'s, which closes.</summary>
+    internal void Show(TerminalSession session, bool focus, TerminalSession? replacing = null) => UiThread.Run(() =>
     {
         session.IsHidden = false;
         if (!Tabs.Contains(session) && Terminals.Contains(session))
-            Tabs.Add(session);
+        {
+            var index = replacing is null ? -1 : Tabs.IndexOf(replacing);
+            if (index >= 0)
+                Tabs[index] = session;
+            else
+                Tabs.Add(session);
+        }
+
+        if (replacing is not null)
+            Close(replacing);
         ShowRequested?.Invoke(this, (session, focus));
     });
 
@@ -134,8 +146,11 @@ public sealed class TerminalService : ITerminalService, IDisposable
     private TerminalSession Start(string name, string program, IReadOnlyList<string> arguments, string? folder, IReadOnlyDictionary<string, string?> environment,
         bool hidden, bool closesOnSuccess, bool showsTitle = false)
     {
-        var start = new PtyStart(program, arguments, ResolveFolder(folder), environment, 80, 24);
-        var session = new TerminalSession(name, start, Math.Max(0, Setting(TerminalSettings.Scrollback, 10_000)), Show, Close)
+        (int Columns, int Rows) startSize;
+        lock (gate)
+            startSize = size;
+        var start = new PtyStart(program, arguments, ResolveFolder(folder), environment, startSize.Columns, startSize.Rows);
+        var session = new TerminalSession(name, start, Math.Max(0, Setting(TerminalSettings.Scrollback, 10_000)), (s, focus) => Show(s, focus), Close)
         {
             IsHidden = hidden,
             ClosesOnSuccess = closesOnSuccess,
@@ -143,6 +158,13 @@ public sealed class TerminalService : ITerminalService, IDisposable
         };
         lock (gate)
             all.Add(session);
+
+        // Terminals share the panel, so a new one starts at the size the last one was given rather than changing size as soon as it shows.
+        session.Resized += (_, newSize) =>
+        {
+            lock (gate)
+                size = newSize;
+        };
         session.Exited += (_, e) =>
         {
             if (session.ClosesOnSuccess && e.ExitCode == 0)

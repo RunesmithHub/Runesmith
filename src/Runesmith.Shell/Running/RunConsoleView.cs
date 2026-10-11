@@ -146,6 +146,7 @@ internal sealed class RunConsoleView : DockPanel
     {
         var running = session.State != RunState.Finished;
         stop.IsEnabled = running;
+        input.IsVisible = session.ReadsInput;
         input.IsEnabled = session.State == RunState.Running;
         var time = session.Elapsed.TotalSeconds.ToString(session.Elapsed.TotalSeconds < 60 ? "0.0" : "0", CultureInfo.CurrentCulture) + " s";
         string brush;

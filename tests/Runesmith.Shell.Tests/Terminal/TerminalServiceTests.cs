@@ -109,6 +109,48 @@ public sealed class TerminalServiceTests
     }
 
     [Fact]
+    public async Task ANewTerminalStartsAtTheSizeTheLastOneWasGiven()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+
+        using var service = Service(null);
+        var first = (TerminalSession)service.CreateTerminal("First", new TerminalOptions { Command = "/bin/sh", Arguments = ["-c", "sleep 30"], IsHidden = true });
+        first.Resize(100, 30);
+
+        var second = (TerminalSession)service.CreateTerminal("Second", new TerminalOptions { Command = "/bin/sh", Arguments = ["-c", "stty size"], IsHidden = true });
+        var exited = new TaskCompletionSource();
+        second.Exited += (_, _) => exited.TrySetResult();
+        if (second.HasExited)
+            exited.TrySetResult();
+        await exited.Task.WaitAsync(Timeout, Token);
+
+        lock (second.Gate)
+            Assert.Equal("30 100", second.Screen.RowText(0));
+    }
+
+    [Fact]
+    public void WithOnlyTerminfoDirsTerminalsAreToldWhereTheirTerminalsDescriptionIs()
+    {
+        var folder = Directory.CreateTempSubdirectory("runesmith-terminfo-").FullName;
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(folder, "x"));
+            File.WriteAllText(Path.Combine(folder, "x", "xterm-256color"), "");
+            var variables = new Dictionary<string, string> { ["TERMINFO_DIRS"] = $"{Path.Combine(folder, "missing")}{Path.PathSeparator}{folder}" };
+
+            Assert.Equal(folder, TerminalShells.BaseEnvironment(variables.GetValueOrDefault)["TERMINFO"]);
+
+            variables["TERMINFO"] = Path.Combine(folder, "own");
+            Assert.False(TerminalShells.BaseEnvironment(variables.GetValueOrDefault).ContainsKey("TERMINFO"));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void AProgramThatCannotStartIsReported()
     {
         if (OperatingSystem.IsWindows())

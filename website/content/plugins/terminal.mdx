@@ -77,6 +77,24 @@ shell.Show(takeFocus: false);
 
 When a program ends, its tab stays with the exit code, so the user can read what it wrote, until the user or the plugin closes it.
 
+## Size and links
+
+A terminal starts 80 columns wide and 24 rows high and takes the size of its panel when it shows. Its program learns of each change as in
+any terminal: through `SIGWINCH` on Linux and macOS, and a console resize event on Windows. When the width changes, the lines the program
+already wrote wrap again at the new width, so it need not write them again; a full-screen program on the alternate screen draws itself
+again.
+
+A program can write text as a link with the OSC 8 escape sequence: `ESC ] 8 ; ; URI ESC \` before the text and `ESC ] 8 ; ; ESC \` after
+it. An `id` parameter, as in `ESC ] 8 ; id=report ; URI ESC \`, makes parts of one link that are written apart one link. The user sees the
+address in the link's tooltip and opens it with <Keys>Ctrl</Keys>+click: `http` and `https` links open in the browser, and `file` links to
+files on the user's computer open in the editor, at the line a fragment such as `#12` or `#L12:5` gives. Links of other kinds are not
+opened.
+
+```csharp
+// In the program the terminal runs.
+Console.WriteLine($"Report written to \u001b]8;;{new Uri(reportPath).AbsoluteUri}\u001b\\{Path.GetFileName(reportPath)}\u001b]8;;\u001b\\");
+```
+
 ## Threads
 
 `ITerminalService` and `ITerminal` can be called from any thread. `Data` and `Exited` are raised on a background thread, the one that reads

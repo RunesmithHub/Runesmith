@@ -216,8 +216,14 @@ public sealed class TestRunTests
     public async Task ANewRunStopsTheOneThatGoesOn()
     {
         var service = await DiscoveredAsync();
-        provider.Run = (_, _, token) => Task.Delay(Timeout, token);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        provider.Run = (_, _, token) =>
+        {
+            started.SetResult();
+            return Task.Delay(Timeout, token);
+        };
         var first = (await service.RunAllAsync())!;
+        await started.Task.WaitAsync(Timeout, Token);
 
         provider.Run = (_, run, _) =>
         {

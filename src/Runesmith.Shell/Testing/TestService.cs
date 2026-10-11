@@ -244,7 +244,7 @@ public sealed class TestService : IDisposable
 
         lastRun = [.. top.Select(n => (n.Provider, n.Id))];
         lastMode = mode;
-        var run = new TestRunSession(Tree, top, mode, (plan, session, token) => DebugAsync(plan, session, token));
+        var run = new TestRunSession(Tree, top, mode, DebugAsync);
         CurrentRun?.Dispose();
         CurrentRun = run;
         RunStarted?.Invoke(this, run);
@@ -373,7 +373,7 @@ public sealed class TestService : IDisposable
         }
     }
 
-    private async Task<int?> DebugAsync(LaunchPlan plan, TestRunSession run, CancellationToken token)
+    private async Task<int?> DebugAsync(LaunchPlan plan, TestRunSession run, string name, CancellationToken token)
     {
         if (debugger() is not { } debug)
         {
@@ -381,7 +381,7 @@ public sealed class TestService : IDisposable
             return null;
         }
 
-        var session = await debug.StartAsync("Tests", plan, run.Output, null, token).ConfigureAwait(false);
+        var session = await debug.StartAsync(name, plan, run.Output, null, token).ConfigureAwait(false);
         if (session is null)
             return null;
 

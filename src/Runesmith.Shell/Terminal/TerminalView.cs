@@ -483,7 +483,12 @@ internal sealed partial class TerminalView : Control
 
         var columns = Math.Max(2, (int)Math.Floor((Bounds.Width - (2 * Padding) - ScrollBarStrip) / cellWidth));
         var rows = Math.Max(1, (int)Math.Floor((Bounds.Height - (2 * Padding)) / cellHeight));
-        session.Resize(columns, rows);
+        var moved = session.Resize(columns, rows);
+        selectionStart = selectionStart is { } start ? moved(start) : null;
+        selectionEnd = selectionEnd is { } end ? moved(end) : null;
+        if (topLine is { } line)
+            topLine = moved(new TerminalPoint(line, 0)).Line;
+        hovered = null;
         ScrollChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -683,7 +688,7 @@ internal sealed partial class TerminalView : Control
             return;
         }
 
-        UpdateHover(row, column, e.KeyModifiers);
+        UpdateHover(row, ColumnUnder(position), e.KeyModifiers);
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
@@ -786,6 +791,13 @@ internal sealed partial class TerminalView : Control
         }
     }
 
+    // The cell the pointer is over, where CellAt gives the edge between cells nearest to it, as a selection needs.
+    private int ColumnUnder(Point position)
+    {
+        lock (session.Gate)
+            return Math.Clamp((int)Math.Floor((position.X - Padding) / cellWidth), 0, session.Screen.Columns - 1);
+    }
+
     private TerminalPoint PointAt(int row, int column)
     {
         lock (session.Gate)
@@ -871,13 +883,21 @@ internal sealed partial class TerminalView : Control
 
         hovered = found;
         Cursor = new Cursor(found is not null && modifiers.HasFlag(KeyModifiers.Control) ? StandardCursorType.Hand : StandardCursorType.Ibeam);
-        ToolTip.SetTip(this, found is null ? null : "Ctrl+click to open");
+        ToolTip.SetTip(this, found switch
+        {
+            null => null,
+            { Written: { } written } => $"{Target(written)}\nCtrl+click to open",
+            _ => "Ctrl+click to open",
+        });
         InvalidateVisual();
     }
 
-    // Finds the link at a cell in the line's text, joined with the lines it wrapped from and into, so a long path or address is one link.
+    // Finds the link the program wrote at a cell, or else one in the text of its line and the lines it wrapped from and into.
     private HoveredLink? LinkAt(TerminalScreen screen, int index, int column)
     {
+        if (screen.LinkAt(index, column) is { } written)
+            return Target(written.Link) is null ? null : new HoveredLink(written.Start, written.End, null, null, written.Link);
+
         var first = index;
         while (first > 0 && screen.LineAt(first - 1).IsWrapped)
             first--;
@@ -933,11 +953,22 @@ internal sealed partial class TerminalView : Control
 
     private void OpenLink(HoveredLink link)
     {
-        if (link.Url is { } url)
+        if (link.Written is { } written)
+        {
+            if (written.WebAddress is { } address)
+                openUrl(address);
+            else if (written.File is { } target && File.Exists(target.Path))
+                openFile(target.Path, target.Line, target.Column);
+        }
+        else if (link.Url is { } url)
             openUrl(url);
         else if (link.File is { } file && resolver.Resolve(file) is { } path)
             openFile(path, file.Line, file.Column);
     }
+
+    // Gets where a link a program wrote leads, when it is a web page or a file of this computer; other kinds of links are not opened.
+    private static string? Target(TerminalLink link) =>
+        link.WebAddress ?? (link.File is { } file && File.Exists(file.Path) ? file.Line > 0 ? $"{file.Path}:{file.Line}" : file.Path : null);
 
     private ContextMenu BuildContextMenu()
     {
@@ -967,5 +998,5 @@ internal sealed partial class TerminalView : Control
     [GeneratedRegex(@"\bhttps?://[^\s<>""'`]+", RegexOptions.CultureInvariant)]
     private static partial Regex UrlPattern();
 
-    private sealed record HoveredLink(TerminalPoint Start, TerminalPoint End, string? Url, ConsoleLink? File);
+    private sealed record HoveredLink(TerminalPoint Start, TerminalPoint End, string? Url, ConsoleLink? File, TerminalLink? Written = null);
 }

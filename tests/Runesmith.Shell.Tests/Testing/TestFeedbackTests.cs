@@ -48,6 +48,24 @@ public sealed class TestFeedbackTests
     }
 
     [Fact]
+    public void AStackFrameIsInTheFolderWhicheverSeparatorsItsPathUses()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "runesmith-tests", "src");
+        var inside = root.Replace(Path.DirectorySeparatorChar, '/') + "/CalculatorTests.cs";
+        var failure = new TestFailure("Assert.Equal() Failure")
+        {
+            StackTrace =
+            [
+                new TestStackFrame("at Other.Run()") { FilePath = Path.Combine(root + "2", "Other.cs"), Position = new TextPosition(1, 0) },
+                new TestStackFrame("at CalculatorTests.Add()") { FilePath = inside, Position = new TextPosition(6, 8) },
+            ],
+        };
+
+        Assert.Equal((inside, new TextPosition(6, 8)), TestFailures.Location(failure, root + Path.DirectorySeparatorChar));
+        Assert.Null(TestFailures.Location(failure with { StackTrace = failure.StackTrace.Take(1).ToList() }, root));
+    }
+
+    [Fact]
     public async Task APassAfterAFailureClearsTheProblem()
     {
         var service = Items.Service(provider, diagnostics, root: "/src");

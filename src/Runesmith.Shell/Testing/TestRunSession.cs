@@ -26,7 +26,7 @@ public enum TestRunState
 public sealed class TestRunSession : IDisposable
 {
     private readonly TestTree tree;
-    private readonly Func<LaunchPlan, TestRunSession, CancellationToken, Task<int?>>? debug;
+    private readonly Func<LaunchPlan, TestRunSession, string, CancellationToken, Task<int?>>? debug;
     private readonly Dictionary<TestNode, TestResult?> before = [];
     private readonly HashSet<TestNode> inRun = [];
     private readonly Dictionary<TestNode, StringBuilder> outputs = [];
@@ -35,7 +35,8 @@ public sealed class TestRunSession : IDisposable
     private readonly TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Lock gate = new();
 
-    internal TestRunSession(TestTree tree, IReadOnlyList<TestNode> nodes, RunMode mode, Func<LaunchPlan, TestRunSession, CancellationToken, Task<int?>>? debug)
+    /// <param name="debug">Debugs a plan of the run under the session name it gets.</param>
+    internal TestRunSession(TestTree tree, IReadOnlyList<TestNode> nodes, RunMode mode, Func<LaunchPlan, TestRunSession, string, CancellationToken, Task<int?>>? debug)
     {
         this.tree = tree;
         this.debug = debug;
@@ -113,6 +114,28 @@ public sealed class TestRunSession : IDisposable
 
     /// <summary>Gets a reporter for one provider's part of the run.</summary>
     internal ITestRun For(ITestProvider provider) => new Reporter(this, provider);
+
+    /// <summary>Gets the name of a debug session of one provider's tests in the run: the test's class and name when it is one test, such as
+    /// <c>Debug: OrderTests.TotalsDiscounts</c>, or the number of tests, such as <c>Debug: 3 tests</c>.</summary>
+    internal string DebugName(ITestProvider provider)
+    {
+        lock (tree.Gate)
+        {
+            var tests = Nodes.Where(n => n.Provider == provider).SelectMany(n => n.Tests()).Distinct().ToList();
+            return tests.Count == 1 ? $"Debug: {QualifiedLabel(tests[0])}" : $"Debug: {tests.Count} tests";
+        }
+    }
+
+    private static string QualifiedLabel(TestNode test)
+    {
+        for (var at = test.Parent; at is not null; at = at.Parent)
+        {
+            if (at.Item.Kind == TestItemKind.Class)
+                return $"{at.Item.Label}.{test.Item.Label}";
+        }
+
+        return test.Item.Label;
+    }
 
     /// <summary>Ends the run; tests without a result get back the one they had.</summary>
     internal void Finish()
@@ -246,7 +269,7 @@ public sealed class TestRunSession : IDisposable
                 return Task.FromResult<int?>(null);
             }
 
-            return run.debug(plan, run, cancellationToken);
+            return run.debug(plan, run, run.DebugName(provider), cancellationToken);
         }
     }
 }

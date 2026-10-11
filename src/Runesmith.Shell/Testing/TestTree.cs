@@ -436,7 +436,7 @@ internal static class TestFailures
 
         foreach (var frame in failure.StackTrace)
         {
-            if (frame.FilePath is { } framePath && frame.Position is { } framePosition && (root is null || IsInside(framePath, root)))
+            if (frame.FilePath is { } framePath && frame.Position is { } framePosition && (root is null || PathKey.IsInside(framePath, root)))
                 return (framePath, framePosition);
         }
 
@@ -457,7 +457,4 @@ internal static class TestFailures
         var line = text.ReplaceLineEndings("\n").Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "";
         return line.Length > 160 ? line[..157] + "..." : line;
     }
-
-    private static bool IsInside(string path, string root) =>
-        path.StartsWith(root.TrimEnd(System.IO.Path.DirectorySeparatorChar) + System.IO.Path.DirectorySeparatorChar, PathKey.Comparer == StringComparer.Ordinal ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
 }
