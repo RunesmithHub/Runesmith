@@ -140,17 +140,17 @@ internal sealed class FileIndex(string root, GlobMatcher exclude)
 
     private List<string> Enumerate(string folder)
     {
-        var files = new FileSystemEnumerable<string>(folder, (ref entry) => entry.ToFullPath(), Options)
-        {
-            ShouldIncludePredicate = (ref entry) => !entry.IsDirectory && !exclude.IsMatchOrInside(Relative(ref entry)),
-            ShouldRecursePredicate = (ref entry) => (entry.Attributes & FileAttributes.ReparsePoint) == 0 && !exclude.IsMatchOrInside(Relative(ref entry)),
-        };
-
         try
         {
+            // The folder opens here already, and it can be gone by now, such as one created and deleted again at once.
+            var files = new FileSystemEnumerable<string>(folder, (ref entry) => entry.ToFullPath(), Options)
+            {
+                ShouldIncludePredicate = (ref entry) => !entry.IsDirectory && !exclude.IsMatchOrInside(Relative(ref entry)),
+                ShouldRecursePredicate = (ref entry) => (entry.Attributes & FileAttributes.ReparsePoint) == 0 && !exclude.IsMatchOrInside(Relative(ref entry)),
+            };
             return [.. files];
         }
-        catch (IOException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             return [];
         }
@@ -167,5 +167,15 @@ internal sealed class FileIndex(string root, GlobMatcher exclude)
         return GlobMatcher.ToGlobPath(string.Concat(relativeFolder, Path.DirectorySeparatorChar.ToString(), name));
     }
 
-    private static bool IsLink(string path) => (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;
+    private static bool IsLink(string path)
+    {
+        try
+        {
+            return (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return true;
+        }
+    }
 }
