@@ -155,7 +155,7 @@ public sealed class PluginManagerModel
 
             var replacedBy = all.FirstOrDefault(p => p.Manifest.Id == id && p.State == PluginState.Replaced && p.Source is PluginSource.Hub or PluginSource.Local);
             var (note, problem) = Note(plugin, hub, state, source, replacedBy);
-            rows.Add(new InstalledRow(id, plugin.Manifest.Name, plugin.Manifest.Version, source == InstalledSource.Local ? null : tier, source, note, problem,
+            rows.Add(new InstalledRow(id, plugin.Manifest.Name, ShownVersion(plugin, state), source == InstalledSource.Local ? null : tier, source, note, problem,
                 !off.Contains(id) && !report.Withheld.ContainsKey(id), CanToggle: !report.Withheld.ContainsKey(id))
             {
                 Badge = report.ChangedFiles.ContainsKey(id) ? NoticeKind.FilesChanged : catalog is not null && hub is not null ? Badge(catalog, hub) : null,
@@ -203,7 +203,7 @@ public sealed class PluginManagerModel
 
     /// <summary>Gets the version that runs now of a plugin, from the hub or the user's folder, or null.</summary>
     public string? RunningVersion(string id) =>
-        plugins().FirstOrDefault(p => p.Manifest.Id == id && IsRunningCopy(p))?.Manifest.Version;
+        plugins().FirstOrDefault(p => p.Manifest.Id == id && IsRunningCopy(p)) is { } plugin ? ShownVersion(plugin, client.State) : null;
 
     /// <summary>Gets whether a plugin's code runs now.</summary>
     public bool IsRunning(string id) => plugins().Any(p => p.Manifest.Id == id && p.State == PluginState.Loaded && !p.Manifest.IsLanguagePack);
@@ -255,7 +255,7 @@ public sealed class PluginManagerModel
             PluginState.Disabled => running.Error ?? Strings.PluginsProblemTurnedOff,
             _ => null,
         };
-        return PluginPageModel.Create(client, target, preferences(), running?.Manifest.Version) with
+        return PluginPageModel.Create(client, target, preferences(), running is null ? null : ShownVersion(running, client.State)) with
         {
             Problem = problem,
         };
@@ -287,6 +287,14 @@ public sealed class PluginManagerModel
     }
 
     private static bool IsRunningCopy(PluginInfo plugin) => plugin.State is not (PluginState.Replaced or PluginState.Refused);
+
+    /// <summary>Gets the version a plugin shows: a language pack the hub updated since the start shows the update, whose text it already
+    /// has; any other plugin shows the version that runs until the next start.</summary>
+    private static string ShownVersion(PluginInfo plugin, HubState state) =>
+        plugin.Manifest.IsLanguagePack && plugin.Source == PluginSource.Hub && !plugin.IsLocalCopy
+            && state.Pending?.Installed.FirstOrDefault(folder => folder.Id == plugin.Manifest.Id) is { } staged
+            ? staged.Version
+            : plugin.Manifest.Version;
 
     private static InstalledRow LocalCopyRow(PluginInfo plugin, IReadOnlyList<PluginInfo> all, IReadOnlySet<string> off)
     {

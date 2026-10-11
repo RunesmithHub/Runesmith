@@ -5,6 +5,7 @@ using Avalonia.Threading;
 using Runesmith.Composition;
 using Runesmith.Hub;
 using Runesmith.Hub.Enforcement;
+using Runesmith.Hub.State;
 using Runesmith.Shell.Hub;
 using Runesmith.Tests.Hub;
 using RunesmithHub.Protocol.Index;
@@ -188,6 +189,37 @@ public sealed class InstallPlanModelTests : IDisposable
         Assert.Equal((InstalledSource.Hub, PluginTier.Official), (rows[1].Source, rows[1].Tier!.Value));
         Assert.Equal(InstalledSource.Local, rows[2].Source);
         Assert.Null(rows[2].Tier);
+    }
+
+    [Fact]
+    public async Task ALanguagePackTheHubUpdatedShowsTheUpdateBeforeARestartAndOtherPluginsDoNot()
+    {
+        new HubStateStore(fixture.Paths.StateFile).Save(new HubState
+        {
+            Plugins =
+            [
+                new InstalledHubPlugin("acme.dutch", "0.2.0", "", nameof(PluginTier.Official), Requested: true),
+                new InstalledHubPlugin("runesmith.git", "0.3.5", "", nameof(PluginTier.Official), Requested: true),
+            ],
+            Pending = new PendingChange([new PendingFolder("acme.dutch", "0.2.0", "t1"), new PendingFolder("runesmith.git", "0.3.5", "t1")], []),
+        });
+        var client = fixture.CreateClient();
+        await client.RefreshAsync(Token);
+        PluginInfo[] plugins =
+        [
+            Plugin("acme.dutch", "Dutch", "0.1.0", PluginSource.Hub) with
+            {
+                Manifest = new PluginManifest("acme.dutch", "Dutch", "0.1.0") { SchemaVersion = 1, Capabilities = [], LanguagePack = new PluginLanguagePack("nl", "Nederlands", "Dutch") },
+            },
+            Plugin("runesmith.git", "Git", "0.3.4", PluginSource.Hub),
+        ];
+        var model = new PluginManagerModel(client, () => HubPreferences.Default, () => plugins, () => new HashSet<string>(), () => HubStartupReport.Empty, isSafeMode: false);
+
+        var rows = model.Installed();
+
+        Assert.Equal([("Dutch", "0.2.0"), ("Git", "0.3.4")], rows.Select(r => (r.Name, r.Version)));
+        Assert.Equal("0.2.0", model.RunningVersion("acme.dutch"));
+        Assert.Equal("0.3.4", model.RunningVersion("runesmith.git"));
     }
 
     private async Task<InstallPlanModel> PlanAsync(string id, params PluginInfo[] installed)
