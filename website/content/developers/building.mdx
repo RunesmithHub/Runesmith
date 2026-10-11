@@ -111,8 +111,8 @@ no tests yet ends with exit code 8, which `--ignore-exit-code 8` accepts.
 dotnet run --project benchmarks/Runesmith.Benchmarks --configuration Release
 ```
 
-`benchmarks/Runesmith.TypingBenchmark` types into the running editor and measures how fast it responds; see
-[Language services](./language-services.mdx#the-typing-benchmark).
+`benchmarks/Runesmith.TypingBenchmark` types into and scrolls through a file of 10,000 lines in the running editor, and measures how fast
+it responds and the memory the file takes; see [Language services](./language-services.mdx#the-typing-benchmark).
 
 ## Formatting
 

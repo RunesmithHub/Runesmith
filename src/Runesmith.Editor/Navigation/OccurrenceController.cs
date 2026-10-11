@@ -32,15 +32,25 @@ internal sealed class OccurrenceController : IDisposable
         area.SelectionChanged += OnSelectionChanged;
     }
 
-    /// <summary>Gets or sets whether occurrences are highlighted; turning it off clears them.</summary>
+    /// <summary>Gets or sets whether occurrences are highlighted; turning it off clears them, and turning it on asks for those at the caret.</summary>
     public bool IsEnabled
     {
         get => isEnabled;
         set
         {
+            if (isEnabled == value)
+                return;
+
             isEnabled = value;
-            if (!value)
+            if (value)
+            {
+                OnSelectionChanged(this, EventArgs.Empty);
+            }
+            else
+            {
+                timer.Stop();
                 Clear();
+            }
         }
     }
 

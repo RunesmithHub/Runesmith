@@ -12,7 +12,8 @@ internal sealed class StyleTable(Theme theme, string defaultForeground)
     private readonly ConcurrentDictionary<(int Foreground, FontStyle Style), SyntaxStyle?> styles = new();
 
     /// <summary>Gets the style of a token, or null when it looks like plain text.</summary>
-    public SyntaxStyle? Get(int foreground, FontStyle fontStyle) => styles.GetOrAdd((foreground, fontStyle), Create);
+    public SyntaxStyle? Get(int foreground, FontStyle fontStyle) =>
+        styles.TryGetValue((foreground, fontStyle), out var style) ? style : styles.GetOrAdd((foreground, fontStyle), Create);
 
     private SyntaxStyle? Create((int Foreground, FontStyle Style) key)
     {

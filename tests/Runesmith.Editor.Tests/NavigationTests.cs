@@ -45,6 +45,30 @@ public sealed class NavigationTests
     });
 
     [Fact]
+    public Task TurningOccurrenceHighlightsOffClearsThemAndTurningThemOnAsksAgainAtTheCaret() => Run(async () =>
+    {
+        var fakes = new FakeEditorServices();
+        fakes.Navigation.Highlights = _ => [new DocumentHighlight(new TextSpan(4, 5), DocumentHighlightKind.Write), new DocumentHighlight(new TextSpan(15, 5))];
+        using var editor = new TextEditor(new FileTestDocument(FilePath, Code), fakes.Create());
+        var window = Show(editor);
+        editor.CaretOffset = 6;
+        await WaitAsync(() => editor.Area.Decorations.Count == 2);
+
+        editor.Options = editor.Options with { HighlightOccurrences = false };
+        Assert.Equal(0, editor.Area.Decorations.Count);
+        var requests = fakes.Navigation.HighlightRequests;
+        editor.CaretOffset = 16;
+        await Task.Delay(OccurrenceController.Delay * 3, Token);
+        Assert.Equal(requests, fakes.Navigation.HighlightRequests);
+        Assert.Equal(0, editor.Area.Decorations.Count);
+
+        editor.Options = editor.Options with { HighlightOccurrences = true };
+        await WaitAsync(() => editor.Area.Decorations.Count == 2);
+        Assert.Equal(requests + 1, fakes.Navigation.HighlightRequests);
+        window.Close();
+    });
+
+    [Fact]
     public Task ExpandSelectionGrowsThroughTheProvidersSpansAndShrinkGoesBack() => Run(async () =>
     {
         var fakes = new FakeEditorServices();

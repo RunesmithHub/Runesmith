@@ -131,6 +131,27 @@ public sealed class SnippetTests
     }
 
     [Fact]
+    public void WorkspaceVariablesReadTheOpenFolder()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "work", "app");
+        var inside = new SnippetContext(Path.Combine(folder, "src", "Main.cs"), "Main.cs", TextSnapshot.Create("x"), new TextSpan(0, 0)) { WorkspaceFolder = folder };
+        var outside = inside with { FilePath = Path.Combine(Path.GetTempPath(), "work", "application", "Main.cs") };
+        var noFolder = inside with { WorkspaceFolder = null };
+        var untitled = inside with { FilePath = null, DocumentName = "Untitled-1" };
+
+        Assert.Equal(Path.Combine("src", "Main.cs"), SnippetVariables.Resolve("RELATIVE_FILEPATH", inside));
+        Assert.Equal("app", SnippetVariables.Resolve("WORKSPACE_NAME", inside));
+        Assert.Equal(folder, SnippetVariables.Resolve("WORKSPACE_FOLDER", inside));
+        Assert.Equal(outside.FilePath, SnippetVariables.Resolve("RELATIVE_FILEPATH", outside));
+        Assert.Equal(noFolder.FilePath, SnippetVariables.Resolve("RELATIVE_FILEPATH", noFolder));
+        Assert.Equal("", SnippetVariables.Resolve("WORKSPACE_NAME", noFolder));
+        Assert.Equal("", SnippetVariables.Resolve("WORKSPACE_FOLDER", noFolder));
+        Assert.Equal("Untitled-1", SnippetVariables.Resolve("RELATIVE_FILEPATH", untitled));
+        Assert.Equal("app", SnippetVariables.Resolve("WORKSPACE_NAME", inside with { WorkspaceFolder = folder + Path.DirectorySeparatorChar }));
+        Assert.Equal("none", Expand("${WORKSPACE_NAME:none}", name => SnippetVariables.Resolve(name, noFolder)).Text);
+    }
+
+    [Fact]
     public void AnEditorWithoutTabStopsInsertsTheTextAndPutsTheCaretAtTheEnd()
     {
         var document = new PlainDocument("x = ;");

@@ -7,6 +7,7 @@ using Runesmith.Editor.Editing;
 using Runesmith.Editor.Rendering;
 using Runesmith.Editor.Snippets;
 using Runesmith.Sdk.Documents.Snippets;
+using Runesmith.Sdk.Workspace;
 using Runesmith.Text;
 
 namespace Runesmith.Editor;
@@ -20,6 +21,9 @@ public sealed partial class TextArea
 
     /// <summary>Gets the active snippet, for the tests and the renderer.</summary>
     internal SnippetSession? Snippet => snippet;
+
+    /// <summary>Gets or sets the open folder, which snippet variables such as <c>WORKSPACE_FOLDER</c> and <c>RELATIVE_FILEPATH</c> read.</summary>
+    public IWorkspace? Workspace { get; set; }
 
     /// <summary>Raised when the caret comes to a tab stop with choices, which the editor offers in a list.</summary>
     internal event EventHandler<SnippetTarget>? SnippetChoicesRequested;
@@ -59,6 +63,7 @@ public sealed partial class TextArea
         {
             LineComment = Language?.LineComment,
             BlockComment = Language?.BlockComment,
+            WorkspaceFolder = Workspace?.RootPath,
         };
         var expansion = SnippetExpansion.Create(nodes, name => SnippetVariables.Resolve(name, context), SnippetVariables.IndentOf(snapshot, replace.Start), options.IndentUnit);
 

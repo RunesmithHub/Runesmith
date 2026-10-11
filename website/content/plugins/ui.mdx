@@ -311,12 +311,16 @@ editor's indentation.
 | `${1/(.*)/${1:/upcase}/}` | | A copy of tab stop 1 changed by a regular expression. |
 | `\$`, `\}`, `\\` | `AppendText` | A literal `$`, `}` or `\`. |
 
-The variables are `TM_FILENAME`, `TM_FILENAME_BASE`, `TM_DIRECTORY`, `TM_FILEPATH`, `TM_SELECTED_TEXT` and `SELECTED_TEXT`,
-`TM_CURRENT_LINE`, `TM_CURRENT_WORD`, `TM_LINE_INDEX`, `TM_LINE_NUMBER`, `CLIPBOARD`, `CURRENT_YEAR`, `CURRENT_YEAR_SHORT`,
-`CURRENT_MONTH`, `CURRENT_MONTH_NAME`, `CURRENT_MONTH_NAME_SHORT`, `CURRENT_DATE`, `CURRENT_DAY_NAME`, `CURRENT_DAY_NAME_SHORT`,
-`CURRENT_HOUR`, `CURRENT_MINUTE`, `CURRENT_SECOND`, `CURRENT_SECONDS_UNIX`, `RANDOM`, `RANDOM_HEX`, `UUID`, `LINE_COMMENT`,
-`BLOCK_COMMENT_START` and `BLOCK_COMMENT_END`. A name Runesmith does not know becomes a placeholder with the name as its text. A snippet
-that uses `CLIPBOARD` is inserted once the clipboard has been read.
+The variables are `TM_FILENAME`, `TM_FILENAME_BASE`, `TM_DIRECTORY`, `TM_FILEPATH`, `RELATIVE_FILEPATH`, `TM_SELECTED_TEXT` and
+`SELECTED_TEXT`, `TM_CURRENT_LINE`, `TM_CURRENT_WORD`, `TM_LINE_INDEX`, `TM_LINE_NUMBER`, `WORKSPACE_NAME`, `WORKSPACE_FOLDER`,
+`CLIPBOARD`, `CURRENT_YEAR`, `CURRENT_YEAR_SHORT`, `CURRENT_MONTH`, `CURRENT_MONTH_NAME`, `CURRENT_MONTH_NAME_SHORT`, `CURRENT_DATE`,
+`CURRENT_DAY_NAME`, `CURRENT_DAY_NAME_SHORT`, `CURRENT_HOUR`, `CURRENT_MINUTE`, `CURRENT_SECOND`, `CURRENT_SECONDS_UNIX`, `RANDOM`,
+`RANDOM_HEX`, `UUID`, `LINE_COMMENT`, `BLOCK_COMMENT_START` and `BLOCK_COMMENT_END`. A name Runesmith does not know becomes a placeholder
+with the name as its text. A snippet that uses `CLIPBOARD` is inserted once the clipboard has been read.
+
+`WORKSPACE_NAME` and `WORKSPACE_FOLDER` are the name and the full path of the open folder, and empty when no folder is open.
+`RELATIVE_FILEPATH` is the file's path inside the open folder, such as `src/Program.cs`; a file outside it, or any file while no folder is
+open, gives its full path, and a new file that was never saved gives its name.
 
 ### Snippets in completion
 

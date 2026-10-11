@@ -70,14 +70,16 @@ public sealed partial class TextEditor
         folding = new FoldingController(Area, services.Syntax);
         occurrences = new OccurrenceController(Area, services.Navigation);
         selectionExpander = new SelectionExpander(Area, services.Syntax);
-        Area.ShowsFolding = true;
+        UpdateNavigation();
     }
 
-    private void EnableNavigation(bool enabled)
+    // Diffs turn decorations off, and with them folding and occurrences; the options turn either off on its own.
+    private void UpdateNavigation()
     {
-        folding.IsEnabled = enabled;
-        occurrences.IsEnabled = enabled;
-        Area.ShowsFolding = enabled;
+        var folds = IsDecorated && Options.Folding;
+        folding.IsEnabled = folds;
+        Area.ShowsFolding = folds;
+        occurrences.IsEnabled = IsDecorated && Options.HighlightOccurrences;
     }
 
     private void DisposeNavigation()

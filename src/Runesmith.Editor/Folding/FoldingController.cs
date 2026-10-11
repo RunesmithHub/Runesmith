@@ -54,6 +54,7 @@ internal sealed class FoldingController : IDisposable
             }
             else
             {
+                timer.Stop();
                 Cancel();
                 area.Folding.SetRanges([], area.Snapshot.LineCount);
             }

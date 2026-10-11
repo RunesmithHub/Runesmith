@@ -3,14 +3,14 @@ using System.Globalization;
 
 namespace Runesmith.TypingBenchmark;
 
-/// <summary>Collects every measurement Runesmith's meters record while it is started, by instrument and tags.</summary>
+/// <summary>Collects every measurement Runesmith's meters record while a phase of the benchmark runs, by phase, instrument and tags, and the
+/// benchmark's own measurements.</summary>
 internal sealed class MetricRecorder : IDisposable
 {
     private readonly MeterListener listener = new();
     private readonly Dictionary<string, List<double>> samples = [];
-    private readonly List<(string Instrument, string Request, TaskCompletionSource Signal)> waits = [];
     private readonly Lock gate = new();
-    private bool recording;
+    private string? phase;
 
     public MetricRecorder()
     {
@@ -25,28 +25,24 @@ internal sealed class MetricRecorder : IDisposable
         listener.Start();
     }
 
-    /// <summary>Completes when the instrument records a measurement whose <c>request</c> tag is <paramref name="request"/>.</summary>
-    public Task WaitForAsync(string instrument, string request)
-    {
-        var signal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        lock (gate)
-            waits.Add((instrument, request, signal));
-        return signal.Task;
-    }
-
-    public void Start()
+    /// <summary>Starts recording a phase, such as typing; its measurements are named after it.</summary>
+    public void Start(string name)
     {
         lock (gate)
-        {
-            samples.Clear();
-            recording = true;
-        }
+            phase = name;
     }
 
     public void Stop()
     {
         lock (gate)
-            recording = false;
+            phase = null;
+    }
+
+    /// <summary>Adds a measurement of the benchmark's own to the phase that is recording.</summary>
+    public void Record(string name, double value)
+    {
+        lock (gate)
+            Add(name, value);
     }
 
     public IReadOnlyList<MetricSummary> Summarize()
@@ -60,31 +56,22 @@ internal sealed class MetricRecorder : IDisposable
     private void Record(Instrument instrument, double value, ReadOnlySpan<KeyValuePair<string, object?>> tags)
     {
         var name = instrument.Unit is { Length: > 0 } unit ? $"{instrument.Name} ({unit})" : instrument.Name;
-        string? request = null;
         foreach (var tag in tags)
-        {
             name += $" {tag.Key}={tag.Value}";
-            if (tag.Key == "request")
-                request = tag.Value as string;
-        }
 
         lock (gate)
-        {
-            for (var i = waits.Count - 1; i >= 0; i--)
-            {
-                if (waits[i].Instrument == instrument.Name && waits[i].Request == request)
-                {
-                    waits[i].Signal.TrySetResult();
-                    waits.RemoveAt(i);
-                }
-            }
+            Add(name, value);
+    }
 
-            if (!recording)
-                return;
-            if (!samples.TryGetValue(name, out var list))
-                samples[name] = list = [];
-            list.Add(value);
-        }
+    private void Add(string name, double value)
+    {
+        if (phase is null)
+            return;
+
+        var key = $"{phase}: {name}";
+        if (!samples.TryGetValue(key, out var list))
+            samples[key] = list = [];
+        list.Add(value);
     }
 }
 
@@ -96,6 +83,9 @@ internal sealed record MetricSummary(string Name, int Count, double P50, double 
         var sorted = values.Order().ToArray();
         return new MetricSummary(name, sorted.Length, Percentile(sorted, 0.50), Percentile(sorted, 0.95), Percentile(sorted, 0.99), sorted[^1]);
     }
+
+    /// <summary>Gets a measurement taken once, such as a memory size.</summary>
+    public static MetricSummary Single(string name, double value) => new(name, 1, value, value, value, value);
 
     public string ToLine() => string.Join('\t', Name, Count.ToString(CultureInfo.InvariantCulture), Format(P50), Format(P95), Format(P99), Format(Max));
 

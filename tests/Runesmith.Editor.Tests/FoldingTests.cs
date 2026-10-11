@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Runesmith.Editor.Editing;
 using Runesmith.Editor.Folding;
 using Runesmith.Sdk.Languages;
 using Runesmith.Text;
@@ -71,6 +72,84 @@ public sealed class FoldingTests
     }
 
     [Fact]
+    public void RangesInAnyOrderKeepTheLongestOfThoseThatStartOnALine()
+    {
+        var model = new FoldingModel();
+        model.SetRanges([new FoldingRange(5, 9), new FoldingRange(0, 3), new FoldingRange(5, 12), new FoldingRange(2, 2), new FoldingRange(0, 1), new FoldingRange(7, 20)], 8);
+
+        Assert.Equal([(0, 3), (5, 7)], model.Regions.Select(r => (r.StartLine, r.EndLine)));
+    }
+
+    [Fact]
+    public void TypingOnOneLineMovesNoRegionAndJoiningTwoFirstLinesKeepsTheLongerRegion()
+    {
+        var buffer = new TextBuffer("x\na\nb\nc\nd\ne\nf\n");
+        var model = new FoldingModel();
+        model.SetRanges([new FoldingRange(1, 3), new FoldingRange(2, 5)], buffer.Current.LineCount);
+        model.SetCollapsed(model.RegionAt(2)!, true);
+
+        model.Map(buffer.Insert(buffer.Current.GetLine(1).End, "bc"));
+        model.Map(buffer.Insert(0, "w"));
+        Assert.Equal([(1, 3, false), (2, 5, true)], model.Regions.Select(r => (r.StartLine, r.EndLine, r.IsCollapsed)));
+
+        model.Map(buffer.Delete(new TextSpan(buffer.Current.GetLine(1).End, 1)));
+        Assert.Equal([(1, 4, true)], model.Regions.Select(r => (r.StartLine, r.EndLine, r.IsCollapsed)));
+    }
+
+    [Fact]
+    public void IndentationFoldsMatchThoseOfEachLinesTextInATextOfManyPieces()
+    {
+        var random = new Random(7);
+        string[] indents = ["", "  ", "    ", "\t", "  \t", "\t    ", "        "];
+        string[] bodies = ["x = 1;", "if (a)", "{", "}", "", " ", "\t", "\u00A0y"];
+        var buffer = new TextBuffer("");
+        for (var i = 0; i < 600; i++)
+        {
+            var line = indents[random.Next(indents.Length)] + bodies[random.Next(bodies.Length)] + (random.Next(4) == 0 ? "\r\n" : "\n");
+            var lineNumber = random.Next(buffer.Current.LineCount);
+            buffer.Insert(buffer.Current.GetLine(lineNumber).Start, line);
+        }
+
+        buffer.Insert(buffer.Current.Length, "    tail");
+        foreach (var tabSize in new[] { 2, 4 })
+        {
+            var snapshot = buffer.Current;
+            Assert.Equal(ByLineText(snapshot, tabSize), IndentationFolding.Compute(snapshot, tabSize, TestContext.Current.CancellationToken).Select(r => (r.StartLine, r.EndLine)));
+        }
+
+        static List<(int, int)> ByLineText(TextSnapshot snapshot, int tabSize)
+        {
+            var ranges = new List<(int, int)>();
+            var open = new Stack<(int Indent, int Line)>();
+            var lastText = -1;
+            for (var number = 0; number < snapshot.LineCount; number++)
+            {
+                var text = snapshot.GetLineText(number);
+                if (string.IsNullOrWhiteSpace(text))
+                    continue;
+
+                var indent = EditOperations.VisualColumn(EditOperations.LeadingWhitespace(text), tabSize);
+                Close(indent, lastText);
+                open.Push((indent, number));
+                lastText = number;
+            }
+
+            Close(-1, lastText);
+            return [.. ranges.OrderBy(r => r.Item1)];
+
+            void Close(int indent, int end)
+            {
+                while (open.Count > 0 && open.Peek().Indent >= indent)
+                {
+                    var (_, start) = open.Pop();
+                    if (end > start)
+                        ranges.Add((start, end));
+                }
+            }
+        }
+    }
+
+    [Fact]
     public void IndentationFoldsEachLineWithTheDeeperLinesAfterIt()
     {
         var ranges = IndentationFolding.Compute(TextSnapshot.Create("def run():\n    a = 1\n\n    if a:\n        b()\n\nprint(run)\n"), 4, TestContext.Current.CancellationToken);
@@ -131,6 +210,39 @@ public sealed class FoldingTests
         var lineEnd = area.GetCharacterRect(area.Snapshot.GetLine(1).End);
         Click(window, area, new Point(lineEnd.X + 2 * area.Formatting.CharacterWidth, lineEnd.Center.Y));
         Assert.False(area.Folding.RegionAt(1)!.IsCollapsed);
+        window.Close();
+    });
+
+    [Fact]
+    public Task TurningFoldingOffUnfoldsEverythingAndHidesTheMarkersUntilItIsTurnedOnAgain() => Run(async () =>
+    {
+        var fakes = new FakeEditorServices();
+        fakes.Syntax.Folding = _ => [new FoldingRange(1, 6), new FoldingRange(3, 5)];
+        using var editor = new TextEditor(new FileTestDocument(FilePath, Code), fakes.Create());
+        var window = Show(editor);
+        await WaitAsync(() => editor.Area.Folding.Regions.Count == 2);
+        var area = editor.Area;
+        var gutterWidth = area.GutterWidth;
+        editor.FoldAll();
+        Assert.True(area.Folding.HasHiddenLines);
+
+        editor.Options = editor.Options with { Folding = false };
+        Assert.Empty(area.Folding.Regions);
+        Assert.False(area.Folding.HasHiddenLines);
+        Assert.False(area.ShowsFolding);
+        Assert.Equal(gutterWidth - TextArea.FoldMarginWidth, area.GutterWidth);
+        Assert.False(editor.Fold());
+        var requests = fakes.Syntax.FoldingRequests;
+        area.InsertText("// more\n");
+        await Task.Delay(FoldingController.RefreshDelay * 2, TestContext.Current.CancellationToken);
+        Assert.Equal(requests, fakes.Syntax.FoldingRequests);
+        Assert.Empty(area.Folding.Regions);
+
+        editor.Options = editor.Options with { Folding = true };
+        await WaitAsync(() => area.Folding.Regions.Count == 2);
+        Assert.True(area.ShowsFolding);
+        Assert.False(area.Folding.HasHiddenLines);
+        Assert.Equal(gutterWidth, area.GutterWidth);
         window.Close();
     });
 

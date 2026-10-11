@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Runesmith.Sdk.Documents;
@@ -31,8 +32,10 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
     private readonly DispatcherTimer timer;
     private readonly List<OverlayToken[]> lines = [];
     private CancellationTokenSource? request;
+    private SemanticTokenStyles? requestedStyles;
     private int visibleFirst;
     private int visibleLast = 100;
+    private bool isEnabled = true;
     private bool disposed;
 
     public SemanticHighlighter(ISyntaxHighlighter inner, IDocument document, ISyntaxFeatures features, Func<SemanticTokenStyles?> styles,
@@ -59,6 +62,21 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
 
     public event EventHandler<HighlightingChangedEventArgs>? Changed;
 
+    /// <summary>Gets or sets whether semantic tokens are drawn; turning it off leaves the TextMate colors alone, and turning it on asks for the
+    /// tokens again.</summary>
+    public bool IsEnabled
+    {
+        get => isEnabled;
+        set
+        {
+            if (isEnabled == value)
+                return;
+
+            isEnabled = value;
+            Restyle();
+        }
+    }
+
     /// <summary>Gets the semantic tokens of a line, for tests.</summary>
     internal IReadOnlyList<OverlayToken> OverlayOf(int lineNumber) => (uint)lineNumber < (uint)lines.Count ? lines[lineNumber] : [];
 
@@ -69,7 +87,7 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
             return tokens;
 
         var length = lineNumber < document.Buffer.Current.LineCount ? document.Buffer.Current.GetLine(lineNumber).Length : 0;
-        return Merge(tokens, lines[lineNumber], length, styles()?.PlainStruck);
+        return Merge(tokens, lines[lineNumber], length, requestedStyles?.PlainStruck);
     }
 
     public void Prioritize(int firstLine, int lastLine)
@@ -104,10 +122,12 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
         inner.Dispose();
     }
 
-    /// <summary>Lays semantic tokens over a line's TextMate tokens: each semantic token replaces what is beneath it.</summary>
+    /// <summary>Lays semantic tokens over a line's TextMate tokens: each semantic token replaces what is beneath it. Neighbors drawn alike
+    /// become one token, so the line is drawn in as few runs as it can be.</summary>
     internal static IReadOnlyList<SyntaxToken> Merge(IReadOnlyList<SyntaxToken> below, IReadOnlyList<OverlayToken> above, int lineLength, SyntaxStyle? plainStruck)
     {
         var merged = new List<SyntaxToken>(below.Count + above.Count * 2);
+        var next = 0;
         var cursor = 0;
         foreach (var token in above)
         {
@@ -116,44 +136,55 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
             if (end <= start)
                 continue;
 
-            Copy(below, cursor, start, merged, null, null);
+            Copy(below, ref next, cursor, start, merged, strike: false, null);
             if (token.Style is { } style)
-                merged.Add(new SyntaxToken(start, end - start, style));
+                Add(merged, new SyntaxToken(start, end - start, style));
             else
-                Copy(below, start, end, merged, s => s with { IsStrikethrough = true }, plainStruck);
+                Copy(below, ref next, start, end, merged, strike: true, plainStruck);
             cursor = end;
         }
 
-        Copy(below, cursor, int.MaxValue, merged, null, null);
+        Copy(below, ref next, cursor, int.MaxValue, merged, strike: false, null);
         return merged;
     }
 
-    // Copies the parts of the tokens between two columns, changed by restyle; with a gap style, the columns no token covers get it.
-    private static void Copy(IReadOnlyList<SyntaxToken> tokens, int from, int to, List<SyntaxToken> into, Func<SyntaxStyle, SyntaxStyle>? restyle, SyntaxStyle? gap)
+    // Copies the parts of the tokens between two columns, from the token at next on, struck through when asked; with a gap style, the columns
+    // no token covers get it.
+    private static void Copy(IReadOnlyList<SyntaxToken> tokens, ref int next, int from, int to, List<SyntaxToken> into, bool strike, SyntaxStyle? gap)
     {
         if (to <= from)
             return;
 
         var cursor = from;
-        foreach (var token in tokens)
+        for (; next < tokens.Count; next++)
         {
-            var start = Math.Max(token.Start, from);
-            var end = Math.Min(token.Start + token.Length, to);
-            if (end <= start)
-            {
-                if (token.Start >= to)
-                    break;
+            var token = tokens[next];
+            var tokenEnd = token.Start + token.Length;
+            if (tokenEnd <= from || token.Length <= 0)
                 continue;
-            }
+            if (token.Start >= to)
+                break;
 
+            var start = Math.Max(token.Start, from);
+            var end = Math.Min(tokenEnd, to);
             if (gap is not null && start > cursor)
-                into.Add(new SyntaxToken(cursor, start - cursor, gap));
-            into.Add(new SyntaxToken(start, end - start, restyle is null ? token.Style : restyle(token.Style)));
+                Add(into, new SyntaxToken(cursor, start - cursor, gap));
+            Add(into, new SyntaxToken(start, end - start, strike ? token.Style with { IsStrikethrough = true } : token.Style));
             cursor = end;
+            if (tokenEnd > to)
+                break;
         }
 
         if (gap is not null && to != int.MaxValue && cursor < to)
-            into.Add(new SyntaxToken(cursor, to - cursor, gap));
+            Add(into, new SyntaxToken(cursor, to - cursor, gap));
+    }
+
+    private static void Add(List<SyntaxToken> tokens, SyntaxToken token)
+    {
+        if (tokens.Count > 0 && tokens[^1] is var last && last.Start + last.Length == token.Start && last.Style.Equals(token.Style))
+            tokens[^1] = last with { Length = last.Length + token.Length };
+        else
+            tokens.Add(token);
     }
 
     private void Reset()
@@ -170,16 +201,18 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
 
         request?.Cancel();
         request?.Dispose();
-        if (!features.HasSemanticTokens(document) || styles() is not { } current)
+        if (!isEnabled || !features.HasSemanticTokens(document) || styles() is not { } current)
         {
             request = null;
             Apply(null, (0, int.MaxValue));
             return;
         }
 
+        requestedStyles = current;
         request = new CancellationTokenSource();
         var token = request.Token;
         var snapshot = document.Buffer.Current;
+        var previous = lines.ToArray();
         TextSpan? visible = null;
         if (snapshot.LineCount > RangeFirstLineCount)
         {
@@ -191,12 +224,12 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
         _ = Task.Run(async () =>
         {
             if (visible is { } span)
-                await RequestAsync(snapshot, span, current, token).ConfigureAwait(false);
-            await RequestAsync(snapshot, null, current, token).ConfigureAwait(false);
+                await RequestAsync(snapshot, span, current, previous, token).ConfigureAwait(false);
+            await RequestAsync(snapshot, null, current, previous, token).ConfigureAwait(false);
         }, token);
     }
 
-    private async Task RequestAsync(TextSnapshot snapshot, TextSpan? span, SemanticTokenStyles current, CancellationToken token)
+    private async Task RequestAsync(TextSnapshot snapshot, TextSpan? span, SemanticTokenStyles current, OverlayToken[][] previous, CancellationToken token)
     {
         IReadOnlyList<SemanticToken>? tokens;
         try
@@ -211,7 +244,7 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
         if (token.IsCancellationRequested)
             return;
 
-        var byLine = tokens is null ? null : Group(snapshot, tokens, current);
+        var byLine = tokens is null ? null : Group(snapshot, tokens, current, previous);
         var lineRange = span is { } value ? (snapshot.GetLineFromPosition(value.Start).LineNumber, snapshot.GetLineFromPosition(value.End).LineNumber) : (0, snapshot.LineCount - 1);
         Dispatcher.UIThread.Post(() =>
         {
@@ -220,30 +253,56 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
         }, DispatcherPriority.Background);
     }
 
-    // Styles the tokens and sorts them into their lines.
-    private static Dictionary<int, OverlayToken[]> Group(TextSnapshot snapshot, IReadOnlyList<SemanticToken> tokens, SemanticTokenStyles styles)
+    // Styles the tokens and sorts them into their lines in one pass, as providers give them sorted by start; a line whose tokens are the same
+    // as before keeps its array.
+    private static OverlayToken[]?[] Group(TextSnapshot snapshot, IReadOnlyList<SemanticToken> tokens, SemanticTokenStyles styles, OverlayToken[][] previous)
     {
-        var byLine = new Dictionary<int, List<OverlayToken>>();
+        for (var i = 1; i < tokens.Count; i++)
+        {
+            if (tokens[i].Span.Start < tokens[i - 1].Span.Start)
+            {
+                tokens = [.. tokens.OrderBy(token => token.Span.Start)];
+                break;
+            }
+        }
+
+        var byLine = new OverlayToken[]?[snapshot.LineCount];
+        var current = new List<OverlayToken>();
+        var line = default(TextLine);
+        var lineNumber = -1;
         foreach (var token in tokens)
         {
             if (token.Span.Start < 0 || token.Span.End > snapshot.Length || token.Span.IsEmpty || styles.Get(token.Type, token.Modifiers) is not { } style)
                 continue;
 
-            var line = snapshot.GetLineFromPosition(token.Span.Start);
-            var end = Math.Min(token.Span.End, line.End);
-            if (end <= token.Span.Start)
-                continue;
+            if (lineNumber < 0 || token.Span.Start > line.End)
+            {
+                Flush();
+                line = snapshot.GetLineFromPosition(token.Span.Start);
+                lineNumber = line.LineNumber;
+            }
 
-            if (!byLine.TryGetValue(line.LineNumber, out var list))
-                byLine[line.LineNumber] = list = [];
-            list.Add(new OverlayToken(token.Span.Start - line.Start, end - token.Span.Start, style.Style));
+            var end = Math.Min(token.Span.End, line.End);
+            if (end > token.Span.Start)
+                current.Add(new OverlayToken(token.Span.Start - line.Start, end - token.Span.Start, style.Style));
         }
 
-        return byLine.ToDictionary(pair => pair.Key, pair => pair.Value.OrderBy(token => token.Start).ToArray());
+        Flush();
+        return byLine;
+
+        void Flush()
+        {
+            if (current.Count == 0)
+                return;
+
+            var before = lineNumber < previous.Length ? previous[lineNumber] : [];
+            byLine[lineNumber] = CollectionsMarshal.AsSpan(current).SequenceEqual(before) ? before : [.. current];
+            current.Clear();
+        }
     }
 
     // Replaces the tokens of the lines in a range; null clears them.
-    private void Apply(Dictionary<int, OverlayToken[]>? byLine, (int First, int Last) range)
+    private void Apply(OverlayToken[]?[]? byLine, (int First, int Last) range)
     {
         if (lines.Count != document.Buffer.Current.LineCount)
             Reset();
@@ -253,8 +312,8 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
         var last = Math.Min(range.Last, lines.Count - 1);
         for (var number = Math.Max(0, range.First); number <= last; number++)
         {
-            OverlayToken[] tokens = byLine?.GetValueOrDefault(number) ?? [];
-            if (lines[number].AsSpan().SequenceEqual(tokens))
+            var tokens = byLine is not null && number < byLine.Length ? byLine[number] ?? [] : [];
+            if (ReferenceEquals(lines[number], tokens) || lines[number].AsSpan().SequenceEqual(tokens))
                 continue;
 
             lines[number] = tokens;
@@ -288,8 +347,9 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
             }
 
             lines.RemoveRange(startLine.LineNumber, endLine - startLine.LineNumber);
-            for (var n = 0; n < inserted; n++)
-                lines.Insert(startLine.LineNumber, []);
+            var added = new OverlayToken[inserted][];
+            Array.Fill(added, []);
+            lines.InsertRange(startLine.LineNumber, added);
             for (var n = startLine.LineNumber; n <= startLine.LineNumber + inserted && n < lines.Count; n++)
                 lines[n] = [];
         }
@@ -298,7 +358,8 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
             Reset();
 
         timer.Stop();
-        timer.Start();
+        if (isEnabled)
+            timer.Start();
     }
 
     private static OverlayToken[] Shift(OverlayToken[] tokens, int start, int end, int delta)
@@ -306,16 +367,24 @@ internal sealed class SemanticHighlighter : ISyntaxHighlighter
         if (tokens.Length == 0)
             return tokens;
 
-        var shifted = new List<OverlayToken>(tokens.Length);
+        var kept = 0;
+        foreach (var token in tokens)
+        {
+            if (token.End <= start || token.Start >= end)
+                kept++;
+        }
+
+        var shifted = new OverlayToken[kept];
+        var index = 0;
         foreach (var token in tokens)
         {
             if (token.End <= start)
-                shifted.Add(token);
+                shifted[index++] = token;
             else if (token.Start >= end)
-                shifted.Add(token with { Start = token.Start + delta });
+                shifted[index++] = token with { Start = token.Start + delta };
         }
 
-        return [.. shifted];
+        return shifted;
     }
 
     private void OnInnerChanged(object? sender, HighlightingChangedEventArgs e) => Changed?.Invoke(this, e);

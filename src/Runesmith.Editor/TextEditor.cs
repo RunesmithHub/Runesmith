@@ -39,7 +39,7 @@ public sealed partial class TextEditor : UserControl, IEditorView, IDisposable
         ArgumentNullException.ThrowIfNull(document);
         this.services = services ?? throw new ArgumentNullException(nameof(services));
         Document = document;
-        Area = new TextArea(document) { Language = services.Languages.Find(document.LanguageId) };
+        Area = new TextArea(document) { Language = services.Languages.Find(document.LanguageId), Workspace = services.Workspace?.Value };
         Area.Highlighter = services.Highlighters.Create(document);
 
         findBar = new FindBar(Area);
@@ -102,7 +102,11 @@ public sealed partial class TextEditor : UserControl, IEditorView, IDisposable
     public EditorOptions Options
     {
         get => Area.Options;
-        set => Area.Options = value;
+        set
+        {
+            Area.Options = value;
+            UpdateNavigation();
+        }
     }
 
     public int CaretOffset

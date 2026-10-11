@@ -3,6 +3,7 @@ using Runesmith.Editor.Input;
 using Runesmith.Sdk.Build;
 using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.Languages;
+using Runesmith.Sdk.Workspace;
 
 namespace Runesmith.Editor;
 
@@ -20,7 +21,8 @@ public sealed class EditorServices(
     ISyntaxFeatures syntax,
     EditorKeyHooks keyHooks,
     Lazy<IWorkspaceEditService> workspaceEdits,
-    Lazy<ICommandService> commands)
+    Lazy<ICommandService> commands,
+    [Import(AllowDefault = true)] Lazy<IWorkspace>? workspace = null)
 {
     public ILanguageFeatures Features { get; } = features;
 
@@ -46,4 +48,7 @@ public sealed class EditorServices(
 
     /// <summary>Gets what runs the commands of code actions, gutter icons and code lenses.</summary>
     public Lazy<ICommandService> Commands { get; } = commands;
+
+    /// <summary>Gets the open folder, which snippet variables such as <c>WORKSPACE_FOLDER</c> read, or null in a host without one.</summary>
+    public Lazy<IWorkspace>? Workspace { get; } = workspace;
 }
