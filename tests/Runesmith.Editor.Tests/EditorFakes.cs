@@ -221,6 +221,8 @@ internal sealed class FakeNavigationFeatures : INavigationFeatures
 {
     public List<DocumentLocation> References { get; } = [];
 
+    public bool HoldReferences { get; set; }
+
     public List<DocumentLocation> Implementations { get; } = [];
 
     public Func<int, IReadOnlyList<DocumentHighlight>> Highlights { get; set; } = _ => [];
@@ -231,8 +233,13 @@ internal sealed class FakeNavigationFeatures : INavigationFeatures
 
     public event EventHandler<LanguageFeatureChangedEventArgs>? Changed;
 
-    public Task<IReadOnlyList<DocumentLocation>> GetReferencesAsync(IDocument document, TextSnapshot snapshot, int offset, bool includeDeclaration, CancellationToken cancellationToken) =>
-        Task.FromResult<IReadOnlyList<DocumentLocation>>([.. References]);
+    public async Task<IReadOnlyList<DocumentLocation>> GetReferencesAsync(IDocument document, TextSnapshot snapshot, int offset, bool includeDeclaration, CancellationToken cancellationToken)
+    {
+        if (HoldReferences)
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+
+        return [.. References];
+    }
 
     public Task<IReadOnlyList<DocumentLocation>> GetImplementationsAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<DocumentLocation>>([.. Implementations]);

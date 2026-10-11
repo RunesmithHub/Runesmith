@@ -117,12 +117,14 @@ public sealed class NavigationTests
         using var editor = new TextEditor(new FileTestDocument(FilePath, Code), fakes.Create());
         editor.CaretOffset = 6;
 
+        fakes.Navigation.HoldReferences = true;
         var references = editor.FindReferencesAsync();
         var implementations = await editor.FindImplementationsAsync();
 
         Assert.Equal("count", editor.WordAtCaret());
         Assert.Null(await references);
         Assert.Equal("/other.cs", Assert.Single(implementations!).FilePath);
+        fakes.Navigation.HoldReferences = false;
         Assert.Single((await editor.FindReferencesAsync())!);
     });
 
