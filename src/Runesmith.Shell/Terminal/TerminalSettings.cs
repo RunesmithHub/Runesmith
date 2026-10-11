@@ -27,19 +27,19 @@ public sealed class TerminalSettings : ISettingContributor
     /// <summary>Whether the cursor blinks.</summary>
     public const string CursorBlink = "terminal.cursorBlink";
 
-    public IEnumerable<SettingDefinition> Settings { get; } =
+    public IEnumerable<SettingDefinition> Settings =>
     [
-        new(Shell, "Shell", Category, "")
+        new(Shell, Strings.SettingsShell, Category, "")
         {
-            Description = "The program new terminals start, such as /bin/zsh or pwsh.exe. Leave it empty for your default shell: $SHELL on Linux and macOS, PowerShell or cmd on Windows.",
+            Description = Strings.SettingsShellDescription,
         },
-        new(FontFamily, "Font family", Category, "") { Description = "The terminal's font. Leave it empty to use the editor's font." },
-        new(FontSize, "Font size", Category, 0) { Description = "The terminal's font size in pixels, or 0 to use the editor's.", Minimum = 0, Maximum = 40 },
-        new(Scrollback, "Scrollback", Category, 10_000) { Description = "How many lines a terminal keeps after they scroll off its top.", Minimum = 0, Maximum = 1_000_000 },
-        new(ShellIntegration, "Shell integration", Category, true)
+        new(FontFamily, Strings.SettingsFontFamily, Category, "") { Description = Strings.SettingsFontFamilyDescription },
+        new(FontSize, Strings.SettingsFontSize, Category, 0) { Description = Strings.SettingsFontSizeDescription, Minimum = 0, Maximum = 40 },
+        new(Scrollback, Strings.SettingsScrollback, Category, 10_000) { Description = Strings.SettingsScrollbackDescription, Minimum = 0, Maximum = 1_000_000 },
+        new(ShellIntegration, Strings.SettingsShellIntegration, Category, true)
         {
-            Description = "Let bash and zsh tell Runesmith their folder, so links to files open from it and new terminals start in it. Takes effect in new terminals.",
+            Description = Strings.SettingsShellIntegrationDescription,
         },
-        new(CursorBlink, "Blinking cursor", Category, false) { Description = "Make the terminal's cursor blink." },
+        new(CursorBlink, Strings.SettingsBlinkingCursor, Category, false) { Description = Strings.SettingsBlinkingCursorDescription },
     ];
 }

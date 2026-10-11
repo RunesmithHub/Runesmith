@@ -28,72 +28,74 @@ public sealed class CoreSettings : ISettingContributor
     /// <summary>The globs <see cref="SettingKeys.Exclude"/> starts with.</summary>
     public const string DefaultExclude = "**/.git;**/bin;**/obj;**/node_modules;**/.vs;**/.idea";
 
-    public IEnumerable<SettingDefinition> Settings { get; } =
+    public IEnumerable<SettingDefinition> Settings =>
     [
-        new(SettingKeys.Theme, "Color theme", Appearance, "dark")
+        new(SettingKeys.Theme, Strings.WorkspaceColorTheme, Appearance, "dark")
         {
-            Description = "The colors of the window and the editor: dark, light, system to follow the system between the two, or the id of a plugin's theme.",
+            Description = Strings.WorkspaceColorThemeDescription,
         },
-        new(SettingKeys.Accent, "Accent color", Appearance, "")
+        new(SettingKeys.Accent, Strings.WorkspaceAccentColor, Appearance, "")
         {
-            Description = "The color of selections, focus and highlights, as a hex color such as #7073F6. Leave it empty for the theme's own accent.",
+            Description = Strings.WorkspaceAccentColorDescription,
         },
-        new(SettingKeys.ColorScheme, "Syntax colors", Appearance, "")
+        new(SettingKeys.ColorScheme, Strings.WorkspaceSyntaxColors, Appearance, "")
         {
-            Description = "The colors of code in the editor, by the id of a color scheme. Leave it empty for the color theme's own.",
+            Description = Strings.WorkspaceSyntaxColorsDescription,
         },
-        new(SettingKeys.FileIconTheme, "File icons", Appearance, "runesmith") { Description = "The icons of files and folders, by the id of a file icon theme." },
+        new(SettingKeys.FileIconTheme, Strings.WorkspaceFileIcons, Appearance, "runesmith") { Description = Strings.WorkspaceFileIconsDescription },
 
-        new(SettingKeys.FontFamily, "Font", Editor, "JetBrains Mono") { Description = "The editor's font; a list separated by commas tries each in turn." },
-        new(SettingKeys.FontSize, "Font size", Editor, 14) { Description = "The editor's font size, in pixels.", Minimum = 6, Maximum = 72 },
-        new(SettingKeys.Ligatures, "Font ligatures", Editor, true) { Description = "Draw character pairs such as => and != as one symbol when the font has ligatures." },
-        new(SettingKeys.TabSize, "Tab size", Editor, 4) { Description = "How many spaces a tab is wide, and how many spaces the Tab key inserts.", Minimum = 1, Maximum = 16 },
-        new(SettingKeys.InsertSpaces, "Insert spaces", Editor, true) { Description = "Insert spaces when Tab is pressed, rather than a tab character." },
-        new(SettingKeys.LineNumbers, "Line numbers", Editor, true) { Description = "Show line numbers beside the text." },
-        new(SettingKeys.IndentGuides, "Indent guides", Editor, true) { Description = "Draw thin lines that show the levels of indentation." },
-        new(SettingKeys.HighlightCurrentLine, "Highlight the current line", Editor, true) { Description = "Shade the line the caret is on." },
-        new(SettingKeys.AutoCloseBrackets, "Close brackets and quotes", Editor, true) { Description = "Type the closing bracket or quote when you type an opening one." },
-        new(SettingKeys.ShowWhitespace, "Show whitespace", Editor, false) { Description = "Draw spaces and tabs as faint dots and arrows." },
-        new(SettingKeys.CompletionOnType, "Suggest while typing", Editor, true) { Description = "Show completions as you type, not only when you press Ctrl+Space." },
-        new(SettingKeys.FormatOnSave, "Format on save", Editor, false) { Description = "Format a file with the formatter of its language each time you save it." },
-        new(SettingKeys.InlayHints, "Inlay hints", Editor, true) { Description = "Show hints inside lines, such as parameter names and inferred types, where the language offers them." },
-        new(SettingKeys.CodeLens, "Code lens", Editor, true) { Description = "Show lines of information and actions above code, such as reference counts, where the language offers them." },
-        new(SettingKeys.Folding, "Folding", Editor, true) { Description = "Show fold markers in the gutter, so blocks of code can fold. Turning it off unfolds everything." },
-        new(SettingKeys.OccurrenceHighlight, "Highlight occurrences", Editor, true)
+        new(SettingKeys.FontFamily, Strings.WorkspaceFont, Editor, "JetBrains Mono") { Description = Strings.WorkspaceFontDescription },
+        new(SettingKeys.FontSize, Strings.WorkspaceFontSize, Editor, 14) { Description = Strings.WorkspaceFontSizeDescription, Minimum = 6, Maximum = 72 },
+        new(SettingKeys.Ligatures, Strings.WorkspaceFontLigatures, Editor, true) { Description = Strings.WorkspaceFontLigaturesDescription },
+        new(SettingKeys.TabSize, Strings.WorkspaceTabSize, Editor, 4) { Description = Strings.WorkspaceTabSizeDescription, Minimum = 1, Maximum = 16 },
+        new(SettingKeys.InsertSpaces, Strings.WorkspaceInsertSpaces, Editor, true) { Description = Strings.WorkspaceInsertSpacesDescription },
+        new(SettingKeys.LineNumbers, Strings.WorkspaceLineNumbers, Editor, true) { Description = Strings.WorkspaceLineNumbersDescription },
+        new(SettingKeys.IndentGuides, Strings.WorkspaceIndentGuides, Editor, true) { Description = Strings.WorkspaceIndentGuidesDescription },
+        new(SettingKeys.HighlightCurrentLine, Strings.WorkspaceHighlightTheCurrentLine, Editor, true) { Description = Strings.WorkspaceHighlightTheCurrentLineDescription },
+        new(SettingKeys.AutoCloseBrackets, Strings.WorkspaceCloseBracketsAndQuotes, Editor, true) { Description = Strings.WorkspaceCloseBracketsAndQuotesDescription },
+        new(SettingKeys.ShowWhitespace, Strings.WorkspaceShowWhitespace, Editor, false) { Description = Strings.WorkspaceShowWhitespaceDescription },
+        new(SettingKeys.CompletionOnType, Strings.WorkspaceSuggestWhileTyping, Editor, true) { Description = Strings.WorkspaceSuggestWhileTypingDescription },
+        new(SettingKeys.FormatOnSave, Strings.WorkspaceFormatOnSave, Editor, false) { Description = Strings.WorkspaceFormatOnSaveDescription },
+        new(SettingKeys.InlayHints, Strings.WorkspaceInlayHints, Editor, true) { Description = Strings.WorkspaceInlayHintsDescription },
+        new(SettingKeys.CodeLens, Strings.WorkspaceCodeLens, Editor, true) { Description = Strings.WorkspaceCodeLensDescription },
+        new(SettingKeys.Folding, Strings.WorkspaceFolding, Editor, true) { Description = Strings.WorkspaceFoldingDescription },
+        new(SettingKeys.OccurrenceHighlight, Strings.WorkspaceHighlightOccurrences, Editor, true)
         {
-            Description = "Highlight the other uses of the symbol under the caret a moment after the caret stops, where the language offers them.",
+            Description = Strings.WorkspaceHighlightOccurrencesDescription,
         },
-        new(SettingKeys.SemanticHighlighting, "Semantic highlighting", Editor, true)
+        new(SettingKeys.SemanticHighlighting, Strings.WorkspaceSemanticHighlighting, Editor, true)
         {
-            Description = "Color names by what they mean, such as parameters and types, where the language offers it. When it is off, only the grammar colors the text.",
+            Description = Strings.WorkspaceSemanticHighlightingDescription,
         },
-        new(SettingKeys.DisabledKeyHooks, "Plugins without keyboard hooks", Editor, "")
+        new(SettingKeys.DisabledKeyHooks, Strings.WorkspacePluginsWithoutKeyboardHooks, Editor, "")
         {
-            Description = "The ids of plugins, separated by commas, whose keyboard hooks are turned off, so they no longer see the keys you press in the editor.",
+            Description = Strings.WorkspacePluginsWithoutKeyboardHooksDescription,
         },
 
-        new(SettingKeys.AutoSave, "Auto save", Files, "off")
+        new(SettingKeys.AutoSave, Strings.WorkspaceAutoSave, Files, "off")
         {
-            Description = "Save changed files by themselves: never, a second after you stop typing, or when the editor loses focus.",
+            Description = Strings.WorkspaceAutoSaveDescription,
             Choices = ["off", "afterDelay", "onFocusChange"],
+            ChoiceTitles = [Strings.WorkspaceChoiceOff, Strings.WorkspaceChoiceAfterDelay, Strings.WorkspaceChoiceOnFocusChange],
         },
-        new(SettingKeys.TrimTrailingWhitespace, "Trim trailing whitespace", Files, false) { Description = "Remove spaces and tabs at the ends of lines when saving." },
-        new(SettingKeys.InsertFinalNewline, "Insert a final newline", Files, true) { Description = "End the file with a line break when saving." },
-        new(SettingKeys.DefaultLineEnding, "Line ending of new files", Files, "auto")
+        new(SettingKeys.TrimTrailingWhitespace, Strings.WorkspaceTrimTrailingWhitespace, Files, false) { Description = Strings.WorkspaceTrimTrailingWhitespaceDescription },
+        new(SettingKeys.InsertFinalNewline, Strings.WorkspaceInsertAFinalNewline, Files, true) { Description = Strings.WorkspaceInsertAFinalNewlineDescription },
+        new(SettingKeys.DefaultLineEnding, Strings.WorkspaceLineEndingOfNewFiles, Files, "auto")
         {
-            Description = "The line ending of new files, and of files without line breaks: the system's own, LF or CRLF.",
+            Description = Strings.WorkspaceLineEndingOfNewFilesDescription,
             Choices = ["auto", "lf", "crlf"],
+            ChoiceTitles = [Strings.WorkspaceChoiceAuto, Strings.WorkspaceChoiceLf, Strings.WorkspaceChoiceCrlf],
         },
-        new(SettingKeys.Exclude, "Excluded files", Files, DefaultExclude)
+        new(SettingKeys.Exclude, Strings.WorkspaceExcludedFiles, Files, DefaultExclude)
         {
-            Description = "Globs, separated by semicolons, of files and folders that the Explorer, Quick Open and search leave out.",
+            Description = Strings.WorkspaceExcludedFilesDescription,
         },
 
-        new(SettingKeys.RestoreSession, "Restore the session", Window, true) { Description = "Open the last folder and its files again when Runesmith starts." },
+        new(SettingKeys.RestoreSession, Strings.WorkspaceRestoreTheSession, Window, true) { Description = Strings.WorkspaceRestoreTheSessionDescription },
 
-        new(AllowLocalOverrides, "Local copies replace plugins", Plugins, false)
+        new(AllowLocalOverrides, Strings.WorkspaceLocalCopiesReplacePlugins, Plugins, false)
         {
-            Description = "Let a plugin in your plugins folder run in place of the plugin with the same id from the hub, "
+            Description = Strings.WorkspaceLocalCopiesReplacePluginsDescription
                 + "such as a build of it you work on. The local copy gets its own secrets and storage. Only your user settings can turn this on. "
                 + "Takes effect when Runesmith starts again.",
         },

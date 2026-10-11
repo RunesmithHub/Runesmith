@@ -10,11 +10,11 @@ public sealed class TestSettings : ISettingContributor
     /// <summary>Whether saving a file runs its tests, or the last run's tests when it has none.</summary>
     public const string AutoRunOnSave = "testing.autoRunOnSave";
 
-    public IEnumerable<SettingDefinition> Settings { get; } =
+    public IEnumerable<SettingDefinition> Settings =>
     [
-        new(AutoRunOnSave, "Run tests on save", "Testing", false)
+        new(AutoRunOnSave, Strings.SettingsRunTestsOnSave, "Testing", false)
         {
-            Description = "Run a file's tests when you save it. Saving a file without tests runs the last run's tests again.",
+            Description = Strings.SettingsRunTestsOnSaveDescription,
         },
     ];
 }

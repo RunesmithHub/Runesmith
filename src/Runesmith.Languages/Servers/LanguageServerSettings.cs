@@ -18,17 +18,17 @@ public sealed class LanguageServerSettings([ImportMany] IEnumerable<LanguageServ
     public IEnumerable<SettingDefinition> Settings =>
         servers.SelectMany(IEnumerable<SettingDefinition> (server) =>
         [
-            new(EnabledKey(server.Id), $"Run {server.Name}", Category, true)
+            new(EnabledKey(server.Id), Strings.LanguagesSettingRun(server.Name), Category, true)
             {
-                Description = $"Start {server.Name} for {string.Join(", ", server.LanguageIds)} files, for completion, hover, go to definition and problems.",
+                Description = Strings.LanguagesSettingRunDescription(server.Name, string.Join(", ", server.LanguageIds)),
             },
-            new(CommandKey(server.Id), $"{server.Name} command", Category, "")
+            new(CommandKey(server.Id), Strings.LanguagesSettingCommand(server.Name), Category, "")
             {
-                Description = $"The executable to run instead of {server.Command}, such as a full path. Leave empty to use {server.Command} from the PATH.",
+                Description = Strings.LanguagesSettingCommandDescription(server.Command),
             },
-        ]).Append(new SettingDefinition(Trace, "Trace language servers", Category, false)
+        ]).Append(new SettingDefinition(Trace, Strings.LanguagesSettingTrace, Category, false)
         {
-            Description = "Write every message to and from language servers to their output channels, for finding out why a server misbehaves.",
+            Description = Strings.LanguagesSettingTraceDescription,
         });
 
     /// <summary>Gets the key of the setting that turns a server on or off.</summary>

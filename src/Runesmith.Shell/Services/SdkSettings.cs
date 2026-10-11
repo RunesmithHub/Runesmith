@@ -12,7 +12,7 @@ public sealed class SdkSettings([ImportMany] IEnumerable<ISdkProvider> providers
     /// <summary>The settings category the SDKs page shows.</summary>
     public const string Category = "SDKs";
 
-    public IEnumerable<SettingDefinition> Settings { get; } =
+    public IEnumerable<SettingDefinition> Settings =>
     [
         .. providers.DistinctBy(p => p.Kind, StringComparer.Ordinal).Select(p => new SettingDefinition(SdkService.DefaultKey(p.Kind), $"Default {p.Name}", Category, "")
         {

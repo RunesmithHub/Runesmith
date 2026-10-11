@@ -225,7 +225,21 @@ internal sealed class SettingsPage : DockPanel
         || definition.Description?.Contains(query, StringComparison.OrdinalIgnoreCase) == true;
 
     // A category is a key that stays the same in every language; this is its name in the language that shows.
-    internal static string CategoryTitle(string? category) => category == LocalizationSettings.Category ? LocalizationSettings.CategoryTitle : category ?? "";
+    internal static string CategoryTitle(string? category) => category switch
+    {
+        "Appearance" => Strings.SettingsCategoryAppearance,
+        LocalizationSettings.Category => LocalizationSettings.CategoryTitle,
+        "Editor" => Strings.SettingsCategoryEditor,
+        "Files" => Strings.SettingsCategoryFiles,
+        "Window" => Strings.SettingsCategoryWindow,
+        "Languages" => Strings.SettingsCategoryLanguages,
+        "Plugins" => Strings.SettingsCategoryPlugins,
+        "SDKs" => Strings.SettingsCategorySdks,
+        "Terminal" => Strings.SettingsCategoryTerminal,
+        "Run" => Strings.SettingsCategoryRun,
+        "Testing" => Strings.SettingsCategoryTesting,
+        _ => category ?? "",
+    };
 
     private static FuncDataTemplate<string?> CategoryTemplate { get; } =
         new((category, _) => new TextBlock().Localize(TextBlock.TextProperty, () => CategoryTitle(category)), supportsRecycling: false);

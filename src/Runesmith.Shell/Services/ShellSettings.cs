@@ -36,21 +36,23 @@ public sealed class ShellSettings : ISettingContributor
     /// <summary>Whether the file's path shows under the editor's tabs; when it does not, the status bar shows it.</summary>
     public const string Breadcrumbs = "editor.breadcrumbs";
 
-    public IEnumerable<SettingDefinition> Settings { get; } =
+    public IEnumerable<SettingDefinition> Settings =>
     [
-        new(DisabledPlugins, "Turned off plugins", "Plugins", "") { Description = "The ids of the plugins Runesmith does not load, separated by semicolons." },
-        new(MenuBar, "Menus", "Window", "toolbar")
+        new(DisabledPlugins, Strings.SettingsTurnedOffPlugins, "Plugins", "") { Description = Strings.SettingsTurnedOffPluginsDescription },
+        new(MenuBar, Strings.SettingsMenus, "Window", "toolbar")
         {
-            Description = "Where the menus are: behind the menu button at the left of the toolbar, or in a menu bar of their own under it.",
+            Description = Strings.SettingsMenusDescription,
             Choices = ["toolbar", "separate"],
+            ChoiceTitles = [Strings.SettingsChoiceToolbar, Strings.SettingsChoiceSeparate],
         },
-        new(TitleBar, "Title bar", "Window", "custom")
+        new(TitleBar, Strings.SettingsTitleBar, "Window", "custom")
         {
-            Description = "Whether the toolbar is the window's title bar, with its own window buttons, or the system's title bar stays above it. Takes effect when Runesmith starts again. macOS always keeps its own.",
+            Description = Strings.SettingsTitleBarDescription,
             Choices = ["custom", "system"],
+            ChoiceTitles = [Strings.SettingsChoiceCustom, Strings.SettingsChoiceSystem],
         },
-        new(UiFontSize, "Interface font size", "Appearance", 13) { Description = "The size of the text of menus, panels and the status bar, in pixels.", Minimum = 11, Maximum = 18 },
-        new(Breadcrumbs, "Breadcrumbs", "Editor", true) { Description = "Show the file's path under the tabs. When this is off, the status bar shows it." },
+        new(UiFontSize, Strings.SettingsInterfaceFontSize, "Appearance", 13) { Description = Strings.SettingsInterfaceFontSizeDescription, Minimum = 11, Maximum = 18 },
+        new(Breadcrumbs, Strings.SettingsBreadcrumbs, "Editor", true) { Description = Strings.SettingsBreadcrumbsDescription },
     ];
 
     /// <summary>Reads the <see cref="TitleBar"/> setting; anything unknown means a custom title bar.</summary>

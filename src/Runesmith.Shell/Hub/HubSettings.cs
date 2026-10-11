@@ -32,30 +32,31 @@ public sealed class HubSettings : ISettingContributor
     /// <summary>The ids of the official plugins Runesmith no longer suggests, separated by semicolons.</summary>
     public const string DeclinedSuggestions = "plugins.hub.declinedSuggestions";
 
-    public IEnumerable<SettingDefinition> Settings { get; } =
+    public IEnumerable<SettingDefinition> Settings =>
     [
-        new(Enabled, "Use the plugin hub", Category, true)
+        new(Enabled, Strings.SettingsUseThePluginHub, Category, true)
         {
-            Description = "Turn this off to use only the plugins in your plugins folder. Takes effect when Runesmith starts again.",
+            Description = Strings.SettingsUseThePluginHubDescription,
         },
-        new(AllowedTiers, "Allowed plugins", Category, "all-with-warnings")
+        new(AllowedTiers, Strings.SettingsAllowedPlugins, Category, "all-with-warnings")
         {
-            Description = "Which plugins may be installed. Unverified plugins always ask you to confirm before they install.",
+            Description = Strings.SettingsAllowedPluginsDescription,
             Choices = ["all-with-warnings", "official-and-verified", "official-only"],
+            ChoiceTitles = [Strings.SettingsChoiceAllWithWarnings, Strings.SettingsChoiceOfficialAndVerified, Strings.SettingsChoiceOfficialOnly],
         },
-        new(AutoUpdate, "Update automatically", Category, true)
+        new(AutoUpdate, Strings.SettingsUpdateAutomatically, Category, true)
         {
-            Description = "Official and verified plugins update by themselves within their version line. Unverified plugins never do.",
+            Description = Strings.SettingsUpdateAutomaticallyDescription,
         },
-        new(CheckInterval, "Check for changes every", Category, 6) { Description = "How many hours apart Runesmith checks the plugin hub, from 1 to 24.", Minimum = 1, Maximum = 24 },
-        new(RegisterLinks, "Open runesmith:// links", Category, true)
+        new(CheckInterval, Strings.SettingsCheckForChangesEvery, Category, 6) { Description = Strings.SettingsCheckForChangesEveryDescription, Minimum = 1, Maximum = 24 },
+        new(RegisterLinks, Strings.SettingsOpenRunesmithLinks, Category, true)
         {
-            Description = "Whether Runesmith registers itself on Windows to open runesmith:// links from the hub's website. Takes effect when Runesmith starts again.",
+            Description = Strings.SettingsOpenRunesmithLinksDescription,
         },
-        new(PreReleases, "Pre-releases", Category, "") { Description = "The ids of the plugins you get pre-releases of, separated by semicolons." },
-        new(DeclinedSuggestions, "Plugins not to suggest", Category, "")
+        new(PreReleases, Strings.SettingsPreReleases, Category, "") { Description = Strings.SettingsPreReleasesDescription },
+        new(DeclinedSuggestions, Strings.SettingsPluginsNotToSuggest, Category, "")
         {
-            Description = "The ids of the official plugins Runesmith no longer suggests for the files and folders you open, separated by semicolons.",
+            Description = Strings.SettingsPluginsNotToSuggestDescription,
         },
     ];
 
