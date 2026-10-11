@@ -5,11 +5,12 @@ using Runesmith.Text;
 
 namespace Runesmith.TypingBenchmark;
 
-/// <summary>Semantic tokens and occurrence highlights for the benchmark's sample file, as a language server would give them, so the benchmark
-/// measures the editor with both at work. Other documents are left to the next provider.</summary>
+/// <summary>Semantic tokens and occurrence highlights for the benchmark's sample file, as an analyzer inside Runesmith would give them: each
+/// version of the text is read and classified once. Other documents are left to the next provider.</summary>
 [Export(typeof(ISemanticTokensProvider))]
 [Export(typeof(IDocumentHighlightProvider))]
 [Languages("csharp")]
+[Shared]
 public sealed class SampleLanguage : ISemanticTokensProvider, IDocumentHighlightProvider
 {
     private static readonly HashSet<string> Keywords =
@@ -21,11 +22,24 @@ public sealed class SampleLanguage : ISemanticTokensProvider, IDocumentHighlight
 
     private static readonly HashSet<string> Parameters = ["value", "limit", "values", "other"];
 
+    private readonly Lock gate = new();
+    private TextSnapshot? lastSnapshot;
+    private string lastText = "";
+    private List<SemanticToken>? lastTokens;
+
     public Task<IReadOnlyList<SemanticToken>?> GetSemanticTokensAsync(IDocument document, TextSnapshot snapshot, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(snapshot);
-        return Task.FromResult<IReadOnlyList<SemanticToken>?>(TypingBenchmark.IsSample(document) ? Classify(snapshot.GetText(), cancellationToken) : null);
+        if (!TypingBenchmark.IsSample(document))
+            return Task.FromResult<IReadOnlyList<SemanticToken>?>(null);
+
+        lock (gate)
+        {
+            var text = TextOf(snapshot);
+            lastTokens ??= Classify(text, cancellationToken);
+            return Task.FromResult<IReadOnlyList<SemanticToken>?>(lastTokens);
+        }
     }
 
     public Task<IReadOnlyList<DocumentHighlight>?> GetDocumentHighlightsAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken)
@@ -39,7 +53,9 @@ public sealed class SampleLanguage : ISemanticTokensProvider, IDocumentHighlight
         if (word.IsEmpty)
             return Task.FromResult<IReadOnlyList<DocumentHighlight>?>([]);
 
-        var text = snapshot.GetText();
+        string text;
+        lock (gate)
+            text = TextOf(snapshot);
         var name = text.Substring(word.Start, word.Length);
         var highlights = new List<DocumentHighlight>();
         for (var at = text.IndexOf(name, StringComparison.Ordinal); at >= 0; at = text.IndexOf(name, at + name.Length, StringComparison.Ordinal))
@@ -99,6 +115,18 @@ public sealed class SampleLanguage : ISemanticTokensProvider, IDocumentHighlight
         }
 
         return tokens;
+    }
+
+    private string TextOf(TextSnapshot snapshot)
+    {
+        if (!ReferenceEquals(snapshot, lastSnapshot))
+        {
+            lastSnapshot = snapshot;
+            lastText = snapshot.GetText();
+            lastTokens = null;
+        }
+
+        return lastText;
     }
 
     private static int LineEnd(string text, int position)
