@@ -38,6 +38,14 @@ Beyond the plugin, there is nothing to install for completion and the other lang
 | Rename | <Keys>F2</Keys> on a symbol declared in your source renames it in every file of the solution. |
 | Formatting | **Format Document** (<Keys>Shift+Alt+F</Keys>) and **Format Selection** format with the compiler's formatter, indenting with the editor's tab size and spaces or tabs. |
 | Inlay hints | The names of the parameters that literal arguments go to, such as `count:` before `1`, and the types of variables declared with `var`. Turn them off with **Inlay hints** (`editor.inlayHints`). |
+| Find references | <Keys>Shift+F12</Keys> lists every use of the symbol at the caret in the solution in the **References** panel. A use through an interface member or an override counts. |
+| Go to implementation | <Keys>Ctrl+F12</Keys> goes to the types that implement an interface or derive from a class, and to the members that implement or override a member. |
+| Occurrences | The other uses of the symbol under the caret are highlighted in the file, the ones that write it in another shade. |
+| Outline and breadcrumbs | The **Outline** panel and the breadcrumbs show the file's namespaces, types and members. <Keys>Ctrl+R</Keys> goes to one by name, and <Keys>Ctrl+Shift+R</Keys> to a type or member anywhere in the solution. |
+| Folding | Types, members, blocks, `using` directives, regions and comments of several lines fold. A line that goes on after a block, such as `} else {`, stays visible. |
+| Expand selection | <Keys>Shift+Alt+Right</Keys> grows the selection from the word to its expression, statement, block and member; <Keys>Shift+Alt+Left</Keys> shrinks it back. |
+| Call and type hierarchy | <Keys>Ctrl+Alt+H</Keys> shows who calls a method and what it calls; <Keys>Ctrl+Alt+Shift+H</Keys> shows the types above and below a type. Both are in the **Hierarchy** panel. |
+| Semantic highlighting | Names are colored by what they mean: classes, interfaces, structs and enums apart, as are parameters, locals and static members. Turn it off with **Semantic highlighting** (`editor.semanticHighlighting`). |
 
 ## C# versions
 

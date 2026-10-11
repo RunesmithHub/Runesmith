@@ -64,6 +64,14 @@ Libraries that are not downloaded yet are left out; build the project once with 
 | Hover | Rest the pointer on a name to see its signature and documentation comment, as Markdown. |
 | Go to definition | <Keys>F12</Keys>, or <Keys>Ctrl</Keys>+click a name, for declarations in the project's sources. |
 | Problems | Syntax errors, features newer than the release, and the semantic problems the analyzer is sure of, underlined as you type. |
+| Find references | <Keys>Shift+F12</Keys> lists every use of the name at the caret in the sources of the folder's projects in the **References** panel. A call through an interface method or an override counts. |
+| Go to implementation | <Keys>Ctrl+F12</Keys> goes to the types that extend or implement a type, and to the methods that override a method. |
+| Occurrences | The other uses of the name under the caret are highlighted in the file, the ones that write it in another shade. |
+| Outline and breadcrumbs | The **Outline** panel and the breadcrumbs show the file's types and members. <Keys>Ctrl+R</Keys> goes to one by name, and <Keys>Ctrl+Shift+R</Keys> to a type, method or field anywhere in the folder's sources. |
+| Folding | Types, members, blocks, imports and comments of several lines fold. A line that goes on after a block, such as `} else {`, stays visible. |
+| Expand selection | <Keys>Shift+Alt+Right</Keys> grows the selection from the word to its expression, statement, block and member; <Keys>Shift+Alt+Left</Keys> shrinks it back. |
+| Call and type hierarchy | <Keys>Ctrl+Alt+H</Keys> shows who calls a method or constructor and what it calls; <Keys>Ctrl+Alt+Shift+H</Keys> shows the types above and below a type. Both are in the **Hierarchy** panel. |
+| Semantic highlighting | Names are colored by what they mean: classes, interfaces, enums, records and annotations apart, as are fields, methods, parameters, locals and type variables. Turn it off with **Semantic highlighting** (`editor.semanticHighlighting`). |
 
 The analyzer understands imports of every kind (single types, packages, static members and `import module`), nested and local classes,
 members inherited from superclasses and interfaces, generics with their type arguments, `var`, overloads, lambdas whose parameter types
@@ -149,6 +157,9 @@ with Gradle installed, run `gradle wrapper` in the new folder, or `mvn wrapper:w
 - **Library documentation.** Hover shows documentation for your own sources. For the JDK and libraries it shows the signature only, and
   their parameters are named `arg0`, `arg1` and so on when the class files do not record the names.
 - **Definitions** go to declarations in the project's sources; the JDK and libraries have no source to go to.
+- **References, implementations and hierarchies** cover the sources of the folder's projects, not the JDK or libraries. Classes without a
+  name, such as an anonymous class, are not listed as subtypes.
+- **Problems are in English.** The analyzer's own messages are not translated by language packs yet.
 - **Type inference** covers the common cases. Where a type depends on inference the analyzer does not do, such as some chains of generic
   methods, completion offers fewer members, and no problem is reported.
 
