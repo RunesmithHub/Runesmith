@@ -7,7 +7,7 @@
   "authors": ["You"],
   "license": "MIT",
   "repository": "https://github.com/OWNER/MyLanguagePack",
-  "runesmithApi": "^0.1.2",
+  "runesmithApi": "^0.1.3",
   "projects": {
     "contracts": "MyLanguagePack.Contracts/MyLanguagePack.Contracts.csproj",
     "implementation": "MyLanguagePack/MyLanguagePack.csproj"
