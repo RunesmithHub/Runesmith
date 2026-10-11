@@ -16,5 +16,5 @@ csharp_style_namespace_declarations = file_scoped:warning
 dotnet_sort_system_directives_first = true
 csharp_prefer_braces = when_multiline:suggestion
 csharp_indent_case_contents_when_block = false
-# Text users see that is written in the code instead of a Fluent file. A suggestion until every project has moved its text.
-dotnet_diagnostic.RSL0100.severity = suggestion
+# Text users see that is written in the code instead of a Fluent file.
+dotnet_diagnostic.RSL0100.severity = warning

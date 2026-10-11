@@ -210,14 +210,17 @@ public sealed class CommandService : ICommandService, ICommandRegistry
         File.Move(temporary, UserBindingsPath, overwrite: true);
     }
 
-    private void Retitle()
+    /// <summary>Asks the contributors whose text follows the language again, and gives their commands and menus the titles they give now.</summary>
+    /// <param name="isLocalized">Whether a contributor's text follows the language; by default, whether its assembly carries translations.</param>
+    internal void Retitle(Func<ICommandContributor, bool>? isLocalized = null)
     {
+        isLocalized ??= IsLocalized;
         var fresh = new TitleCollector();
         foreach (var contributor in contributors)
         {
             try
             {
-                if (IsLocalized(contributor.Value))
+                if (isLocalized(contributor.Value))
                     contributor.Value.Contribute(fresh);
             }
             catch (Exception)
