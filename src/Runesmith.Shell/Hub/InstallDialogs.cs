@@ -28,7 +28,7 @@ internal static class InstallDialogs
     public static Dialog PlanDialog(InstallPlanModel model, HubClient client, out Button install)
     {
         install = new Button { Content = model.ActionText, Classes = { "accent" }, MinWidth = 84, IsDefault = false, IsEnabled = model.CanInstall };
-        var cancel = new Button { Content = "Cancel", IsCancel = true, MinWidth = 84 };
+        var cancel = new Button { Content = Strings.PluginsCancel, IsCancel = true, MinWidth = 84 };
         var body = new StackPanel { Spacing = 4 };
         body.Children.Add(new TextBlock { Text = model.Summary, Classes = { "secondary" }, Margin = new Thickness(0, 0, 0, 4) });
         var rows = new StackPanel();
@@ -49,15 +49,14 @@ internal static class InstallDialogs
 
         if (model.Capabilities.Count > 0)
         {
-            body.Children.Add(new TextBlock { Text = "Capabilities", FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 14, 0, 2) });
+            body.Children.Add(new TextBlock { Text = Strings.PluginsCapabilities, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 14, 0, 2) });
             foreach (var capability in model.Capabilities)
                 body.Children.Add(HubVisuals.Capability(capability, showFrom: model.Rows.Count > 1));
         }
         else if (model.Rows.Count(r => r.Kind != OperationKind.Remove) is > 0 and var added)
         {
-            var subject = added == 1 ? "this plugin works" : "these plugins work";
-            body.Children.Add(new TextBlock { Text = "Capabilities", FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 14, 0, 2) });
-            body.Children.Add(new TextBlock { Text = $"None declared: {subject} only inside the editor, through what Runesmith offers plugins.", Classes = { "secondary" }, TextWrapping = TextWrapping.Wrap });
+            body.Children.Add(new TextBlock { Text = Strings.PluginsCapabilities, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 14, 0, 2) });
+            body.Children.Add(new TextBlock { Text = Strings.PluginsNoCapabilities(added), Classes = { "secondary" }, TextWrapping = TextWrapping.Wrap });
         }
 
         var checkboxes = new List<CheckBox>();
@@ -89,12 +88,12 @@ internal static class InstallDialogs
     /// <summary>The progress of an install, in the steps the transaction takes.</summary>
     public sealed class Progress
     {
-        private static readonly (InstallStep Step, string Text)[] Steps =
+        private static readonly (InstallStep Step, Func<string> Text)[] Steps =
         [
-            (InstallStep.Downloading, "Downloading the packages, within the sizes their records state"),
-            (InstallStep.Verifying, "Checking each package against the hub's signed records"),
-            (InstallStep.Unpacking, "Unpacking safely into a staging folder and checking each manifest"),
-            (InstallStep.Committing, "Switching the installed plugins in one step"),
+            (InstallStep.Downloading, () => Strings.PluginsStepDownloading),
+            (InstallStep.Verifying, () => Strings.PluginsStepVerifying),
+            (InstallStep.Unpacking, () => Strings.PluginsStepUnpacking),
+            (InstallStep.Committing, () => Strings.PluginsStepCommitting),
         ];
 
         private readonly List<(SymbolIcon Icon, TextBlock Text)> lines = [];
@@ -110,7 +109,7 @@ internal static class InstallDialogs
             foreach (var (_, text) in Steps)
             {
                 var icon = HubVisuals.Symbol("clock", 15, "TextMutedBrush");
-                var label = new TextBlock { Text = text, Classes = { "secondary" }, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
+                var label = new TextBlock { Text = text(), Classes = { "secondary" }, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
                 lines.Add((icon, label));
                 list.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { icon, label } });
             }
@@ -122,7 +121,7 @@ internal static class InstallDialogs
                 ShowCloseButton = false,
                 Content = new StackPanel
                 {
-                    Children = { bar, list, current, new TextBlock { Text = "If anything fails, nothing changes.", Classes = { "caption" }, Margin = new Thickness(0, 10, 0, 0) } },
+                    Children = { bar, list, current, new TextBlock { Text = Strings.PluginsAllOrNothing, Classes = { "caption" }, Margin = new Thickness(0, 10, 0, 0) } },
                 },
             };
         }
@@ -150,7 +149,7 @@ internal static class InstallDialogs
                 HubVisuals.Themed(lines[i].Text, TextBlock.ForegroundProperty, done || i == reached ? "TextPrimaryBrush" : "TextSecondaryBrush");
             }
 
-            current.Text = progress.Plugin is { } name ? progress.Step == InstallStep.Downloading ? $"Downloading {name}" : $"Unpacking {name}" : "";
+            current.Text = progress.Plugin is { } name ? progress.Step == InstallStep.Downloading ? Strings.PluginsDownloading(name) : Strings.PluginsUnpacking(name) : "";
         }
 
         public void Close() => Dialog.Close();
@@ -159,11 +158,11 @@ internal static class InstallDialogs
     /// <summary>Says that the changes take effect after a restart, and offers to restart now.</summary>
     public static Task RestartAsync(IDialogService dialogs, string message, bool canRestart, Action restart)
     {
-        var later = new Button { Content = "Later", IsCancel = true, MinWidth = 84 };
-        var now = new Button { Content = "Restart now", Classes = { "accent" }, IsDefault = true, MinWidth = 84, IsVisible = canRestart };
+        var later = new Button { Content = Strings.PluginsLater, IsCancel = true, MinWidth = 84 };
+        var now = new Button { Content = Strings.PluginsRestartNow, Classes = { "accent" }, IsDefault = true, MinWidth = 84, IsVisible = canRestart };
         var dialog = new Dialog
         {
-            Header = "Restart to finish",
+            Header = Strings.PluginsRestartToFinish,
             Width = 460,
             ShowCloseButton = false,
             Content = new StackPanel
@@ -190,14 +189,14 @@ internal static class InstallDialogs
     /// <summary>Explains why no plan exists, with every step of the reasoning behind a toggle.</summary>
     public static Task FailureAsync(IDialogService dialogs, string title, ResolutionFailure failure)
     {
-        var close = new Button { Content = "Close", Classes = { "accent" }, IsDefault = true, IsCancel = true, MinWidth = 84 };
+        var close = new Button { Content = Strings.PluginsClose, Classes = { "accent" }, IsDefault = true, IsCancel = true, MinWidth = 84 };
         var body = new StackPanel { Spacing = 10, Children = { new SelectableTextBlock { Text = failure.Message, TextWrapping = TextWrapping.Wrap } } };
         if (failure.Derivation.Count > 1)
         {
             var steps = new StackPanel { Spacing = 4, Margin = new Thickness(0, 6, 0, 0) };
             foreach (var step in failure.Derivation)
                 steps.Children.Add(new SelectableTextBlock { Text = step, TextWrapping = TextWrapping.Wrap, Classes = { "secondary" } });
-            body.Children.Add(new Expander { Header = "How Runesmith worked this out", Content = steps, HorizontalAlignment = HorizontalAlignment.Stretch });
+            body.Children.Add(new Expander { Header = Strings.PluginsDerivation, Content = steps, HorizontalAlignment = HorizontalAlignment.Stretch });
         }
 
         var dialog = new Dialog { Header = title, Width = 560, ShowCloseButton = false, Content = body, Footer = close };
@@ -216,15 +215,15 @@ internal static class InstallDialogs
         {
             var text = notice.Message ?? "";
             if (notice.Dependents.Count > 0)
-                text += $" {string.Join(", ", notice.Dependents)} {(notice.Dependents.Count == 1 ? "needs" : "need")} it and {(notice.Dependents.Count == 1 ? "stops" : "stop")} with it.";
+                text += " " + Strings.PluginsBlockedDependents(dependents: string.Join(Strings.PluginsListSeparator, notice.Dependents), count: notice.Dependents.Count);
             body.Children.Add(HubVisuals.Notice(PageNoticeKind.Danger, notice.Title, text.Trim()));
         }
 
-        var button = new Button { Content = canRestart ? "Restart now" : "OK", Classes = { "danger" }, IsDefault = true, MinWidth = 100 };
+        var button = new Button { Content = canRestart ? Strings.PluginsRestartNow : Strings.PluginsOk, Classes = { "danger" }, IsDefault = true, MinWidth = 100 };
         var dialog = new Dialog
         {
-            Header = notices.Count == 1 ? $"{notices[0].Name} was turned off" : "Plugins were turned off",
-            Description = "Runesmith restarts to stop it. Plugins that depend on it stop with it.",
+            Header = notices.Count == 1 ? Strings.PluginsBlockedOne(notices[0].Name) : Strings.PluginsBlockedMany,
+            Description = Strings.PluginsBlockedDescription,
             Width = 540,
             ShowCloseButton = false,
             Content = body,
@@ -264,19 +263,19 @@ internal static class InstallDialogs
         {
             Orientation = Orientation.Horizontal,
             Spacing = 8,
-            Children = { HubVisuals.Symbol("AlertTriangle", 16, "WarningBrush"), new TextBlock { Text = $"{warning.Name} is unverified", FontWeight = FontWeight.SemiBold } },
+            Children = { HubVisuals.Symbol("AlertTriangle", 16, "WarningBrush"), new TextBlock { Text = Strings.PluginsUnverified(warning.Name), FontWeight = FontWeight.SemiBold } },
         });
         content.Children.Add(new TextBlock { Text = warning.Text, TextWrapping = TextWrapping.Wrap });
         if (warning.Capabilities.Count == 0)
-            content.Children.Add(new TextBlock { Text = "Capabilities: none declared.", Classes = { "secondary" } });
+            content.Children.Add(new TextBlock { Text = Strings.PluginsNoCapabilitiesShort, Classes = { "secondary" } });
         foreach (var capability in warning.Capabilities)
             content.Children.Add(HubVisuals.Capability(capability, showFrom: false));
 
         var links = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
         if (warning.Repository is { } repository)
-            links.Children.Add(Link("Source repository", repository));
+            links.Children.Add(Link(Strings.PluginsSourceRepository, repository));
         if (warning.Analysis is { } analysis)
-            links.Children.Add(Link("Build and analysis", analysis));
+            links.Children.Add(Link(Strings.PluginsBuildAnalysis, analysis));
         if (links.Children.Count > 0)
             content.Children.Add(links);
         content.Children.Add(acknowledge);

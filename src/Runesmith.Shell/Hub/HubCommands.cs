@@ -16,14 +16,14 @@ public sealed class HubCommands(Lazy<HubService> hub) : ICommandContributor
     public void Contribute(ICommandRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(registry);
-        registry.Add(new CommandDefinition(ShowPlugins, "Plugins", "Plugins") { Icon = "puzzle", Description = "Show the plugin manager: installed plugins, updates and the plugin hub." },
+        registry.Add(new CommandDefinition(ShowPlugins, Strings.PluginsShow, Strings.PluginsCategory) { Icon = "puzzle", Description = Strings.PluginsShowDescription },
             _ => Run(() => hub.Value.Show(PluginManagerTab.Installed)));
-        registry.Add(new CommandDefinition(ShowUpdates, "Plugin Updates", "Plugins") { Icon = "refresh" }, _ => Run(() => hub.Value.Show(PluginManagerTab.Updates)));
-        registry.Add(new CommandDefinition(CheckHub, "Check the Plugin Hub", "Plugins") { Icon = "refresh", Description = "Check the plugin hub for updates and changes to your plugins now." },
+        registry.Add(new CommandDefinition(ShowUpdates, Strings.PluginsShowUpdates, Strings.PluginsCategory) { Icon = "refresh" }, _ => Run(() => hub.Value.Show(PluginManagerTab.Updates)));
+        registry.Add(new CommandDefinition(CheckHub, Strings.PluginsCheckHub, Strings.PluginsCategory) { Icon = "refresh", Description = Strings.PluginsCheckHubDescription },
             _ => hub.Value.RefreshAsync());
-        registry.Add(new CommandDefinition(RestartInSafeMode, "Restart in Safe Mode", "Help")
+        registry.Add(new CommandDefinition(RestartInSafeMode, Strings.PluginsRestartSafeMode, Strings.PluginsCategoryHelp)
         {
-            Description = "Start Runesmith again without plugins, to find a plugin that causes problems.",
+            Description = Strings.PluginsRestartSafeModeDescription,
         }, _ => Run(() => hub.Value.Restart(safeMode: true)));
         registry.AddMenuItem(new MenuItemDefinition(Menus.Tools, ShowPlugins, "1-plugins", 0));
         registry.AddMenuItem(new MenuItemDefinition(Menus.Help, RestartInSafeMode, "2-docs", 100));

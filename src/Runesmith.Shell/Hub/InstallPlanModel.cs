@@ -1,4 +1,3 @@
-using System.Globalization;
 using Runesmith.Hub;
 using RunesmithHub.Protocol.Index;
 using RunesmithHub.Protocol.Resolution;
@@ -30,10 +29,9 @@ public sealed class UnverifiedWarning(string id, string name, string publisher, 
 
     public string Publisher { get; } = publisher;
 
-    public string Text { get; } =
-        $"{name} hasn't been reviewed by Runesmith. Its code was checked automatically, but no person has read it. Plugins can access everything you can: your files, your projects and your accounts. Install it only if you trust {publisher}.";
+    public string Text { get; } = Strings.PluginsUnverifiedWarning(name, publisher);
 
-    public string Acknowledgement { get; } = $"I understand that {name} is unverified and I trust its publisher.";
+    public string Acknowledgement { get; } = Strings.PluginsUnverifiedAcknowledgement(name);
 
     public IReadOnlyList<CapabilityRow> Capabilities { get; } = capabilities;
 
@@ -70,7 +68,7 @@ public sealed class InstallPlanModel
             var change = operation.Kind switch
             {
                 OperationKind.Remove => operation.From?.ToString() ?? "",
-                _ when operation.From is { } from => $"{from} to {operation.To}",
+                _ when operation.From is { } from => Strings.PluginsVersionChange(from.ToString(), operation.To?.ToString() ?? ""),
                 _ => operation.To?.ToString() ?? "",
             };
             var size = operation.Record?.Package is { } package ? $" · {Size(package.Length)}" : "";
@@ -102,19 +100,19 @@ public sealed class InstallPlanModel
         var requested = changes.Where(op => op.Reason == OperationReason.Requested).ToList();
         Title = requested switch
         {
-            [{ Kind: OperationKind.Remove } only] => $"Remove {only.Name}",
-            [{ Kind: OperationKind.Update } only] => $"Update {only.Name}",
-            [{ Kind: OperationKind.Downgrade } only] => $"Change {only.Name} to {only.To}",
-            [var only] => $"Install {only.Name}",
-            _ when changes.All(op => op.Kind == OperationKind.Update) => "Update plugins",
-            _ => "Change plugins",
+            [{ Kind: OperationKind.Remove } only] => Strings.PluginsPlanRemove(only.Name),
+            [{ Kind: OperationKind.Update } only] => Strings.PluginsPlanUpdate(only.Name),
+            [{ Kind: OperationKind.Downgrade } only] => Strings.PluginsPlanDowngrade(only.Name, only.To?.ToString() ?? ""),
+            [var only] => Strings.PluginsPlanInstall(only.Name),
+            _ when changes.All(op => op.Kind == OperationKind.Update) => Strings.PluginsPlanUpdateMany,
+            _ => Strings.PluginsPlanChangeMany,
         };
-        Summary = changes.Count == 1 ? "This changes 1 plugin." : $"This changes {changes.Count} plugins.";
+        Summary = Strings.PluginsPlanSummary(changes.Count);
         if (changes.Count == 1 && changes[0].Record is { Review.State: ReviewState.Reviewed } reviewed)
         {
             Review = reviewed.Review.At is { } at
-                ? $"Reviewed by Runesmith on {at.ToLocalTime().ToString("d MMMM yyyy", CultureInfo.CurrentCulture)}."
-                : "Reviewed by Runesmith.";
+                ? Strings.PluginsReviewedOn(at)
+                : Strings.PluginsReviewed;
         }
     }
 
@@ -141,14 +139,14 @@ public sealed class InstallPlanModel
     public bool CanInstall => HasChanges && Warnings.All(w => w.IsAcknowledged);
 
     /// <summary>Gets the text of the button that applies the plan.</summary>
-    public string ActionText => Rows.All(r => r.Kind == OperationKind.Remove) ? "Remove" : Rows.All(r => r.Kind == OperationKind.Update) ? "Update" : "Install";
+    public string ActionText => Rows.All(r => r.Kind == OperationKind.Remove) ? Strings.PluginsActionRemove : Rows.All(r => r.Kind == OperationKind.Update) ? Strings.PluginsActionUpdate : Strings.PluginsActionInstall;
 
     /// <summary>Says how large a download is, such as "412 KB".</summary>
     public static string Size(long bytes) => bytes switch
     {
-        < 1024 => $"{bytes} B",
-        < 1024 * 1024 => string.Create(CultureInfo.CurrentCulture, $"{bytes / 1024.0:0} KB"),
-        _ => string.Create(CultureInfo.CurrentCulture, $"{bytes / 1024.0 / 1024.0:0.0} MB"),
+        < 1024 => Strings.PluginsSizeBytes(bytes),
+        < 1024 * 1024 => Strings.PluginsSizeKilobytes(bytes / 1024.0),
+        _ => Strings.PluginsSizeMegabytes(bytes / 1024.0 / 1024.0),
     };
 
     private static string What(PlanOperation operation, IReadOnlyList<PlanOperation> plan)
@@ -158,16 +156,16 @@ public sealed class InstallPlanModel
         var range = need?.Record?.Dependencies.First(d => d.Id == operation.PluginId).Range;
         return operation.Kind switch
         {
-            OperationKind.Install => need is null || operation.Reason == OperationReason.Requested ? "Install" : $"Install, needed by {need.Name}",
-            OperationKind.Update => need is null || operation.Reason == OperationReason.Requested ? "Update" : $"Update, {need.Name} needs {range}",
-            OperationKind.Downgrade => need is null ? "Downgrade" : $"Downgrade, {need.Name} needs {range}",
+            OperationKind.Install => need is null || operation.Reason == OperationReason.Requested ? Strings.PluginsWhatInstall : Strings.PluginsWhatInstallNeeded(need.Name),
+            OperationKind.Update => need is null || operation.Reason == OperationReason.Requested ? Strings.PluginsWhatUpdate : Strings.PluginsWhatUpdateNeeded(need.Name, range?.ToString() ?? ""),
+            OperationKind.Downgrade => need is null ? Strings.PluginsWhatDowngrade : Strings.PluginsWhatDowngradeNeeded(need.Name, range?.ToString() ?? ""),
             OperationKind.Remove => operation.Reason switch
             {
-                OperationReason.NoLongerNeeded => "Remove, nothing needs it anymore",
-                OperationReason.Unavailable => "Remove, no longer available",
-                _ => "Remove",
+                OperationReason.NoLongerNeeded => Strings.PluginsWhatRemoveUnneeded,
+                OperationReason.Unavailable => Strings.PluginsWhatRemoveUnavailable,
+                _ => Strings.PluginsWhatRemove,
             },
-            _ => "Keep",
+            _ => Strings.PluginsWhatKeep,
         };
     }
 }

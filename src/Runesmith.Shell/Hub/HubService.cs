@@ -116,7 +116,7 @@ public sealed class HubService
         if (!HubLink.TryParse(text, out var link, out var error))
         {
             output.GetChannel(Channel).AppendLine($"Refused a link: {error}");
-            notifications.Notify(NotificationKind.Warning, "Runesmith refused a link", error);
+            notifications.Notify(NotificationKind.Warning, Strings.PluginsLinkRefused, error);
             return;
         }
 
@@ -159,22 +159,22 @@ public sealed class HubService
             disabled.Add(id);
         settings.Set(ShellSettings.DisabledPlugins, string.Join(';', disabled.Order(StringComparer.Ordinal)));
         if (!Model.IsLanguagePack(id))
-            PromptRestart($"{name} is turned {(enabled ? "on" : "off")} from the next start.");
+            PromptRestart(enabled ? Strings.PluginsTurnedOn(name) : Strings.PluginsTurnedOff(name));
         Model.Refresh();
     }
 
     /// <summary>Resolves installing a plugin and walks the user through the plan.</summary>
-    public Task InstallAsync(string id, SemanticVersion? version) => ResolveAndReviewAsync(ResolutionRequest.Install(id, version), $"{Name(id)} can't be installed");
+    public Task InstallAsync(string id, SemanticVersion? version) => ResolveAndReviewAsync(ResolutionRequest.Install(id, version), Strings.PluginsInstallFailed(Name(id)));
 
     public Task UpdateAsync(UpdateCandidate update)
     {
         ArgumentNullException.ThrowIfNull(update);
-        return update.Result.Succeeded ? ReviewAsync(update.Result.Plan) : ShowFailureAsync($"{update.Name} can't be updated", update.Result.Failure!);
+        return update.Result.Succeeded ? ReviewAsync(update.Result.Plan) : ShowFailureAsync(Strings.PluginsUpdateFailed(update.Name), update.Result.Failure!);
     }
 
-    public Task UpdateAllAsync() => ResolveAndReviewAsync(ResolutionRequest.UpdateAll(), "The plugins can't be updated");
+    public Task UpdateAllAsync() => ResolveAndReviewAsync(ResolutionRequest.UpdateAll(), Strings.PluginsUpdateAllFailed);
 
-    public Task UninstallAsync(string id) => ResolveAndReviewAsync(ResolutionRequest.Remove(id), $"{Name(id)} can't be removed");
+    public Task UninstallAsync(string id) => ResolveAndReviewAsync(ResolutionRequest.Remove(id), Strings.PluginsRemoveFailed(Name(id)));
 
     /// <summary>Removes a blocked plugin's dependents and forgets the blocked plugin, whose files are in quarantine already.</summary>
     public async Task RemoveBlockedAsync(PluginNotice notice)
@@ -196,7 +196,7 @@ public sealed class HubService
         if (Client.ReinstallPlan(id) is { } plan)
             await ReviewAsync(plan);
         else
-            await ShowMessageAsync($"{Name(id)} can't be reinstalled", Client.Status.CanInstall ? "The hub no longer offers its version." : Client.Status.Describe());
+            await ShowMessageAsync(Strings.PluginsReinstallFailed(Name(id)), Client.Status.CanInstall ? Strings.PluginsReinstallUnavailable : Client.Status.Describe());
     }
 
     /// <summary>Shows a plan and, when the user confirms it, applies it with progress and offers to restart.</summary>
@@ -218,12 +218,12 @@ public sealed class HubService
         if (restart.CanRestart)
             restart.Restart(safeMode);
         else
-            notifications.Notify(NotificationKind.Info, "Restart Runesmith", "Close Runesmith and start it again to apply the changes.");
+            notifications.Notify(NotificationKind.Info, Strings.PluginsRestartTitle, Strings.PluginsRestartManually);
     }
 
     /// <summary>Offers to restart, for changes that take effect at the next start.</summary>
     public void PromptRestart(string message) =>
-        notifications.Notify(NotificationKind.Info, "Restart to apply", message, restart.CanRestart ? "Restart now" : null, restart.CanRestart ? () => Restart() : null);
+        notifications.Notify(NotificationKind.Info, Strings.PluginsRestartToApply, message, restart.CanRestart ? Strings.PluginsRestartNow : null, restart.CanRestart ? () => Restart() : null);
 
     private async Task ResolveAndReviewAsync(ResolutionRequest request, string failureTitle)
     {
@@ -249,7 +249,7 @@ public sealed class HubService
         {
             output.GetChannel(Channel).AppendLine($"{model.Title} failed: {exception.Message} {exception.Detail ?? exception.InnerException?.Message}");
             progress.Close();
-            await ShowMessageAsync($"{model.Title} failed", exception.Message);
+            await ShowMessageAsync(Strings.PluginsApplyFailed(model.Title), exception.Message);
             return false;
         }
 
@@ -264,13 +264,13 @@ public sealed class HubService
         }
 
         output.GetChannel(Channel).AppendLine($"{model.Title}: {string.Join(", ", model.Rows.Select(r => $"{r.Name} {r.Change}"))}. Takes effect at the next start.");
-        await InstallDialogs.RestartAsync(notifications.Dialogs, model.Rows.All(r => r.Kind == OperationKind.Remove) ? $"{names} {(model.Rows.Count == 1 ? "is" : "are")} removed when Runesmith restarts." : $"{names} {(model.Rows.Count == 1 ? "takes" : "take")} effect after a restart.", restart.CanRestart, () => Restart());
+        await InstallDialogs.RestartAsync(notifications.Dialogs, model.Rows.All(r => r.Kind == OperationKind.Remove) ? Strings.PluginsRemovedAtRestart(names: names, count: model.Rows.Count) : Strings.PluginsTakeEffect(names: names, count: model.Rows.Count), restart.CanRestart, () => Restart());
         return true;
     }
 
     private Task ShowFailureAsync(string title, ResolutionFailure failure) => InstallDialogs.FailureAsync(notifications.Dialogs, title, failure);
 
-    private Task<object?> ShowMessageAsync(string title, string message) => notifications.Dialogs.ShowMessageAsync(title, message, [new HammerUI.Services.MessageDialogButton("OK", null, IsDefault: true, IsCancel: true)]);
+    private Task<object?> ShowMessageAsync(string title, string message) => notifications.Dialogs.ShowMessageAsync(title, message, [new HammerUI.Services.MessageDialogButton(Strings.PluginsOk, null, IsDefault: true, IsCancel: true)]);
 
     private async Task RefreshCoreAsync()
     {
@@ -296,7 +296,7 @@ public sealed class HubService
     {
         var status = Client.Status;
         if (status.Kind is HubStatusKind.Unverifiable or HubStatusKind.RunesmithTooOld && announced.Add("status:" + status.Kind))
-            notifications.Notify(NotificationKind.Warning, "Plugin safety can't be confirmed", status.Describe(), "Show plugins", () => Show(PluginManagerTab.Installed));
+            notifications.Notify(NotificationKind.Warning, Strings.PluginsSafetyUnconfirmed, status.Describe(), Strings.PluginsShowPlugins, () => Show(PluginManagerTab.Installed));
 
         var loaded = runtime.Plugins.Where(p => p.State == PluginState.Loaded).Select(p => p.Manifest.Id).ToHashSet(StringComparer.Ordinal);
         var blocked = Client.Blocked().Where(p => loaded.Contains(p.Id) && announced.Add("blocked:" + p.Id + "@" + p.Version)).ToList();
@@ -325,15 +325,15 @@ public sealed class HubService
         if (applied.Count > 0)
         {
             output.GetChannel(Channel).AppendLine($"Updated by themselves: {string.Join(", ", applied)}.");
-            notifications.Notify(NotificationKind.Success, "Plugins updated", $"{Names(applied)} {(applied.Count == 1 ? "takes" : "take")} effect after a restart.",
-                restart.CanRestart ? "Restart now" : null, restart.CanRestart ? () => Restart() : null);
+            notifications.Notify(NotificationKind.Success, Strings.PluginsAutoUpdated, Strings.PluginsTakeEffect(names: Names(applied), count: applied.Count),
+                restart.CanRestart ? Strings.PluginsRestartNow : null, restart.CanRestart ? () => Restart() : null);
         }
 
         var waiting = updates.Where(u => u.Kind != UpdateKind.Automatic && announced.Add($"update:{u.PluginId}@{u.To.Version}")).ToList();
         if (waiting.Count > 0)
         {
-            notifications.Notify(NotificationKind.Info, waiting.Count == 1 ? $"An update for {waiting[0].Name} is available" : $"{waiting.Count} plugin updates are available",
-                "Unverified plugins and updates that change what a plugin may do wait for you.", "Show updates", () => Show(PluginManagerTab.Updates));
+            notifications.Notify(NotificationKind.Info, waiting.Count == 1 ? Strings.PluginsUpdateAvailable(waiting[0].Name) : Strings.PluginsUpdatesAvailable(waiting.Count),
+                Strings.PluginsUpdatesWaiting, Strings.PluginsShowUpdatesButton, () => Show(PluginManagerTab.Updates));
         }
     }
 
@@ -347,12 +347,12 @@ public sealed class HubService
             channel.AppendLine($"{id} is off because its files changed: {string.Join(" ", files)}");
         if (report.ChangedFiles.Count > 0 || report.Quarantined.Count > 0)
         {
-            notifications.Notify(NotificationKind.Error, report.Quarantined.Count > 0 ? "A plugin was disabled because Runesmith found it harmful" : "A plugin's files changed",
-                "The plugin manager says which, and what to do.", "Show plugins", () => Show(PluginManagerTab.Installed));
+            notifications.Notify(NotificationKind.Error, report.Quarantined.Count > 0 ? Strings.PluginsQuarantined : Strings.PluginsFilesChanged,
+                Strings.PluginsSeeManager, Strings.PluginsShowPlugins, () => Show(PluginManagerTab.Installed));
         }
 
         foreach (var (kind, title, message) in PluginManagerModel.LocalCopyNotices(runtime.Plugins))
-            notifications.Notify(kind, title, message, "Show plugins", () => Show(PluginManagerTab.Installed));
+            notifications.Notify(kind, title, message, Strings.PluginsShowPlugins, () => Show(PluginManagerTab.Installed));
     }
 
     private void OnSettingChanged(string key)
@@ -361,7 +361,7 @@ public sealed class HubService
         {
             case HubSettings.Enabled:
                 Client.SetEnabled(settings.Get<bool>(HubSettings.Enabled));
-                PromptRestart(settings.Get<bool>(HubSettings.Enabled) ? "Plugins from the hub load from the next start." : "Plugins from the hub stop loading from the next start.");
+                PromptRestart(settings.Get<bool>(HubSettings.Enabled) ? Strings.PluginsHubOn : Strings.PluginsHubOff);
                 if (settings.Get<bool>(HubSettings.Enabled))
                     _ = RefreshAsync();
                 break;
@@ -370,8 +370,8 @@ public sealed class HubService
                 break;
             case CoreSettings.AllowLocalOverrides:
                 PromptRestart(settings.Get<bool>(CoreSettings.AllowLocalOverrides)
-                    ? "Local copies of plugins run in place of the installed ones from the next start."
-                    : "Local copies of installed plugins stop loading from the next start.");
+                    ? Strings.PluginsLocalOverridesOn
+                    : Strings.PluginsLocalOverridesOff);
                 break;
             case HubSettings.AllowedTiers or HubSettings.PreReleases or ShellSettings.DisabledPlugins:
                 Model.Refresh();
@@ -385,7 +385,7 @@ public sealed class HubService
     {
         0 => "",
         1 => names[0],
-        _ => string.Join(", ", names.Take(names.Count - 1)) + " and " + names[^1],
+        _ => Strings.PluginsListAnd(string.Join(Strings.PluginsListSeparator, names.Take(names.Count - 1)), names[^1]),
     };
 
     private static string? Platform() =>

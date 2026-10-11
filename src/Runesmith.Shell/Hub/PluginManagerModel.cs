@@ -171,9 +171,9 @@ public sealed class PluginManagerModel
             var listing = catalog?.FindPlugin(hub.Id);
             var version = SemanticVersion.TryParse(hub.Version, out var installed) ? listing?.FindVersion(installed) : null;
             var pack = version?.LanguagePack is { } declared ? new PluginLanguagePack(declared.Language, declared.Name, declared.EnglishName) : null;
-            var note = IsSafeMode && !state.IsPending(hub.Id) ? "Off in safe mode, which loads no plugins."
+            var note = IsSafeMode && !state.IsPending(hub.Id) ? Strings.PluginsNoteSafeMode
                 : pack is not null ? Strings.LocalizationPackInstalled
-                : "Installed. Restart Runesmith to start it.";
+                : Strings.PluginsNoteInstalled;
             rows.Add(new InstalledRow(hub.Id, listing?.Name ?? hub.Id, hub.Version, Enum.TryParse<PluginTier>(hub.Tier, true, out var tier) ? tier : null, InstalledSource.Hub, note,
                 IsProblem: false, IsEnabled: !off.Contains(hub.Id), CanToggle: true)
             {
@@ -186,7 +186,7 @@ public sealed class PluginManagerModel
         foreach (var entry in state.Quarantined.Where(q => state.Find(q.Id) is null && !shown.Contains(q.Id)))
         {
             rows.Add(new InstalledRow(entry.Id, entry.Name, entry.Version, catalog?.FindPlugin(entry.Id)?.Tier, InstalledSource.Hub,
-                "Moved to quarantine. It can't be turned back on.", IsProblem: true, IsEnabled: false, CanToggle: false)
+                Strings.PluginsNoteQuarantined, IsProblem: true, IsEnabled: false, CanToggle: false)
             { Badge = NoticeKind.Quarantined });
         }
 
@@ -251,8 +251,8 @@ public sealed class PluginManagerModel
         var running = plugins().FirstOrDefault(p => p.Manifest.Id == target.PluginId && IsRunningCopy(p));
         var problem = running?.State switch
         {
-            PluginState.Failed => $"It could not load: {running.Error}",
-            PluginState.Disabled => running.Error ?? "It is turned off.",
+            PluginState.Failed => Strings.PluginsProblemCouldNotLoad(running.Error ?? ""),
+            PluginState.Disabled => running.Error ?? Strings.PluginsProblemTurnedOff,
             _ => null,
         };
         return PluginPageModel.Create(client, target, preferences(), running?.Manifest.Version) with
@@ -271,17 +271,16 @@ public sealed class PluginManagerModel
         if (replacing.Count > 0)
         {
             notices.Add((NotificationKind.Warning,
-                replacing.Count == 1 ? $"A local copy of {replacing[0]} is running" : $"{replacing.Count} local copies of plugins are running",
-                $"{Names(replacing)} from your plugins folder {(replacing.Count == 1 ? "runs" : "run")} in place of the installed {(replacing.Count == 1 ? "plugin" : "plugins")}, with "
-                + $"{(replacing.Count == 1 ? "its" : "their")} own secrets and storage. Turn off {CoreSettings.AllowLocalOverrides} in Settings to stop this."));
+                replacing.Count == 1 ? Strings.PluginsLocalCopyRunning(replacing[0]) : Strings.PluginsLocalCopiesRunning(replacing.Count),
+                Strings.PluginsLocalCopiesRunningDetail(names: Names(replacing), count: replacing.Count, setting: CoreSettings.AllowLocalOverrides)));
         }
 
         var refused = plugins.Where(p => p.State == PluginState.Refused).Select(p => p.Manifest.Name).Distinct(StringComparer.Ordinal).ToList();
         if (refused.Count > 0)
         {
             notices.Add((NotificationKind.Warning,
-                refused.Count == 1 ? $"A local copy of {refused[0]} was not loaded" : $"{refused.Count} local copies of plugins were not loaded",
-                $"Your plugins folder has a copy of {Names(refused)}, which the hub installed. The plugin manager says how to run it."));
+                refused.Count == 1 ? Strings.PluginsLocalCopyRefused(refused[0]) : Strings.PluginsLocalCopiesRefused(refused.Count),
+                Strings.PluginsLocalCopiesRefusedDetail(Names(refused))));
         }
 
         return notices;
@@ -302,12 +301,11 @@ public sealed class PluginManagerModel
         }
 
         var replaced = all.FirstOrDefault(p => p.Manifest.Id == id && p.State == PluginState.Replaced && p.Source == PluginSource.Hub);
-        var instead = replaced is null ? "the installed plugin" : $"version {replaced.Manifest.Version} from the hub";
         var (note, problem) = plugin.State switch
         {
-            PluginState.Failed => ($"Could not load: {plugin.Error}", true),
-            PluginState.Disabled => ("Turned off.", false),
-            _ => ($"Local copy, running in place of {instead}. It has its own secrets and storage, so sign in to it again.", false),
+            PluginState.Failed => (Strings.PluginsNoteCouldNotLoad(plugin.Error ?? ""), true),
+            PluginState.Disabled => (Strings.PluginsNoteTurnedOff, false),
+            _ => (replaced is null ? Strings.PluginsNoteLocalCopy : Strings.PluginsNoteLocalCopyOfVersion(replaced.Manifest.Version), false),
         };
         return new InstalledRow(id, plugin.Manifest.Name, plugin.Manifest.Version, null, InstalledSource.Local, note, problem, !off.Contains(id), CanToggle: true)
         {
@@ -319,7 +317,7 @@ public sealed class PluginManagerModel
     private static string Names(List<string> names) => names.Count switch
     {
         1 => names[0],
-        _ => string.Join(", ", names.Take(names.Count - 1)) + " and " + names[^1],
+        _ => Strings.PluginsListAnd(string.Join(Strings.PluginsListSeparator, names.Take(names.Count - 1)), names[^1]),
     };
 
     private static NoticeKind? Badge(RunesmithHub.Protocol.Catalog.HubCatalog catalog, InstalledHubPlugin hub) => Moderation.StateOf(catalog, hub)?.State switch
@@ -334,22 +332,22 @@ public sealed class PluginManagerModel
     private static (string Note, bool Problem) Note(PluginInfo plugin, InstalledHubPlugin? hub, HubState state, InstalledSource source, PluginInfo? replacedBy)
     {
         if (plugin.State == PluginState.Failed)
-            return ($"Could not load: {plugin.Error}", true);
+            return (Strings.PluginsNoteCouldNotLoad(plugin.Error ?? ""), true);
         if (source != InstalledSource.Local && replacedBy?.Error is { } fallback)
             return (fallback, true);
         if (plugin.State == PluginState.Disabled && plugin.Error is { } reason)
             return (reason, true);
         if (hub is not null && state.IsPending(hub.Id) && !plugin.Manifest.IsLanguagePack)
-            return (hub.Version == plugin.Manifest.Version ? "Restart Runesmith to finish the change." : $"Version {hub.Version} is installed. Restart Runesmith to start it.", false);
+            return (hub.Version == plugin.Manifest.Version ? Strings.PluginsNoteRestartToFinish : Strings.PluginsNoteVersionInstalled(hub.Version), false);
         if (state.Pending?.Removed.Contains(plugin.Manifest.Id) == true)
-            return ("Removed. Restart Runesmith to finish.", false);
+            return (Strings.PluginsNoteRemoved, false);
         if (plugin.State == PluginState.Disabled)
-            return ("Turned off.", false);
+            return (Strings.PluginsNoteTurnedOff, false);
 
         return source switch
         {
-            InstalledSource.Hub => (hub?.Requested == false ? "From the hub, installed because another plugin needs it." : "From the hub.", false),
-            _ => ("From your plugins folder. Never updated or reported to the hub.", false),
+            InstalledSource.Hub => (hub?.Requested == false ? Strings.PluginsNoteFromHubNeeded : Strings.PluginsNoteFromHub, false),
+            _ => (Strings.PluginsNoteFromFolder, false),
         };
     }
 }

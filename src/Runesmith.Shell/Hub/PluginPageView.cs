@@ -1,4 +1,3 @@
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -42,17 +41,17 @@ internal sealed class PluginPageView : StackPanel
         {
             Classes = { "subtle", "small" },
             HorizontalAlignment = HorizontalAlignment.Left,
-            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { new SymbolIcon { Data = HammerUI.Icons.ChevronLeft, Size = 14 }, new TextBlock { Text = $"Back to {hub.Model.Tab}" } } },
+            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { new SymbolIcon { Data = HammerUI.Icons.ChevronLeft, Size = 14 }, new TextBlock { Text = Strings.PluginsPageBack(TabName(hub.Model.Tab)) } } },
         };
         back.Click += (_, _) => hub.Model.Back();
         Children.Add(back);
 
         if (target.FromLink is { } link)
         {
-            var note = "Runesmith shows what the hub's signed records say, not what the website said.";
+            var note = Strings.PluginsPageLinkNote;
             if (target.IgnoredLinks > 0)
-                note += $" {target.IgnoredLinks} other {(target.IgnoredLinks == 1 ? "link" : "links")} that came within a minute {(target.IgnoredLinks == 1 ? "was" : "were")} ignored.";
-            Children.Add(HubVisuals.Notice(PageNoticeKind.Info, $"Opened from a link: {link}", note, icon: "Link"));
+                note += " " + Strings.PluginsPageLinksIgnored(target.IgnoredLinks);
+            Children.Add(HubVisuals.Notice(PageNoticeKind.Info, Strings.PluginsPageFromLink(link), note, icon: "Link"));
         }
 
         if (page.Record is not { } record)
@@ -65,8 +64,8 @@ internal sealed class PluginPageView : StackPanel
         Children.Add(Header(record));
         foreach (var notice in page.Notices)
         {
-            Children.Add(HubVisuals.Notice(notice.Kind, notice.Title, notice.Message, notice.Advisory is { } advisory ? [InstallDialogs.Link("Advisory", advisory)] : null,
-                icon: notice.Title.StartsWith("Unverified", StringComparison.Ordinal) ? "AlertTriangle" : null));
+            Children.Add(HubVisuals.Notice(notice.Kind, notice.Title, notice.Message, notice.Advisory is { } advisory ? [InstallDialogs.Link(Strings.PluginsAdvisory, advisory)] : null,
+                icon: notice.Icon));
         }
 
         if (page.IsInstalled)
@@ -97,7 +96,7 @@ internal sealed class PluginPageView : StackPanel
         meta.Children.Add(new TextBlock { Text = page.Publisher, VerticalAlignment = VerticalAlignment.Center });
         meta.Children.Add(HubVisuals.TierBadge(record.Tier));
         if (page.Version is { } version)
-            meta.Children.Add(new TextBlock { Text = $"Version {version.Version}", Classes = { "caption" }, VerticalAlignment = VerticalAlignment.Center });
+            meta.Children.Add(new TextBlock { Text = Strings.PluginsPageVersion(version.Version.ToString()), Classes = { "caption" }, VerticalAlignment = VerticalAlignment.Center });
         if (page.Version?.LanguagePack is { } pack)
             meta.Children.Add(HubVisuals.LanguageBadge(() => PluginTranslations.Language(pack)));
         else if (owner.Translations is { } translations && PluginManagerView.CoverageBadge(() => translations.Coverage(record, page.Version)) is { } coverage)
@@ -119,9 +118,9 @@ internal sealed class PluginPageView : StackPanel
         if (page.IsPending && page.Version?.LanguagePack is not null)
             actions.Children.Add(HubVisuals.StateBadge(Strings.LocalizationPackInstalledBadge, "Check", "SuccessBrush"));
         else if (page.IsPending)
-            actions.Children.Add(HubVisuals.StateBadge("Installed, restart to enable", "Check", "SuccessBrush"));
+            actions.Children.Add(HubVisuals.StateBadge(Strings.PluginsPagePending, "Check", "SuccessBrush"));
         else if (page.CanInstall && !page.IsSelectedInstalled)
-            actions.Children.Add(InstallButton(page.IsUpdate ? "Update" : page.IsInstalled ? $"Install {page.Version!.Version}" : "Install", opened, () => _ = hub.InstallAsync(page.PluginId, page.Version?.Version)));
+            actions.Children.Add(InstallButton(page.IsUpdate ? Strings.PluginsUpdate : page.IsInstalled ? Strings.PluginsPageInstallVersion(page.Version!.Version.ToString()) : Strings.PluginsInstall, opened, () => _ = hub.InstallAsync(page.PluginId, page.Version?.Version)));
         actions.Children.Add(ReportMenu.Create(ReportMenu.Subject(record.Id, page.InstalledVersion ?? page.Version?.Version.ToString() ?? "", record.Repository.Url, hub.Version),
             record.Name, owner.Notifications, owner.Output));
 
@@ -160,19 +159,19 @@ internal sealed class PluginPageView : StackPanel
     private Border Installed(PluginRecord record)
     {
         var state = hub.Client.State.Find(record.Id);
-        var where = page.IsFromHub ? "is installed from the hub" : "is in your plugins folder";
-        var text = new TextBlock { Text = $"Version {page.InstalledVersion} {where}.", VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
+        var installed = page.InstalledVersion ?? "";
+        var text = new TextBlock { Text = page.IsFromHub ? Strings.PluginsPageInstalledFromHub(installed) : Strings.PluginsPageInstalledLocally(installed), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
         if (page.Problem is { } problem && !page.IsPending)
             text.Text += $" {problem}";
         var enabled = !hub.Disabled().Contains(record.Id);
-        var toggle = PluginManagerView.SmallButton(enabled ? "Disable" : "Enable", () => hub.SetEnabled(record.Id, record.Name, !enabled));
+        var toggle = PluginManagerView.SmallButton(enabled ? Strings.PluginsDisable : Strings.PluginsEnable, () => hub.SetEnabled(record.Id, record.Name, !enabled));
         var row = new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { toggle } };
         if (page.IsFromHub && !page.IsPending)
-            row.Children.Add(PluginManagerView.SmallButton("Uninstall", () => _ = hub.UninstallAsync(record.Id)));
+            row.Children.Add(PluginManagerView.SmallButton(Strings.PluginsUninstall, () => _ = hub.UninstallAsync(record.Id)));
         if (state is not null && record.Tier != PluginTier.Unverified)
         {
-            var automatic = new CheckBox { Content = "Update automatically", IsChecked = state.AutoUpdate };
-            ToolTip.SetTip(automatic, "Official and verified plugins update by themselves within their line.");
+            var automatic = new CheckBox { Content = Strings.PluginsAutoUpdate, IsChecked = state.AutoUpdate };
+            ToolTip.SetTip(automatic, Strings.PluginsAutoUpdateTip);
             automatic.IsCheckedChanged += (_, _) => hub.Client.SetAutoUpdate(record.Id, automatic.IsChecked == true);
             row.Children.Add(automatic);
         }
@@ -191,7 +190,7 @@ internal sealed class PluginPageView : StackPanel
 
     private Border Review(PluginRecord record)
     {
-        var card = Card("Review");
+        var card = Card(Strings.PluginsCardReview);
         var reviewMark = HubVisuals.Symbol(page.IsReviewed ? "shield-check" : "AlertTriangle", 15, page.IsReviewed ? "SuccessBrush" : "WarningBrush");
         reviewMark.VerticalAlignment = VerticalAlignment.Top;
         reviewMark.Margin = new Thickness(0, 2, 8, 0);
@@ -199,16 +198,16 @@ internal sealed class PluginPageView : StackPanel
         card.Children.Add(new DockPanel { Children = { reviewMark, new TextBlock { Text = page.Review, TextWrapping = TextWrapping.Wrap } } });
 
         var facts = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,14,*"), Margin = new Thickness(0, 6, 0, 0) };
-        var rows = new List<(string, Control)> { ("Source", InstallDialogs.Link(record.Repository.Url.Replace("https://", "", StringComparison.Ordinal), record.Repository.Url)) };
+        var rows = new List<(string, Control)> { (Strings.PluginsFactSource, InstallDialogs.Link(record.Repository.Url.Replace("https://", "", StringComparison.Ordinal), record.Repository.Url)) };
         if (page.Version is { } version)
         {
-            rows.Add(("Built from", new SelectableTextBlock { Text = version.Commit.Length > 7 ? version.Commit[..7] : version.Commit, Classes = { "mono" }, VerticalAlignment = VerticalAlignment.Center }));
+            rows.Add((Strings.PluginsFactBuiltFrom, new SelectableTextBlock { Text = version.Commit.Length > 7 ? version.Commit[..7] : version.Commit, Classes = { "mono" }, VerticalAlignment = VerticalAlignment.Center }));
             if (version.PublishedAt is { } published)
-                rows.Add(("Published", new TextBlock { Text = published.ToLocalTime().ToString("d MMMM yyyy", CultureInfo.CurrentCulture), VerticalAlignment = VerticalAlignment.Center }));
-            rows.Add(("Runesmith API", new TextBlock { Text = version.RunesmithApi.ToString(), Classes = { "mono" }, VerticalAlignment = VerticalAlignment.Center }));
+                rows.Add((Strings.PluginsFactPublished, new TextBlock { Text = Strings.PluginsDateLong(published), VerticalAlignment = VerticalAlignment.Center }));
+            rows.Add((Strings.PluginsFactApi, new TextBlock { Text = version.RunesmithApi.ToString(), Classes = { "mono" }, VerticalAlignment = VerticalAlignment.Center }));
         }
 
-        rows.Add(("Categories", new TextBlock { Text = string.Join(", ", record.Categories), TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center }));
+        rows.Add((Strings.PluginsFactCategories, new TextBlock { Text = string.Join(Strings.PluginsListSeparator, record.Categories), TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center }));
         for (var i = 0; i < rows.Count; i++)
         {
             facts.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
@@ -249,10 +248,10 @@ internal sealed class PluginPageView : StackPanel
 
     private Border Capabilities()
     {
-        var card = Card("Capabilities");
+        var card = Card(Strings.PluginsCardCapabilities);
         var declared = page.Version?.Capabilities.Declared ?? [];
         if (declared.Count == 0)
-            card.Children.Add(new TextBlock { Text = "Declares no capabilities: it works only inside the editor, through what Runesmith offers plugins.", TextWrapping = TextWrapping.Wrap, Classes = { "secondary" } });
+            card.Children.Add(new TextBlock { Text = Strings.PluginsPageNoCapabilities, TextWrapping = TextWrapping.Wrap, Classes = { "secondary" } });
         foreach (var capability in declared)
         {
             var label = hub.Client.CapabilityLabel(capability.Id);
@@ -261,8 +260,8 @@ internal sealed class PluginPageView : StackPanel
 
         if (page.Version?.NetworkHosts is { Count: > 0 } hosts)
         {
-            var text = string.Join(", ", hosts.Select(h => h == "*" ? "hosts you choose" : h));
-            card.Children.Add(new TextBlock { Text = $"Connects to {text}.", Classes = { "caption" }, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(25, 2, 0, 0) });
+            var text = string.Join(Strings.PluginsListSeparator, hosts.Select(h => h == "*" ? Strings.PluginsHostsChosen : h));
+            card.Children.Add(new TextBlock { Text = Strings.PluginsConnectsTo(text), Classes = { "caption" }, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(25, 2, 0, 0) });
         }
 
         return Wrap(card);
@@ -270,10 +269,10 @@ internal sealed class PluginPageView : StackPanel
 
     private Border Dependencies()
     {
-        var card = Card("Dependencies");
+        var card = Card(Strings.PluginsCardDependencies);
         var dependencies = page.Version?.Dependencies ?? [];
         if (dependencies.Count == 0)
-            card.Children.Add(new TextBlock { Text = "Needs no other plugin.", Classes = { "secondary" } });
+            card.Children.Add(new TextBlock { Text = Strings.PluginsNoDependencies, Classes = { "secondary" } });
         foreach (var dependency in dependencies)
         {
             var record = hub.Client.Catalog?.FindPlugin(dependency.Id);
@@ -297,7 +296,7 @@ internal sealed class PluginPageView : StackPanel
 
     private Border Versions(PluginRecord record)
     {
-        var card = Card("Versions");
+        var card = Card(Strings.PluginsCardVersions);
         foreach (var (version, state) in page.Versions)
         {
             var selected = version == page.Version;
@@ -306,9 +305,9 @@ internal sealed class PluginPageView : StackPanel
             if (HubVisuals.VersionBadge(state.State) is { } badge)
                 title.Children.Add(badge);
             if (version.Version.ToString() == page.InstalledVersion)
-                title.Children.Add(HubVisuals.StateBadge("Installed", "Check", "SuccessBrush"));
+                title.Children.Add(HubVisuals.StateBadge(Strings.PluginsInstalled, "Check", "SuccessBrush"));
             if (version.PublishedAt is { } published)
-                title.Children.Add(new TextBlock { Text = published.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture), Classes = { "caption" }, VerticalAlignment = VerticalAlignment.Center });
+                title.Children.Add(new TextBlock { Text = Strings.PluginsDateShort(published), Classes = { "caption" }, VerticalAlignment = VerticalAlignment.Center });
 
             var entry = new StackPanel { Spacing = 2, Margin = new Thickness(0, 4) };
             entry.Children.Add(title);
@@ -318,7 +317,7 @@ internal sealed class PluginPageView : StackPanel
             if (!selected && state.IsInstallable)
             {
                 var choose = new Button { Classes = { "subtle" }, Padding = new Thickness(6, 2), HorizontalContentAlignment = HorizontalAlignment.Stretch, HorizontalAlignment = HorizontalAlignment.Stretch, Content = entry };
-                ToolTip.SetTip(choose, $"Select {version.Version}");
+                ToolTip.SetTip(choose, Strings.PluginsSelectVersion(version.Version.ToString()));
                 var picked = version.Version;
                 choose.Click += (_, _) => hub.Model.ShowPage(target with { Version = picked });
                 card.Children.Add(choose);
@@ -331,9 +330,16 @@ internal sealed class PluginPageView : StackPanel
         }
 
         if (record.Versions.Count == 0)
-            card.Children.Add(new TextBlock { Text = "No version is published yet.", Classes = { "secondary" } });
+            card.Children.Add(new TextBlock { Text = Strings.PluginsNoVersions, Classes = { "secondary" } });
         return Wrap(card);
     }
+
+    private static string TabName(PluginManagerTab tab) => tab switch
+    {
+        PluginManagerTab.Updates => Strings.PluginsTabUpdates,
+        PluginManagerTab.Browse => Strings.PluginsTabBrowse,
+        _ => Strings.PluginsTabInstalled,
+    };
 
     private static StackPanel Card(string title) => new() { Spacing = 6, Children = { new TextBlock { Text = title, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, 0, 2) } } };
 

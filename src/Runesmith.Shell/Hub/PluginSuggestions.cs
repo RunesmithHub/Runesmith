@@ -6,8 +6,8 @@ namespace Runesmith.Shell.Hub;
 /// <summary>An official plugin on the hub that Runesmith suggests, and the files that tell it to.</summary>
 /// <param name="PluginId">The plugin's id on the hub.</param>
 /// <param name="Name">The plugin's name, as the suggestion shows it.</param>
-/// <param name="Brings">What the plugin adds, as the suggestion says it.</param>
-public sealed record SuggestedPlugin(string PluginId, string Name, string Brings)
+/// <param name="Brings">Gets what the plugin adds, as the suggestion says it in the language that shows.</param>
+public sealed record SuggestedPlugin(string PluginId, string Name, Func<string> Brings)
 {
     /// <summary>Gets the file extensions, with their dot, that tell Runesmith to suggest it.</summary>
     public IReadOnlyList<string> Extensions { get; init; } = [];
@@ -19,7 +19,7 @@ public sealed record SuggestedPlugin(string PluginId, string Name, string Brings
     public IReadOnlyList<string> FolderFiles { get; init; } = [];
 
     /// <summary>Gets what the suggestion says.</summary>
-    public string Message => $"Install the {Name} plugin for {Brings}.";
+    public string Message => Strings.PluginsSuggestion(Name, Brings());
 
     /// <summary>Gets whether a file is one that tells Runesmith to suggest it.</summary>
     public bool Matches(string filePath)
@@ -37,17 +37,15 @@ public sealed record SuggestedPlugin(string PluginId, string Name, string Brings
 [Shared]
 public sealed class PluginSuggestions
 {
-    private const string LanguageFeatures = "completion, problems and builds";
-
     /// <summary>The official language plugins Runesmith suggests for files.</summary>
     public static IReadOnlyList<SuggestedPlugin> LanguagePlugins { get; } =
     [
-        new("runesmith.csharp", "C#", LanguageFeatures)
+        new("runesmith.csharp", "C#", () => Strings.PluginsSuggestBringsLanguage)
         {
             Extensions = [".cs", ".csproj", ".sln", ".slnx", ".razor"],
             FolderFiles = ["*.sln", "*.slnx", "*.csproj"],
         },
-        new("runesmith.java", "Java", LanguageFeatures)
+        new("runesmith.java", "Java", () => Strings.PluginsSuggestBringsLanguage)
         {
             Extensions = [".java"],
             FileNames = ["pom.xml", "build.gradle", "build.gradle.kts"],
@@ -56,10 +54,10 @@ public sealed class PluginSuggestions
     ];
 
     /// <summary>The Git plugin, suggested for a folder that is a Git repository.</summary>
-    public static SuggestedPlugin Git { get; } = new("runesmith.git", "Git", "commits, branches, diffs and the log");
+    public static SuggestedPlugin Git { get; } = new("runesmith.git", "Git", () => Strings.PluginsSuggestBringsGit);
 
     /// <summary>The GitHub plugin, suggested for a repository with a remote on github.com.</summary>
-    public static SuggestedPlugin GitHub { get; } = new("runesmith.github", "GitHub", "pull requests, reviews and checks");
+    public static SuggestedPlugin GitHub { get; } = new("runesmith.github", "GitHub", () => Strings.PluginsSuggestBringsGithub);
 
     private readonly ISettingsService settings;
     private readonly Func<bool> canInstall;

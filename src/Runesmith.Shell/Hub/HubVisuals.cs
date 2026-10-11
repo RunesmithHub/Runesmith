@@ -71,10 +71,10 @@ internal static class HubVisuals
 
         var (text, tip) = tier switch
         {
-            PluginTier.Official => ("Official", "Published by Runesmith. Every version is reviewed."),
-            PluginTier.Verified => ("Verified", "A verified publisher. Every version is reviewed by Runesmith before you get it."),
-            PluginTier.Unverified => ("Unverified", "Checked automatically. No person at Runesmith has read this code."),
-            _ => ("Local", "From your plugins folder, not from the hub."),
+            PluginTier.Official => (Strings.PluginsTierNameOfficial, Strings.PluginsTierOfficialTip),
+            PluginTier.Verified => (Strings.PluginsTierNameVerified, Strings.PluginsTierVerifiedTip),
+            PluginTier.Unverified => (Strings.PluginsTierNameUnverified, Strings.PluginsTierUnverifiedTip),
+            _ => (Strings.PluginsTierLocal, Strings.PluginsTierLocalTip),
         };
         var label = new TextBlock { Text = text, FontSize = 11.5, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center };
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(7, 2, 8, 2), VerticalAlignment = VerticalAlignment.Center };
@@ -153,11 +153,11 @@ internal static class HubVisuals
             return null;
 
         var badge = copy == LocalCopyState.Replacing
-            ? StateBadge("Replaces the installed plugin", "AlertTriangle", "WarningBrush")
-            : StateBadge("Not loaded", "ban", "WarningBrush");
+            ? StateBadge(Strings.PluginsLocalReplaces, "AlertTriangle", "WarningBrush")
+            : StateBadge(Strings.PluginsLocalNotLoaded, "ban", "WarningBrush");
         ToolTip.SetTip(badge, copy == LocalCopyState.Replacing
-            ? "This copy from your plugins folder runs in place of the plugin from the hub, with its own secrets and storage."
-            : "A plugin from the hub has the same id, so this copy does not load.");
+            ? Strings.PluginsLocalReplacesTip
+            : Strings.PluginsLocalNotLoadedTip);
         return badge;
     }
 

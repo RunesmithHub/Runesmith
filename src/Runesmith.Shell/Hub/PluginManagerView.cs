@@ -31,10 +31,10 @@ internal sealed class PluginManagerView : DockPanel
     private readonly StackPanel body = new() { Spacing = 10 };
     private readonly TextBlock status = new() { Classes = { "caption" }, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly SymbolIcon statusIcon = new() { Size = 14, VerticalAlignment = VerticalAlignment.Center };
-    private readonly SearchBox search = new() { PlaceholderText = "Search plugins" };
+    private readonly SearchBox search = new SearchBox().Localize(SearchBox.PlaceholderTextProperty, () => Strings.PluginsSearch);
     private readonly ComboBox tierFilter = new() { MinWidth = 150 };
     private readonly ComboBox categoryFilter = new() { MinWidth = 170 };
-    private readonly CheckBox compatibleFilter = new() { Content = "Runs on this Runesmith", VerticalAlignment = VerticalAlignment.Center };
+    private readonly CheckBox compatibleFilter = new CheckBox { VerticalAlignment = VerticalAlignment.Center }.Localize(ContentControl.ContentProperty, () => Strings.PluginsFilterCompatible);
     private readonly WrapPanel filters = new() { ItemSpacing = 8, LineSpacing = 8 };
     private readonly StackPanel results = new() { Spacing = 10 };
     private readonly DispatcherTimer rebuild = new() { Interval = TimeSpan.FromMilliseconds(60) };
@@ -54,8 +54,8 @@ internal sealed class PluginManagerView : DockPanel
         Notifications = notifications;
         Output = output;
 
-        foreach (var name in (ReadOnlySpan<string>)["Installed", "Updates", "Browse"])
-            tabs.Items.Add(new SegmentedControlItem { Content = name, Padding = compact ? new Thickness(7, 0) : new Thickness(12, 0) });
+        foreach (var name in (ReadOnlySpan<Func<string>>)[() => Strings.PluginsTabInstalled, () => Strings.PluginsTabUpdates, () => Strings.PluginsTabBrowse])
+            tabs.Items.Add(new SegmentedControlItem { Padding = compact ? new Thickness(7, 0) : new Thickness(12, 0) }.Localize(ContentControl.ContentProperty, name));
         tabs.SelectedIndex = (int)model.Tab;
         tabs.SelectionChanged += (_, _) =>
         {
@@ -64,12 +64,12 @@ internal sealed class PluginManagerView : DockPanel
         };
 
         var refresh = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = HammerUI.Icons.Refresh, Size = 14 } };
-        ToolTip.SetTip(refresh, "Check the plugin hub now");
+        refresh.Localize(ToolTip.TipProperty, () => Strings.PluginsRefresh);
         refresh.Click += (_, _) => _ = hub.RefreshAsync();
         var statusLine = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { statusIcon, status, refresh } };
 
         var header = new DockPanel { Margin = new Thickness(0, 0, 0, 14) };
-        var title = new TextBlock { Text = "Plugins", Classes = { "title" }, VerticalAlignment = VerticalAlignment.Center };
+        var title = new TextBlock { Classes = { "title" }, VerticalAlignment = VerticalAlignment.Center }.Localize(TextBlock.TextProperty, () => Strings.PluginsTitle);
         if (compact)
         {
             header.Children.Add(new StackPanel { Spacing = 8, Children = { statusLine, tabs } });
@@ -135,7 +135,7 @@ internal sealed class PluginManagerView : DockPanel
         tabs.SelectedIndex = (int)model.Tab;
         var updates = model.Client.Status.HasCatalog ? model.Updates() : [];
         if (tabs.Items[1] is SegmentedControlItem item)
-            item.Content = updates.Count == 0 ? "Updates" : compact ? $"Updates {updates.Count}" : $"Updates ({updates.Count})";
+            item.Content = updates.Count == 0 ? Strings.PluginsTabUpdates : compact ? Strings.PluginsTabUpdatesCompact(updates.Count) : Strings.PluginsTabUpdatesCount(updates.Count);
         filling = false;
         FillStatus();
 
@@ -187,7 +187,7 @@ internal sealed class PluginManagerView : DockPanel
         {
             HubStatusKind.Unverifiable or HubStatusKind.VerificationFailed or HubStatusKind.RunesmithTooOld => HubVisuals.Notice(PageNoticeKind.Warning, current.Describe()),
             HubStatusKind.Offline or HubStatusKind.NotSetUp => HubVisuals.Notice(PageNoticeKind.Quiet, current.Describe()),
-            HubStatusKind.TurnedOff => HubVisuals.Notice(PageNoticeKind.Quiet, current.Describe(), actions: openSettings is null ? null : [SmallButton("Settings", openSettings)]),
+            HubStatusKind.TurnedOff => HubVisuals.Notice(PageNoticeKind.Quiet, current.Describe(), actions: openSettings is null ? null : [SmallButton(Strings.PluginsSettingsButton, openSettings)]),
             _ => null,
         };
     }
@@ -196,9 +196,9 @@ internal sealed class PluginManagerView : DockPanel
     {
         if (model.IsSafeMode)
         {
-            body.Children.Add(HubVisuals.Notice(PageNoticeKind.Info, "Runesmith is in safe mode.",
-                "No plugins load. Turn off a plugin you suspect, then restart normally.",
-                [SmallButton("Restart normally", () => hub.Restart(), accent: true)], icon: "shield-check"));
+            body.Children.Add(HubVisuals.Notice(PageNoticeKind.Info, Strings.PluginsSafeModeTitle,
+                Strings.PluginsSafeModeDetail,
+                [SmallButton(Strings.PluginsRestartNormally, () => hub.Restart(), accent: true)], icon: "shield-check"));
         }
 
         if (StatusNotice() is { } notice)
@@ -213,9 +213,9 @@ internal sealed class PluginManagerView : DockPanel
             body.Children.Add(new EmptyState
             {
                 Icon = HammerUI.Icons.Puzzle,
-                Title = "No plugins installed",
-                Hint = "Browse the plugin hub for languages, tools and themes, or open a folder and Runesmith suggests the plugins it needs.",
-                ActionText = "Browse plugins",
+                Title = Strings.PluginsNoneInstalled,
+                Hint = Strings.PluginsNoneInstalledHint,
+                ActionText = Strings.PluginsBrowse,
                 ActionCommand = new RelayCommand(() => model.ShowTab(PluginManagerTab.Browse)),
                 Margin = new Thickness(0, 24),
             });
@@ -227,15 +227,15 @@ internal sealed class PluginManagerView : DockPanel
         body.Children.Add(list);
 
         var tools = new WrapPanel { ItemSpacing = 8, Margin = new Thickness(0, 6, 0, 0) };
-        tools.Children.Add(SmallButton("Open the plugins folder", () =>
+        tools.Children.Add(SmallButton(Strings.PluginsOpenFolder, () =>
         {
             Directory.CreateDirectory(RunesmithPaths.UserPlugins);
             Launcher.Reveal(RunesmithPaths.UserPlugins);
         }));
         if (Directory.Exists(model.Client.Paths.Quarantine) && Directory.EnumerateFileSystemEntries(model.Client.Paths.Quarantine).Any())
-            tools.Children.Add(SmallButton("Empty the quarantine", () => model.Client.EmptyQuarantine()));
+            tools.Children.Add(SmallButton(Strings.PluginsEmptyQuarantine, () => model.Client.EmptyQuarantine()));
         if (openSettings is not null)
-            tools.Children.Add(SmallButton("Plugin settings", openSettings));
+            tools.Children.Add(SmallButton(Strings.PluginsSettings, openSettings));
         body.Children.Add(tools);
     }
 
@@ -246,28 +246,28 @@ internal sealed class PluginManagerView : DockPanel
         {
             case NoticeKind.Quarantined or NoticeKind.Blocked:
                 if (notice.UpdateTo is { } fix)
-                    actions.Add(SmallButton($"Update to {fix}", () => _ = hub.InstallAsync(notice.PluginId, fix), accent: true));
+                    actions.Add(SmallButton(Strings.PluginsUpdateTo(fix.ToString()), () => _ = hub.InstallAsync(notice.PluginId, fix), accent: true));
                 if (notice.Kind == NoticeKind.Quarantined)
-                    actions.Add(SmallButton(notice.Dependents.Count == 0 ? $"Remove {notice.Name}" : $"Remove {notice.Name} and {string.Join(", ", notice.Dependents)}", () => _ = hub.RemoveBlockedAsync(notice)));
+                    actions.Add(SmallButton(notice.Dependents.Count == 0 ? Strings.PluginsRemoveOne(notice.Name) : Strings.PluginsRemoveWithDependents(notice.Name, string.Join(Strings.PluginsListSeparator, notice.Dependents)), () => _ = hub.RemoveBlockedAsync(notice)));
                 else
-                    actions.Add(SmallButton("Restart now", () => hub.Restart(), accent: notice.UpdateTo is null));
+                    actions.Add(SmallButton(Strings.PluginsRestartNow, () => hub.Restart(), accent: notice.UpdateTo is null));
                 if (notice.Advisory is { } advisory)
-                    actions.Add(InstallDialogs.Link("Advisory", advisory));
+                    actions.Add(InstallDialogs.Link(Strings.PluginsAdvisory, advisory));
                 break;
             case NoticeKind.FilesChanged:
-                actions.Add(SmallButton("Reinstall", () => _ = hub.ReinstallAsync(notice.PluginId), accent: true));
+                actions.Add(SmallButton(Strings.PluginsReinstall, () => _ = hub.ReinstallAsync(notice.PluginId), accent: true));
                 break;
             case NoticeKind.Yanked when notice.UpdateTo is { } newer:
-                actions.Add(SmallButton($"Update to {newer}", () => _ = hub.InstallAsync(notice.PluginId, newer)));
+                actions.Add(SmallButton(Strings.PluginsUpdateTo(newer.ToString()), () => _ = hub.InstallAsync(notice.PluginId, newer)));
                 break;
             case NoticeKind.Deprecated when notice.Replacement is { } replacement:
-                actions.Add(SmallButton("See the replacement", () => model.ShowPage(new PageTarget(replacement))));
+                actions.Add(SmallButton(Strings.PluginsSeeReplacement, () => model.ShowPage(new PageTarget(replacement))));
                 break;
         }
 
         var message = notice.Message;
         if (notice.Dependents.Count > 0)
-            message = $"{message} {string.Join(", ", notice.Dependents)} {(notice.Dependents.Count == 1 ? "was" : "were")} turned off with it, because {(notice.Dependents.Count == 1 ? "it needs" : "they need")} {notice.Name}.".Trim();
+            message = (message + " " + Strings.PluginsDependentsTurnedOff(dependents: string.Join(Strings.PluginsListSeparator, notice.Dependents), count: notice.Dependents.Count, name: notice.Name)).Trim();
         var kind = notice.IsDanger ? PageNoticeKind.Danger : notice.Kind == NoticeKind.Frozen ? PageNoticeKind.Info : PageNoticeKind.Quiet;
         var icon = notice.Kind switch
         {
@@ -307,7 +307,7 @@ internal sealed class PluginManagerView : DockPanel
         }
 
         var toggle = new ToggleSwitch { IsChecked = row.IsEnabled, OnContent = null, OffContent = null, IsEnabled = row.CanToggle, VerticalAlignment = VerticalAlignment.Center };
-        ToolTip.SetTip(toggle, row.CanToggle ? "Turn the plugin on or off from the next start" : "A plugin Runesmith turned off for your safety can't be turned on here");
+        ToolTip.SetTip(toggle, row.CanToggle ? Strings.PluginsToggle : Strings.PluginsToggleLocked);
         toggle.IsCheckedChanged += (_, _) => hub.SetEnabled(row.Id, row.Name, toggle.IsChecked == true);
 
         var line = new DockPanel();
@@ -319,7 +319,7 @@ internal sealed class PluginManagerView : DockPanel
         line.Children.AddRange([icon, toggle, text]);
 
         var button = Card(line);
-        ToolTip.SetTip(button, record is null ? null : $"Open {row.Name}'s page");
+        ToolTip.SetTip(button, record is null ? null : Strings.PluginsOpenPage(row.Name));
         if (record is not null)
             button.Click += (_, _) => model.ShowPage(new PageTarget(row.Id));
         return button;
@@ -335,20 +335,20 @@ internal sealed class PluginManagerView : DockPanel
             body.Children.Add(new EmptyState
             {
                 Icon = HubVisuals.Icon("shield-check"),
-                Title = model.Client.Status.HasCatalog ? "Everything is up to date" : "No updates to show",
-                Hint = model.Client.Status.HasCatalog ? "Official and verified plugins update by themselves; Runesmith tells you about the others." : model.Client.Status.Describe(),
+                Title = model.Client.Status.HasCatalog ? Strings.PluginsUpToDate : Strings.PluginsNoUpdates,
+                Hint = model.Client.Status.HasCatalog ? Strings.PluginsUpToDateHint : model.Client.Status.Describe(),
                 Margin = new Thickness(0, 24),
             });
             return;
         }
 
-        var all = SmallButton("Update all", () => _ = hub.UpdateAllAsync(), accent: true);
+        var all = SmallButton(Strings.PluginsUpdateAll, () => _ = hub.UpdateAllAsync(), accent: true);
         all.IsEnabled = model.Client.Status.CanInstall;
         var bar = new DockPanel();
         DockPanel.SetDock(all, Dock.Right);
         bar.Children.AddRange([all, new TextBlock
         {
-            Text = updates.Count == 1 ? "1 update. Official and verified plugins update by themselves within their line." : $"{updates.Count} updates. Official and verified plugins update by themselves within their line.",
+            Text = Strings.PluginsUpdatesSummary(updates.Count),
             Classes = { "secondary" },
             TextWrapping = TextWrapping.Wrap,
             VerticalAlignment = VerticalAlignment.Center,
@@ -365,7 +365,7 @@ internal sealed class PluginManagerView : DockPanel
         var icon = HubVisuals.PluginIcon(model.Client, update.PluginId, update.Name, update.Tier, record?.Icon.Size64, null, 32);
         var title = new WrapPanel { ItemSpacing = 8, LineSpacing = 4 };
         title.Children.Add(new TextBlock { Text = update.Name, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center });
-        title.Children.Add(new TextBlock { Text = $"{update.From} to {update.To.Version}", Classes = { "caption", "mono" }, VerticalAlignment = VerticalAlignment.Center });
+        title.Children.Add(new TextBlock { Text = Strings.PluginsVersionChange(update.From.ToString(), update.To.Version.ToString()), Classes = { "caption", "mono" }, VerticalAlignment = VerticalAlignment.Center });
         title.Children.Add(HubVisuals.TierBadge(update.Tier));
 
         var (subtitle, brush) = update.Kind switch
@@ -379,7 +379,7 @@ internal sealed class PluginManagerView : DockPanel
 
         Control action = pending
             ? HubVisuals.StateBadge("Restart to apply", "Check", "SuccessBrush")
-            : SmallButton(update.Kind == UpdateKind.NeedsReview ? "Review update" : "Update", () => _ = hub.UpdateAsync(update), accent: update.Kind == UpdateKind.NeedsReview);
+            : SmallButton(update.Kind == UpdateKind.NeedsReview ? Strings.PluginsReviewUpdate : Strings.PluginsUpdate, () => _ = hub.UpdateAsync(update), accent: update.Kind == UpdateKind.NeedsReview);
         action.IsEnabled = pending || model.Client.Status.CanInstall;
         action.VerticalAlignment = VerticalAlignment.Center;
 
@@ -399,7 +399,7 @@ internal sealed class PluginManagerView : DockPanel
         {
             text.Children.Add(new Expander
             {
-                Header = "Release notes",
+                Header = Strings.PluginsReleaseNotes,
                 Content = new SelectableTextBlock { Text = update.To.ReleaseNotes, TextWrapping = TextWrapping.Wrap },
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Margin = new Thickness(0, 6, 0, 0),
@@ -414,7 +414,7 @@ internal sealed class PluginManagerView : DockPanel
     {
         if (!model.Client.Status.HasCatalog || model.Client.Catalog is null)
         {
-            body.Children.Add(new EmptyState { Icon = HammerUI.Icons.Puzzle, Title = "The catalog is not available", Hint = model.Client.Status.Describe(), Margin = new Thickness(0, 24) });
+            body.Children.Add(new EmptyState { Icon = HammerUI.Icons.Puzzle, Title = Strings.PluginsCatalogUnavailable, Hint = model.Client.Status.Describe(), Margin = new Thickness(0, 24) });
             return;
         }
 
@@ -433,14 +433,14 @@ internal sealed class PluginManagerView : DockPanel
         var allowed = model.Preferences.AllowedTiers;
         var tier = (tierFilter.SelectedItem as ComboBoxItem)?.Tag;
         tierFilter.Items.Clear();
-        tierFilter.Items.Add(new ComboBoxItem { Content = "All allowed tiers" });
+        tierFilter.Items.Add(new ComboBoxItem { Content = Strings.PluginsFilterAllTiers });
         foreach (var value in Enum.GetValues<PluginTier>().Where(t => RunesmithHub.Protocol.Catalog.AllowedTiersExtensions.Allows(allowed, t)))
-            tierFilter.Items.Add(new ComboBoxItem { Content = char.ToUpperInvariant(PluginPageModel.Tier(value)[0]) + PluginPageModel.Tier(value)[1..], Tag = value });
+            tierFilter.Items.Add(new ComboBoxItem { Content = PluginPageModel.TierName(value), Tag = value });
         tierFilter.SelectedItem = tierFilter.Items.OfType<ComboBoxItem>().FirstOrDefault(i => Equals(i.Tag, tier)) ?? tierFilter.Items[0];
 
         var category = (categoryFilter.SelectedItem as ComboBoxItem)?.Tag;
         categoryFilter.Items.Clear();
-        categoryFilter.Items.Add(new ComboBoxItem { Content = "All categories" });
+        categoryFilter.Items.Add(new ComboBoxItem { Content = Strings.PluginsFilterAllCategories });
         foreach (var name in model.Client.Categories)
             categoryFilter.Items.Add(new ComboBoxItem { Content = name, Tag = name });
         categoryFilter.SelectedItem = categoryFilter.Items.OfType<ComboBoxItem>().FirstOrDefault(i => Equals(i.Tag, category)) ?? categoryFilter.Items[0];
@@ -458,14 +458,13 @@ internal sealed class PluginManagerView : DockPanel
         var found = model.Browse(query);
         if (found.HiddenByTierSetting > 0)
         {
-            var hidden = found.HiddenByTierSetting == 1 ? "1 plugin is" : $"{found.HiddenByTierSetting} plugins are";
-            results.Children.Add(HubVisuals.Notice(PageNoticeKind.Quiet, $"{hidden} hidden by your setting Allowed plugins.",
-                actions: openSettings is null ? null : [SmallButton("Change", openSettings)]));
+            results.Children.Add(HubVisuals.Notice(PageNoticeKind.Quiet, Strings.PluginsHiddenByTiers(found.HiddenByTierSetting),
+                actions: openSettings is null ? null : [SmallButton(Strings.PluginsChange, openSettings)]));
         }
 
         if (found.Plugins.Count == 0)
         {
-            results.Children.Add(new EmptyState { Icon = HammerUI.Icons.Search, Title = "No plugin matches", Hint = "Try other words, or clear the filters.", Margin = new Thickness(0, 24) });
+            results.Children.Add(new EmptyState { Icon = HammerUI.Icons.Search, Title = Strings.PluginsNoMatch, Hint = Strings.PluginsNoMatchHint, Margin = new Thickness(0, 24) });
             return;
         }
 
@@ -495,7 +494,7 @@ internal sealed class PluginManagerView : DockPanel
             title.Children.Add(coverage);
 
         var publisher = catalog.FindPublisher(plugin.Publisher)?.DisplayName ?? plugin.Publisher;
-        var installed = model.RunningVersion(plugin.Id) is { } running ? $" · {running} installed" : "";
+        var installed = model.RunningVersion(plugin.Id) is { } running ? " · " + Strings.PluginsInstalledVersion(running) : "";
         var text = new StackPanel
         {
             Spacing = 3,

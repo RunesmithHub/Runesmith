@@ -20,7 +20,7 @@ public static class SafeModeDialog
         var body = new StackPanel { Spacing = 8 };
         body.Children.Add(new TextBlock
         {
-            Text = plugins.Count == 0 ? reason : $"{reason} {(plugins.Count == 1 ? "This plugin was" : "These plugins were")} loading when it happened:",
+            Text = plugins.Count == 0 ? reason : reason + " " + Strings.PluginsSafeModeLoading(plugins.Count),
             TextWrapping = TextWrapping.Wrap,
         });
         foreach (var (name, version) in plugins)
@@ -34,17 +34,17 @@ public static class SafeModeDialog
 
         body.Children.Add(new TextBlock
         {
-            Text = "Runesmith started in safe mode, which loads no plugins. Turn off the suspect plugin in the plugin manager, then restart normally.",
+            Text = Strings.PluginsSafeModeExplanation,
             TextWrapping = TextWrapping.Wrap,
             Classes = { "secondary" },
             Margin = new Thickness(0, 6, 0, 0),
         });
 
-        var normal = new Button { Content = "Start normally", MinWidth = 84 };
-        var stay = new Button { Content = "Stay in safe mode", Classes = { "accent" }, IsDefault = true, IsCancel = true, MinWidth = 84 };
+        var normal = new Button { Content = Strings.PluginsStartNormally, MinWidth = 84 };
+        var stay = new Button { Content = Strings.PluginsStaySafeMode, Classes = { "accent" }, IsDefault = true, IsCancel = true, MinWidth = 84 };
         var dialog = new Dialog
         {
-            Header = "Runesmith didn't start properly",
+            Header = Strings.PluginsSafeModeHeader,
             Width = 500,
             ShowCloseButton = false,
             Content = body,

@@ -17,7 +17,7 @@ internal static class PluginSuggestionBar
 {
     /// <param name="close">Removes the line.</param>
     public static Control Create(SuggestedPlugin plugin, PluginSuggestions suggestions, Action close) =>
-        Create(new SuggestionText(() => plugin.Message, () => "Install", () => "Don't suggest again", () => "Close"), () => suggestions.Install(plugin),
+        Create(new SuggestionText(() => plugin.Message, () => Strings.PluginsSuggestionInstall, () => Strings.PluginsSuggestionDecline, () => Strings.PluginsClose), () => suggestions.Install(plugin),
             () => suggestions.StopSuggesting(plugin), close);
 
     /// <summary>Creates a line with Install, which closes it and runs <paramref name="install"/>, a button that closes it and runs
