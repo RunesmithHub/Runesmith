@@ -49,19 +49,19 @@ internal static class UpdateFinder
             : [.. target.Capabilities.Declared.Select(c => c.Id).Where(c => !installedCapabilities.Contains(c))];
 
         if (added.Count > 0)
-            reasons.Add(added.Count == 1 ? "It adds a capability." : "It adds capabilities.");
+            reasons.Add(added.Count == 1 ? Strings.HubUpdateAddsCapability : Strings.HubUpdateAddsCapabilities);
         if (installed.Line != target.Version.Line)
-            reasons.Add($"It moves to a new line, {target.Version.Line}.");
+            reasons.Add(Strings.HubUpdateNewLine(target.Version.Line.ToString()));
         if (result.Plan is { } plan)
         {
             foreach (var operation in plan.Changes.Where(op => op.PluginId != id))
             {
                 if (operation.Kind == OperationKind.Install && operation.Tier == PluginTier.Unverified)
-                    reasons.Add($"It adds {operation.Name}, which is unverified.");
+                    reasons.Add(Strings.HubUpdateAddsUnverified(operation.Name));
                 else if (operation.Kind is OperationKind.Remove or OperationKind.Downgrade)
-                    reasons.Add($"It {(operation.Kind == OperationKind.Remove ? "removes" : "downgrades")} {operation.Name}.");
+                    reasons.Add(operation.Kind == OperationKind.Remove ? Strings.HubUpdateRemoves(operation.Name) : Strings.HubUpdateDowngrades(operation.Name));
                 else if (operation.Record is not null && NewCapabilities(catalog, operation).Count > 0)
-                    reasons.Add($"{operation.Name} gets new capabilities with it.");
+                    reasons.Add(Strings.HubUpdateNewCapabilities(operation.Name));
             }
         }
 

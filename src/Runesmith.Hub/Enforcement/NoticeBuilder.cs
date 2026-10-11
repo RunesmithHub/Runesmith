@@ -15,9 +15,9 @@ internal static class NoticeBuilder
         foreach (var entry in state.Quarantined.Where(q => state.Find(q.Id) is null))
         {
             var dependents = entry.Dependents.Select(id => state.Find(id)).OfType<InstalledHubPlugin>().ToList();
-            notices.Add(new PluginNotice(NoticeKind.Quarantined, entry.Id, entry.Name, entry.Version, $"{entry.Name} was disabled because Runesmith found it harmful.")
+            notices.Add(new PluginNotice(NoticeKind.Quarantined, entry.Id, entry.Name, entry.Version, Strings.HubNoticeHarmful(entry.Name))
             {
-                Message = Join(Moderation.Label(entry.Reason) is { } reason ? $"Reason: {reason}." : null, entry.Note, entry.Remediation is { } fix ? $"What to do: {fix}" : null),
+                Message = Join(Moderation.Label(entry.Reason) is { } reason ? Strings.HubNoticeReason(reason) : null, entry.Note, entry.Remediation is { } fix ? Strings.HubNoticeRemediation(fix) : null),
                 Advisory = entry.Advisory,
                 UpdateTo = catalog is null ? null : Fix(catalog, entry.Id, host, preferences),
                 Dependents = [.. dependents.Select(d => catalog?.FindPlugin(d.Id)?.Name ?? d.Id)],
@@ -31,9 +31,9 @@ internal static class NoticeBuilder
             var name = record?.Name ?? plugin.Id;
             if (changedFiles.TryGetValue(plugin.Id, out var problems))
             {
-                notices.Add(new PluginNotice(NoticeKind.FilesChanged, plugin.Id, name, plugin.Version, $"{name} is off because its files changed since it was installed.")
+                notices.Add(new PluginNotice(NoticeKind.FilesChanged, plugin.Id, name, plugin.Version, Strings.HubNoticeFilesChanged(name))
                 {
-                    Message = string.Join(" ", problems.Take(3)) + (problems.Count > 3 ? $" And {problems.Count - 3} more." : ""),
+                    Message = string.Join(" ", problems.Take(3)) + (problems.Count > 3 ? " " + Strings.HubNoticeMoreFiles(problems.Count - 3) : ""),
                 });
                 continue;
             }
@@ -46,10 +46,10 @@ internal static class NoticeBuilder
             {
                 case VersionState.Blocked:
                     var dependents = Moderation.Dependents(catalog, state.Plugins, [plugin.Id]);
-                    notices.Add(new PluginNotice(NoticeKind.Blocked, plugin.Id, name, plugin.Version, $"{name} was disabled because Runesmith found it harmful.")
+                    notices.Add(new PluginNotice(NoticeKind.Blocked, plugin.Id, name, plugin.Version, Strings.HubNoticeHarmful(name))
                     {
-                        Message = Join(effective.Moderation is { } m ? $"Reason: {Moderation.Label(m.Reason)}." : null, effective.Moderation?.Note,
-                            "Restart Runesmith to finish turning it off."),
+                        Message = Join(effective.Moderation is { } m ? Strings.HubNoticeReason(Moderation.Label(m.Reason)) : null, effective.Moderation?.Note,
+                            Strings.HubNoticeRestartToFinish),
                         Advisory = effective.Moderation?.Advisory,
                         UpdateTo = fix,
                         Dependents = [.. dependents.Select(d => catalog.FindPlugin(d.Id)?.Name ?? d.Id)],
@@ -58,25 +58,25 @@ internal static class NoticeBuilder
                     break;
                 case VersionState.Frozen:
                     notices.Add(new PluginNotice(NoticeKind.Frozen, plugin.Id, name, plugin.Version,
-                        $"New installs of {name} are paused while Runesmith looks into a report. You can keep using it."));
+                        Strings.HubNoticeFrozen(name)));
                     break;
                 case VersionState.Yanked:
-                    notices.Add(new PluginNotice(NoticeKind.Yanked, plugin.Id, name, plugin.Version, $"{name} {plugin.Version} was withdrawn by its developer.")
+                    notices.Add(new PluginNotice(NoticeKind.Yanked, plugin.Id, name, plugin.Version, Strings.HubNoticeYanked(name, plugin.Version))
                     {
                         UpdateTo = fix,
                     });
                     break;
                 case VersionState.Deleted:
                     notices.Add(new PluginNotice(NoticeKind.Deleted, plugin.Id, name, plugin.Version,
-                        $"{name} is no longer available on the hub. It keeps working, but won't get updates."));
+                        Strings.HubNoticeDeleted(name)));
                     break;
                 default:
                     if ((record.State == PluginState.Deprecated || record.Deprecated is not null) && record.Deprecated is { } deprecated)
                     {
                         var replacement = deprecated.Replacement is { } id ? catalog.FindPlugin(id)?.Name ?? id : null;
-                        notices.Add(new PluginNotice(NoticeKind.Deprecated, plugin.Id, name, plugin.Version, $"{name} is no longer maintained.")
+                        notices.Add(new PluginNotice(NoticeKind.Deprecated, plugin.Id, name, plugin.Version, Strings.HubNoticeDeprecated(name))
                         {
-                            Message = Join(deprecated.Reason, replacement is null ? null : $"Its developer suggests {replacement} instead."),
+                            Message = Join(deprecated.Reason, replacement is null ? null : Strings.HubNoticeReplacement(replacement)),
                             Replacement = deprecated.Replacement,
                         });
                     }

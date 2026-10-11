@@ -11,13 +11,13 @@ public static class Moderation
     /// <summary>Gets the reason category as users read it.</summary>
     public static string Label(ModerationReason reason) => reason switch
     {
-        ModerationReason.Malicious => "Malicious",
-        ModerationReason.CompromisedAccount => "Compromised account",
-        ModerationReason.Vulnerability => "Vulnerability",
-        ModerationReason.Broken => "Broken",
-        ModerationReason.Policy => "Breaks the hub's rules",
-        ModerationReason.Legal => "Legal",
-        ModerationReason.DeveloperRequest => "At its developer's request",
+        ModerationReason.Malicious => Strings.HubReasonMalicious,
+        ModerationReason.CompromisedAccount => Strings.HubReasonCompromisedAccount,
+        ModerationReason.Vulnerability => Strings.HubReasonVulnerability,
+        ModerationReason.Broken => Strings.HubReasonBroken,
+        ModerationReason.Policy => Strings.HubReasonPolicy,
+        ModerationReason.Legal => Strings.HubReasonLegal,
+        ModerationReason.DeveloperRequest => Strings.HubReasonDeveloperRequest,
         _ => reason.ToString(),
     };
 

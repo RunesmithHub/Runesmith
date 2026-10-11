@@ -1,4 +1,3 @@
-using System.Globalization;
 
 namespace Runesmith.Hub;
 
@@ -45,17 +44,14 @@ public sealed record HubStatus(HubStatusKind Kind, DateTimeOffset? CheckedAt = n
     /// <summary>Gets a sentence for the user about what the status means.</summary>
     public string Describe() => Kind switch
     {
-        HubStatusKind.NotSetUp => "The plugin hub is not set up in this build of Runesmith. Plugins in your plugins folder work as usual.",
-        HubStatusKind.TurnedOff => "The plugin hub is turned off in Settings. Only the plugins in your plugins folder load.",
-        HubStatusKind.Checking => "Checking the plugin hub.",
-        HubStatusKind.Verified => "The plugin hub's data is verified and current.",
-        HubStatusKind.Offline => "Runesmith can't reach the plugin hub, so this is the saved catalog. Installs and updates are unavailable.",
-        HubStatusKind.Unverifiable => $"Runesmith can't confirm the safety status of your plugins since {Date(Since)}. Installs and updates are unavailable. If your computer's date is wrong, correct it.",
-        HubStatusKind.VerificationFailed => "The plugin hub's data could not be verified, so Runesmith kept what it had. Installs and updates are unavailable; try again later.",
-        HubStatusKind.RunesmithTooOld => "The plugin hub needs a newer version of Runesmith. Update Runesmith to install and update plugins.",
+        HubStatusKind.NotSetUp => Strings.HubStatusNotSetUp,
+        HubStatusKind.TurnedOff => Strings.HubStatusTurnedOff,
+        HubStatusKind.Checking => Strings.HubStatusChecking,
+        HubStatusKind.Verified => Strings.HubStatusVerified,
+        HubStatusKind.Offline => Strings.HubStatusOffline,
+        HubStatusKind.Unverifiable => Since is { } since ? Strings.HubStatusUnverifiable(since) : Strings.HubStatusUnverifiableNever,
+        HubStatusKind.VerificationFailed => Strings.HubStatusVerificationFailed,
+        HubStatusKind.RunesmithTooOld => Strings.HubStatusRunesmithTooOld,
         _ => "",
     };
-
-    private static string Date(DateTimeOffset? when) =>
-        when is { } value ? value.ToLocalTime().ToString("d MMMM yyyy", CultureInfo.CurrentCulture) : "the last check";
 }
