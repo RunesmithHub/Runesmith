@@ -73,7 +73,7 @@ public sealed class DebugDecorations : IDecorationProvider
             {
                 Tone = DecorationTone.Warning,
                 IsFilled = true,
-                ToolTip = here is null ? "The program is paused here." : "The program is paused here, at a breakpoint.",
+                ToolTip = here is null ? Strings.ToolsDebugPausedHere : Strings.ToolsDebugPausedAtBreakpoint,
                 CommandId = CommandIds.ToggleBreakpoint,
                 CommandArgument = new ContextMenuTarget(path) { Lines = (pausedLine + 1, pausedLine + 1) },
                 ShowsInOverviewRuler = true,
@@ -91,20 +91,20 @@ public sealed class DebugDecorations : IDecorationProvider
 
     private static string Describe(LineBreakpoint breakpoint, BreakpointStatus? status)
     {
-        var lines = new List<string> { breakpoint.IsLogPoint ? "**Log point**" : "**Breakpoint**" };
+        var lines = new List<string> { breakpoint.IsLogPoint ? Strings.ToolsDebugHoverLogPoint : Strings.ToolsDebugHoverBreakpoint };
         if (!breakpoint.IsEnabled)
-            lines.Add("Disabled.");
+            lines.Add(Strings.ToolsDebugHoverDisabled);
         if (!string.IsNullOrEmpty(breakpoint.Condition))
-            lines.Add($"Stops when `{breakpoint.Condition}`.");
+            lines.Add(Strings.ToolsDebugHoverCondition(breakpoint.Condition));
         if (!string.IsNullOrEmpty(breakpoint.HitCondition))
-            lines.Add($"Hit count: `{breakpoint.HitCondition}`.");
+            lines.Add(Strings.ToolsDebugHoverHitCount(breakpoint.HitCondition));
         if (breakpoint.IsLogPoint)
-            lines.Add($"Logs `{breakpoint.LogMessage}`.");
+            lines.Add(Strings.ToolsDebugHoverLogs(breakpoint.LogMessage ?? ""));
         if (status is { Verified: false })
-            lines.Add(status.Message ?? "The debugger has not set it yet, such as before its code loads.");
+            lines.Add(status.Message ?? Strings.ToolsDebugHoverNotSet);
         else if (status?.Message is { Length: > 0 } message)
             lines.Add(message);
-        lines.Add("Click to remove it.");
+        lines.Add(Strings.ToolsDebugHoverClick);
         return string.Join("\n\n", lines);
     }
 

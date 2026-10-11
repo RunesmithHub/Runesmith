@@ -23,9 +23,9 @@ internal sealed class FindBar : Border
     private readonly TextArea area;
     private readonly TextBox query = new TextBox { Width = 220, Classes = { "small" } }.Localize(TextBox.PlaceholderTextProperty, () => Strings.EditorFindPlaceholder);
     private readonly TextBox replacement = new TextBox { Width = 220, Classes = { "small" } }.Localize(TextBox.PlaceholderTextProperty, () => Strings.EditorReplacePlaceholder);
-    private readonly ToggleButton matchCase = Option("Aa", "Match case (Alt+C)");
-    private readonly ToggleButton wholeWord = Option("ab", "Match whole word (Alt+W)");
-    private readonly ToggleButton regex = Option(".*", "Use regular expression (Alt+R)");
+    private readonly ToggleButton matchCase = Option("Aa", () => Strings.EditorFindMatchCase);
+    private readonly ToggleButton wholeWord = Option("ab", () => Strings.EditorFindWholeWord);
+    private readonly ToggleButton regex = Option(".*", () => Strings.EditorFindRegex);
     private readonly ToggleButton expand;
     private readonly TextBlock count = new() { MinWidth = 72, VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Margin = new Thickness(6, 0) };
     private readonly Control replaceRow;
@@ -53,13 +53,13 @@ internal sealed class FindBar : Border
 
         var findRow = Row(
             query, matchCase, wholeWord, regex, count,
-            Action(Icons.ArrowUp, "Previous match (Shift+Enter)", () => Move(backwards: true)),
-            Action(Icons.ArrowDown, "Next match (Enter)", () => Move(backwards: false)),
-            Action(Icons.X, "Close (Escape)", Close));
+            Action(Icons.ArrowUp, () => Strings.EditorFindPrevious, () => Move(backwards: true)),
+            Action(Icons.ArrowDown, () => Strings.EditorFindNext, () => Move(backwards: false)),
+            Action(Icons.X, () => Strings.EditorFindClose, Close));
         replaceRow = Row(
             replacement,
-            TextAction("Replace", "Replace this match (Enter)", ReplaceOne),
-            TextAction("Replace all", "Replace every match (Ctrl+Alt+Enter)", ReplaceAll));
+            TextAction(() => Strings.EditorFindReplace, () => Strings.EditorFindReplaceTip, ReplaceOne),
+            TextAction(() => Strings.EditorFindReplaceAll, () => Strings.EditorFindReplaceAllTip, ReplaceAll));
         replaceRow.IsVisible = false;
 
         var rows = new StackPanel { Spacing = 4, Children = { findRow, replaceRow } };
@@ -311,7 +311,7 @@ internal sealed class FindBar : Border
         return row;
     }
 
-    private static ToggleButton Option(string text, string tip)
+    private static ToggleButton Option(string text, Func<string> tip)
     {
         var button = new ToggleButton
         {
@@ -320,23 +320,20 @@ internal sealed class FindBar : Border
             Content = new TextBlock { Text = text, FontFamily = new FontFamily(EditorOptions.BundledFontFamily), FontSize = 12 },
             MinWidth = 26,
         };
-        ToolTip.SetTip(button, tip);
-        return button;
+        return button.Localize(ToolTip.TipProperty, tip);
     }
 
-    private static Button Action(Geometry icon, string tip, Action action)
+    private static Button Action(Geometry icon, Func<string> tip, Action action)
     {
         var button = new Button { Classes = { "icon", "small" }, Focusable = false, Content = new SymbolIcon { Data = icon, Size = 14 } };
         button.Click += (_, _) => action();
-        ToolTip.SetTip(button, tip);
-        return button;
+        return button.Localize(ToolTip.TipProperty, tip);
     }
 
-    private static Button TextAction(string text, string tip, Action action)
+    private static Button TextAction(Func<string> text, Func<string> tip, Action action)
     {
-        var button = new Button { Classes = { "small" }, Focusable = false, Content = text };
+        var button = new Button { Classes = { "small" }, Focusable = false };
         button.Click += (_, _) => action();
-        ToolTip.SetTip(button, tip);
-        return button;
+        return button.Localize(ContentControl.ContentProperty, text).Localize(ToolTip.TipProperty, tip);
     }
 }

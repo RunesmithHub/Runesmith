@@ -86,7 +86,7 @@ public sealed class NotificationService : INotificationService
         RunOnUiThread(async () =>
         {
             var buttons = choices.Select((choice, index) => new MessageDialogButton(choice, index, IsDefault: index == choices.Count - 1)).ToList();
-            buttons.Insert(0, new MessageDialogButton("Cancel", null, IsCancel: true));
+            buttons.Insert(0, new MessageDialogButton(Strings.ShellCancel, null, IsCancel: true));
             return await Dialogs.ShowMessageAsync(title, message, buttons) as int?;
         });
 

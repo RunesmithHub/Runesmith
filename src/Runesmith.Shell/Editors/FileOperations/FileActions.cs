@@ -77,10 +77,10 @@ internal sealed class CreateFileAction(IFileActionHost host, CreateFileOperation
 
     public override IReadOnlyList<string> Paths => [operation.FilePath];
 
-    public override string? CannotUndo() => File.Exists(operation.FilePath) ? null : $"{Name(operation.FilePath)} no longer exists.";
+    public override string? CannotUndo() => File.Exists(operation.FilePath) ? null : Strings.EditorsProblemGone(Name(operation.FilePath));
 
     public override string? CannotRedo() =>
-        FileMoves.Exists(operation.FilePath) && !operation.Overwrite ? $"{Name(operation.FilePath)} exists again." : null;
+        FileMoves.Exists(operation.FilePath) && !operation.Overwrite ? Strings.EditorsProblemExistsAgain(Name(operation.FilePath)) : null;
 
     public override void Discard()
     {
@@ -149,11 +149,11 @@ internal sealed class CreateFolderAction(IFileActionHost host, CreateFolderOpera
     public override string? CannotUndo()
     {
         if (!Directory.Exists(operation.FolderPath))
-            return $"{Name(operation.FolderPath)} no longer exists.";
-        return Directory.EnumerateFileSystemEntries(operation.FolderPath).Any() ? $"{Name(operation.FolderPath)} is no longer empty." : null;
+            return Strings.EditorsProblemGone(Name(operation.FolderPath));
+        return Directory.EnumerateFileSystemEntries(operation.FolderPath).Any() ? Strings.EditorsProblemNoLongerEmpty(Name(operation.FolderPath)) : null;
     }
 
-    public override string? CannotRedo() => FileMoves.Exists(operation.FolderPath) ? $"{Name(operation.FolderPath)} exists again." : null;
+    public override string? CannotRedo() => FileMoves.Exists(operation.FolderPath) ? Strings.EditorsProblemExistsAgain(Name(operation.FolderPath)) : null;
 
     public override void Discard()
     {
@@ -182,16 +182,16 @@ internal sealed class RenameFileAction(IFileActionHost host, RenameFileOperation
     public override string? CannotUndo()
     {
         if (!FileMoves.Exists(operation.NewPath))
-            return $"{Name(operation.NewPath)} no longer exists.";
-        return !IsCaseOnlyRename(operation.OldPath, operation.NewPath) && FileMoves.Exists(operation.OldPath) ? $"{Name(operation.OldPath)} exists again." : null;
+            return Strings.EditorsProblemGone(Name(operation.NewPath));
+        return !IsCaseOnlyRename(operation.OldPath, operation.NewPath) && FileMoves.Exists(operation.OldPath) ? Strings.EditorsProblemExistsAgain(Name(operation.OldPath)) : null;
     }
 
     public override string? CannotRedo()
     {
         if (!FileMoves.Exists(operation.OldPath))
-            return $"{Name(operation.OldPath)} no longer exists.";
+            return Strings.EditorsProblemGone(Name(operation.OldPath));
         return !IsCaseOnlyRename(operation.OldPath, operation.NewPath) && FileMoves.Exists(operation.NewPath) && !operation.Overwrite
-            ? $"{Name(operation.NewPath)} exists again."
+            ? Strings.EditorsProblemExistsAgain(Name(operation.NewPath))
             : null;
     }
 
@@ -250,11 +250,11 @@ internal sealed class DeleteFileAction(IFileActionHost host, DeleteFileOperation
     public override string? CannotUndo()
     {
         if (FileMoves.Exists(operation.Path))
-            return $"{Name(operation.Path)} exists again.";
-        return (_trashed ?? _kept) is { } held && !FileMoves.Exists(held) ? $"{Name(operation.Path)} is no longer in the trash." : null;
+            return Strings.EditorsProblemExistsAgain(Name(operation.Path));
+        return (_trashed ?? _kept) is { } held && !FileMoves.Exists(held) ? Strings.EditorsProblemNotInTrash(Name(operation.Path)) : null;
     }
 
-    public override string? CannotRedo() => FileMoves.Exists(operation.Path) ? null : $"{Name(operation.Path)} no longer exists.";
+    public override string? CannotRedo() => FileMoves.Exists(operation.Path) ? null : Strings.EditorsProblemGone(Name(operation.Path));
 
     public override void Discard()
     {

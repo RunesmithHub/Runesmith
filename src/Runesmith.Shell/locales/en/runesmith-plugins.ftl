@@ -560,3 +560,29 @@ plugins-safe-mode-explanation = Runesmith started in safe mode, which loads no p
 plugins-start-normally = Start normally
 plugins-stay-safe-mode = Stay in safe mode
 plugins-safe-mode-header = Runesmith didn't start properly
+
+## Status lines and badges
+
+# Variables:
+#   $ago - when, such as 3 minutes ago
+plugins-status-verified = Hub verified { $ago }
+plugins-status-checking = Checking the plugin hub
+plugins-status-offline = Offline: the saved catalog
+plugins-status-unverifiable = The hub can't be verified
+plugins-status-off = The plugin hub is off
+plugins-status-not-set-up = The plugin hub is not set up
+plugins-update-automatic = Updates by itself: the same line and no new capability.
+# After the reasons an update waits for the user.
+plugins-update-needs-approval = It needs your approval.
+plugins-update-unverified = Unverified: never updates by itself.
+plugins-update-off = Automatic updates are off.
+plugins-badge-restart = Restart to apply
+plugins-badge-blocked = Blocked
+plugins-badge-files-changed = Files changed
+plugins-badge-paused = Installs paused
+plugins-badge-withdrawn = Withdrawn
+plugins-badge-deprecated = Deprecated
+plugins-badge-removed = Removed from the hub
+plugins-badge-yanked = Yanked
+plugins-badge-deleted = Deleted
+plugins-badge-new = New for you

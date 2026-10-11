@@ -43,3 +43,140 @@ editors-redo-partial = Part of the edit was not redone
 # Variables:
 #   $file - the file's name
 editors-redo-partial-detail = { $file } changed since the edit was undone.
+
+## Workspace edits, pickers and diffs
+
+editors-edit-not-undone = The edit was not undone
+editors-edit-not-redone = The edit was not redone
+editors-edit-not-applied = The edit was not applied
+# Variables:
+#   $file - the file's name
+editors-changed-since-edit = { $file } changed since the edit.
+editors-apply = Apply
+editors-undo = Undo
+# Lines of the summary of a workspace edit, before it is applied.
+# Variables:
+#   $path - the file
+editors-summary-create = Create { $path }
+# Variables:
+#   $path - the folder
+editors-summary-create-folder = Create the folder { $path }
+# Variables:
+#   $from - the old path
+#   $to - the new path
+editors-summary-rename = Rename { $from } to { $to }
+# Variables:
+#   $path - the file or folder
+editors-summary-delete = Delete { $path }
+# Variables:
+#   $path - the file
+#   $count (Number) - in how many places
+editors-summary-change =
+    { $count ->
+        [one] Change { $path } in 1 place
+       *[other] Change { $path } in { $count } places
+    }
+# Variables:
+#   $count (Number) - how many more lines
+editors-summary-more = and { $count } more.
+editors-unknown-operation = The edit has an operation Runesmith does not know.
+editors-save-as = Save As
+editors-pick-definition = Pick a definition
+editors-reload = Reload
+# The two sides of a diff of a file and its base.
+editors-diff-base = Base
+editors-diff-working-copy = Working copy
+editors-open-file = Open File
+editors-open-folder = Open Folder
+# In the Open With list.
+editors-current = Current
+editors-open = Open
+# Variables:
+#   $pattern - the kind of file, such as *.png
+editors-default-for = Default for { $pattern }
+# Variables:
+#   $pattern - the kind of file, such as *.png
+editors-set-default-for = Set Default Editor for { $pattern }...
+# Variables:
+#   $pattern - the kind of file, such as *.png
+editors-default-editor-for = Default editor for { $pattern }
+editors-text-editor = Text Editor
+editors-image-viewer = Image Viewer
+editors-zoom-out = Zoom out (-)
+editors-zoom-in = Zoom in (+)
+editors-fit = Fit
+editors-fit-tip = Fit in the window (0)
+editors-actual-size-tip = Actual size (1)
+
+## Why a file operation or an edit across files can't be made, undone or redone
+
+# Variables:
+#   $name - the file's or folder's name
+editors-problem-missing = { $name } does not exist.
+# Variables:
+#   $name - the file's or folder's name
+editors-problem-deleted-by-edit = { $name } is deleted by the same edit.
+# Variables:
+#   $name - the file's or folder's name
+editors-problem-replaced-by-edit = { $name } is replaced by the same edit.
+# Variables:
+#   $name - the file's or folder's name
+editors-problem-exists = { $name } already exists.
+# Variables:
+#   $name - the folder's name
+editors-problem-into-itself = { $name } cannot move into itself.
+# Variables:
+#   $name - the folder's name
+editors-problem-folder-not-empty = The folder { $name } is not empty.
+# Variables:
+#   $name - the file's or folder's name
+editors-problem-gone = { $name } no longer exists.
+# Variables:
+#   $name - the file's or folder's name
+editors-problem-exists-again = { $name } exists again.
+# Variables:
+#   $name - the folder's name
+editors-problem-no-longer-empty = { $name } is no longer empty.
+# Variables:
+#   $name - the file's or folder's name
+editors-problem-not-in-trash = { $name } is no longer in the trash.
+# Variables:
+#   $name - the file's name
+editors-problem-unsaved = { $name } has unsaved changes.
+# Variables:
+#   $name - the file's name
+editors-problem-not-opened = { $name } could not be opened.
+# What an edit across files is called in the undo notification.
+# Variables:
+#   $name - the file's or folder's name
+editors-label-create = Create { $name }
+# Variables:
+#   $from - the old name
+#   $to - the new name
+editors-label-rename = Rename { $from } to { $to }
+# Variables:
+#   $name - the file's or folder's name
+#   $folder - the folder it moves to
+editors-label-move = Move { $name } to { $folder }
+# Variables:
+#   $name - the file's or folder's name
+editors-label-delete = Delete { $name }
+# Variables:
+#   $count (Number) - how many file operations
+editors-label-operations = { $count } file operations
+# Variables:
+#   $count (Number) - how many files
+editors-label-edit-files =
+    { $count ->
+        [one] Edit 1 file
+       *[other] Edit { $count } files
+    }
+# Variables:
+#   $name - the file's name
+editors-choose-language = Choose the language of { $name }
+# Variables:
+#   $name - the name that is taken
+editors-name-exists = { $name } exists already.
+# Variables:
+#   $name - the file's name
+editors-problem-is-folder = { $name } is a folder.

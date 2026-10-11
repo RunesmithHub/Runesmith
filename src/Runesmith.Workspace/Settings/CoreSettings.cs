@@ -95,9 +95,7 @@ public sealed class CoreSettings : ISettingContributor
 
         new(AllowLocalOverrides, Strings.WorkspaceLocalCopiesReplacePlugins, Plugins, false)
         {
-            Description = Strings.WorkspaceLocalCopiesReplacePluginsDescription
-                + "such as a build of it you work on. The local copy gets its own secrets and storage. Only your user settings can turn this on. "
-                + "Takes effect when Runesmith starts again.",
+            Description = Strings.WorkspaceLocalCopiesReplacePluginsDescription,
         },
     ];
 }

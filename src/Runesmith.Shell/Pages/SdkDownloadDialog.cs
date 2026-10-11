@@ -58,16 +58,16 @@ internal sealed class SdkDownloadDialog
         progressPanel.Children.AddRange([stage, progress]);
 
         if (!isDotnet)
-            AddField("Vendor", vendor);
-        AddField(isDotnet ? "Channel" : "Version", line);
+            AddField(Strings.SettingsSdksFieldVendor, vendor);
+        AddField(isDotnet ? Strings.SettingsSdksFieldChannel : Strings.SettingsSdksFieldVersion, line);
         if (!isDotnet)
         {
-            AddField("Package", package);
-            AddField("Architecture", architecture);
+            AddField(Strings.SettingsSdksFieldPackage, package);
+            AddField(Strings.SettingsSdksFieldArchitecture, architecture);
         }
 
-        AddField(isDotnet ? "Version" : "Release", versions);
-        AddField("Size", size);
+        AddField(isDotnet ? Strings.SettingsSdksFieldVersion : Strings.SettingsSdksFieldRelease, versions);
+        AddField(Strings.SettingsSdksFieldSize, size);
 
         vendor.SelectionChanged += (_, _) => ScheduleRefill();
         line.SelectionChanged += (_, _) => ScheduleRefill();
@@ -207,7 +207,7 @@ internal sealed class SdkDownloadDialog
         else if (isDotnet)
             label.Children.Add(SdksSection.Badge("STS"));
         if (sample.SupportPhase is "preview" or "go-live")
-            label.Children.Add(SdksSection.Badge("Preview", "warning"));
+            label.Children.Add(SdksSection.Badge(Strings.SettingsSdksBadgePreview, "warning"));
         else if (sample.SupportPhase is "maintenance" or "eol")
             label.Children.Add(new TextBlock { Text = sample.SupportPhase == "eol" ? Strings.SettingsSdksOutOfSupport : Strings.SettingsSdksMaintenance, Classes = { "muted" }, VerticalAlignment = VerticalAlignment.Center });
         return label;
@@ -217,9 +217,9 @@ internal sealed class SdkDownloadDialog
     {
         var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { new TextBlock { Text = release.Version, VerticalAlignment = VerticalAlignment.Center } } };
         if (isLatest)
-            label.Children.Add(SdksSection.Badge("Latest", "accent"));
+            label.Children.Add(SdksSection.Badge(Strings.SettingsSdksBadgeLatest, "accent"));
         if (release.Version.Contains('-', StringComparison.Ordinal))
-            label.Children.Add(SdksSection.Badge("Preview", "warning"));
+            label.Children.Add(SdksSection.Badge(Strings.SettingsSdksBadgePreview, "warning"));
         if (release.Released is { } date)
             label.Children.Add(new TextBlock { Text = date.ToString("d", CultureInfo.CurrentCulture), Classes = { "muted" }, VerticalAlignment = VerticalAlignment.Center });
         return label;

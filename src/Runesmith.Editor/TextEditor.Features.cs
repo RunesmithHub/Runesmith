@@ -104,7 +104,7 @@ public sealed partial class TextEditor
         if (changes is null)
         {
             if (!quiet)
-                ShowMessage($"No formatter for {services.Languages.Find(Document.LanguageId)?.Name ?? Document.LanguageId} files is installed.");
+                ShowMessage(Strings.EditorNoFormatter(services.Languages.Find(Document.LanguageId)?.Name ?? Document.LanguageId));
             return FormatResult.NoFormatter;
         }
 

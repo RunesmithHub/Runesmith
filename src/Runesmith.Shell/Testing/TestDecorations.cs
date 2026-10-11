@@ -57,11 +57,11 @@ public sealed class TestDecorations : IDecorationProvider
                 var state = node.State;
                 if (marked.Add(line))
                     decorations.Add(Marker(node, state, span));
-                decorations.Add(new CodeLens(span, "Run") { CommandId = TestCommands.RunItem, CommandArgument = node, ToolTip = $"Run {node.Item.Label}" });
+                decorations.Add(new CodeLens(span, Strings.ToolsTestsRun) { CommandId = TestCommands.RunItem, CommandArgument = node, ToolTip = Strings.ToolsTestsRunName(node.Item.Label) });
                 if (node.Provider.CanDebug)
-                    decorations.Add(new CodeLens(span, "Debug") { CommandId = TestCommands.DebugItem, CommandArgument = node, ToolTip = $"Debug {node.Item.Label}" });
+                    decorations.Add(new CodeLens(span, Strings.ToolsTestsDebug) { CommandId = TestCommands.DebugItem, CommandArgument = node, ToolTip = Strings.ToolsTestsDebugName(node.Item.Label) });
                 if (Status(node, state) is { } status)
-                    decorations.Add(new CodeLens(span, status) { CommandId = TestCommands.ShowItem, CommandArgument = node, ToolTip = "Show the result in the Test Explorer" });
+                    decorations.Add(new CodeLens(span, status) { CommandId = TestCommands.ShowItem, CommandArgument = node, ToolTip = Strings.ToolsTestsShowResult });
             }
 
             var failedLines = new HashSet<int>();
@@ -103,7 +103,7 @@ public sealed class TestDecorations : IDecorationProvider
             TestState.Running or TestState.Queued => (TestIcons.Queued, DecorationTone.Accent, false),
             _ => (TestIcons.Run, DecorationTone.Success, true),
         };
-        var what = node.IsTest ? "test" : "tests";
+        var many = node.IsTest ? 1 : 2;
         var status = Status(node, state);
         return new GutterMarker(span, icon)
         {
@@ -111,19 +111,21 @@ public sealed class TestDecorations : IDecorationProvider
             IsFilled = filled,
             CommandId = TestCommands.RunItem,
             CommandArgument = node,
-            ToolTip = status is null ? $"**{node.Item.Label}**\n\nClick to run the {what}." : $"**{node.Item.Label}**\n\n{status}.\n\nClick to run the {what} again.",
+            ToolTip = status is null
+                ? Strings.ToolsTestsMarker(many: many, name: node.Item.Label)
+                : Strings.ToolsTestsMarkerStatus(many: many, name: node.Item.Label, status: status),
         };
     }
 
     /// <summary>Gets what a node's last result was, such as "Passed in 12 ms", or null when it has none.</summary>
     internal static string? Status(TestNode node, TestState state) => state switch
     {
-        TestState.Passed => node.Duration is { } duration ? $"Passed in {Format(duration)}" : "Passed",
-        TestState.Failed => node.IsTest && node.Result?.Failure is { } failure ? $"Failed: {TestFailures.Summary(failure)}" : $"{FailedCount(node)} failed",
-        TestState.Errored => node.IsTest && node.Result?.Failure is { } error ? $"Error: {TestFailures.Summary(error)}" : $"{FailedCount(node)} failed",
-        TestState.Skipped => node.Result?.SkipReason is { Length: > 0 } reason ? $"Skipped: {reason}" : "Skipped",
-        TestState.Running => "Running",
-        TestState.Queued => "Queued",
+        TestState.Passed => node.Duration is { } duration ? Strings.ToolsTestsPassedIn(Format(duration)) : Strings.ToolsTestsPassed,
+        TestState.Failed => node.IsTest && node.Result?.Failure is { } failure ? Strings.ToolsTestsFailedSummary(TestFailures.Summary(failure)) : Strings.ToolsTestsCountFailed(FailedCount(node)),
+        TestState.Errored => node.IsTest && node.Result?.Failure is { } error ? Strings.ToolsTestsErrorSummary(TestFailures.Summary(error)) : Strings.ToolsTestsCountFailed(FailedCount(node)),
+        TestState.Skipped => node.Result?.SkipReason is { Length: > 0 } reason ? Strings.ToolsTestsSkippedReason(reason) : Strings.ToolsTestsStatusSkipped,
+        TestState.Running => Strings.ToolsTestsStatusRunning,
+        TestState.Queued => Strings.ToolsTestsStatusQueued,
         _ => null,
     };
 

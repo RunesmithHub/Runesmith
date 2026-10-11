@@ -14,8 +14,8 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using HammerUI;
 using HammerUI.Controls;
-using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Commands;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Shell.Appearance;
 using Runesmith.Shell.Commands;
@@ -445,7 +445,7 @@ internal sealed class TreeViewControl : DockPanel, IToolWindowHeader
                 var chevron = new ToggleButton { IsChecked = shown.IsExpanded, Focusable = false };
                 if (Application.Current?.TryFindResource("TreeExpanderToggle", out var theme) == true && theme is ControlTheme toggleTheme)
                     chevron.Theme = toggleTheme;
-                AutomationProperties.SetName(chevron, shown.IsExpanded ? "Collapse" : "Expand");
+                AutomationProperties.SetName(chevron, shown.IsExpanded ? Strings.ToolsTreeCollapse : Strings.ToolsTreeExpand);
                 chevron.Click += (_, _) => owner.Toggle(shown);
                 chevronSlot.Children.Add(chevron);
             }

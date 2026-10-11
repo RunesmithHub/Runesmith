@@ -287,9 +287,9 @@ internal sealed class RunConfigurationsDialog : Dialog
         var step = entry.Steps[index];
         var (icon, text) = step.Kind switch
         {
-            BeforeLaunchKind.Build => (Icons.Hammer, "Build"),
-            BeforeLaunchKind.RunConfiguration => (Icons.Play, "Run"),
-            _ => (Icons.Terminal, "Command"),
+            BeforeLaunchKind.Build => (Icons.Hammer, Strings.ToolsRunStepMenuBuild),
+            BeforeLaunchKind.RunConfiguration => (Icons.Play, Strings.ToolsRunRun),
+            _ => (Icons.Terminal, Strings.ToolsRunStepMenuCommand),
         };
         Control field = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center };
         if (step.Kind == BeforeLaunchKind.Command)

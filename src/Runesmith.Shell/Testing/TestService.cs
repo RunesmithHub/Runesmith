@@ -130,7 +130,7 @@ public sealed class TestService : IDisposable
 
         IsDiscovering = true;
         StateChanged?.Invoke(this, EventArgs.Empty);
-        using var task = Providers.Count > 0 ? tasks?.Start("Discovering tests", cancel.Cancel) : null;
+        using var task = Providers.Count > 0 ? tasks?.Start(Strings.ToolsTestsDiscoveringTask, cancel.Cancel) : null;
         try
         {
             await Task.WhenAll(Providers.Select(provider => DiscoverAsync(provider, root, cancel.Token))).ConfigureAwait(false);
@@ -340,7 +340,7 @@ public sealed class TestService : IDisposable
         var count = 0;
         lock (Tree.Gate)
             count = nodes.Sum(n => n.Tests().Count());
-        using var task = tasks?.Start(run.Mode == RunMode.Debug ? "Debugging tests" : $"Running {Count(count, "test")}", run.Stop);
+        using var task = tasks?.Start(run.Mode == RunMode.Debug ? Strings.ToolsTestsDebuggingTask : Strings.ToolsTestsRunningTask(count), run.Stop);
         try
         {
             foreach (var group in nodes.GroupBy(n => n.Provider))

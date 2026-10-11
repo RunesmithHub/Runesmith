@@ -54,7 +54,7 @@ internal sealed class FileOperationPlan
         }
 
         if (!FileMoves.Exists(full))
-            return (null, $"{Path.GetFileName(full)} does not exist.");
+            return (null, Strings.EditorsProblemMissing(Path.GetFileName(full)));
 
         var final = full;
         foreach (var operation in _operations)
@@ -65,9 +65,9 @@ internal sealed class FileOperationPlan
                     final = rename.NewPath + final[rename.OldPath.Length..];
                     break;
                 case DeleteFileOperation delete when PathComparison.IsInside(final, delete.Path):
-                    return (null, $"{Path.GetFileName(full)} is deleted by the same edit.");
+                    return (null, Strings.EditorsProblemDeletedByEdit(Path.GetFileName(full)));
                 case CreateFileOperation create when PathComparison.Comparer.Equals(create.FilePath, final):
-                    return (null, $"{Path.GetFileName(full)} is replaced by the same edit.");
+                    return (null, Strings.EditorsProblemReplacedByEdit(Path.GetFileName(full)));
             }
         }
 
@@ -83,36 +83,36 @@ internal sealed class FileOperationPlan
                 if (!Exists(create.FilePath, now))
                     return (create, null);
                 if (IsFolder(create.FilePath, now))
-                    return (null, $"{Path.GetFileName(create.FilePath)} is a folder.");
+                    return (null, Strings.EditorsProblemIsFolder(Path.GetFileName(create.FilePath)));
                 if (create.Overwrite)
                     return (create, null);
-                return create.IgnoreIfExists ? (null, null) : (null, $"{Path.GetFileName(create.FilePath)} already exists.");
+                return create.IgnoreIfExists ? (null, null) : (null, Strings.EditorsProblemExists(Path.GetFileName(create.FilePath)));
             case CreateFolderOperation create:
                 if (!Exists(create.FolderPath, now))
                     return (create, null);
-                return create.IgnoreIfExists && IsFolder(create.FolderPath, now) ? (null, null) : (null, $"{Path.GetFileName(create.FolderPath)} already exists.");
+                return create.IgnoreIfExists && IsFolder(create.FolderPath, now) ? (null, null) : (null, Strings.EditorsProblemExists(Path.GetFileName(create.FolderPath)));
             case RenameFileOperation rename:
                 if (!Exists(rename.OldPath, now))
-                    return (null, $"{Path.GetFileName(rename.OldPath)} does not exist.");
+                    return (null, Strings.EditorsProblemMissing(Path.GetFileName(rename.OldPath)));
                 if (string.Equals(rename.OldPath, rename.NewPath, StringComparison.Ordinal))
                     return (null, null);
                 if (PathComparison.IsInside(rename.NewPath, rename.OldPath) && !PathComparison.Comparer.Equals(rename.NewPath, rename.OldPath))
-                    return (null, $"{Path.GetFileName(rename.OldPath)} cannot move into itself.");
+                    return (null, Strings.EditorsProblemIntoItself(Path.GetFileName(rename.OldPath)));
                 if (PathComparison.Comparer.Equals(rename.NewPath, rename.OldPath) || !Exists(rename.NewPath, now))
                     return (rename, null);
                 if (IsFolder(rename.NewPath, now))
-                    return (null, $"{Path.GetFileName(rename.NewPath)} is a folder.");
+                    return (null, Strings.EditorsProblemIsFolder(Path.GetFileName(rename.NewPath)));
                 if (rename.Overwrite)
                     return (rename, null);
-                return rename.IgnoreIfExists ? (null, null) : (null, $"{Path.GetFileName(rename.NewPath)} already exists.");
+                return rename.IgnoreIfExists ? (null, null) : (null, Strings.EditorsProblemExists(Path.GetFileName(rename.NewPath)));
             case DeleteFileOperation delete:
                 if (!Exists(delete.Path, now))
-                    return delete.IgnoreIfMissing ? (null, null) : (null, $"{Path.GetFileName(delete.Path)} does not exist.");
+                    return delete.IgnoreIfMissing ? (null, null) : (null, Strings.EditorsProblemMissing(Path.GetFileName(delete.Path)));
                 if (!delete.Recursive && IsFolder(delete.Path, now) && Directory.Exists(delete.Path) && Directory.EnumerateFileSystemEntries(delete.Path).Any())
-                    return (null, $"The folder {Path.GetFileName(delete.Path)} is not empty.");
+                    return (null, Strings.EditorsProblemFolderNotEmpty(Path.GetFileName(delete.Path)));
                 return (delete, null);
             default:
-                return (null, "The edit has an operation Runesmith does not know.");
+                return (null, Strings.EditorsUnknownOperation);
         }
     }
 

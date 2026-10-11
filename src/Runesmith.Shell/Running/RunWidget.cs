@@ -103,7 +103,7 @@ public sealed class RunWidget : StackPanel
         var recent = configurations.Recent.Select(configurations.Find).OfType<RunConfiguration>().Take(RecentCount).ToList();
         if (recent.Count > 0 && all.Count > RecentCount)
         {
-            menu.Items.Add(Header("Recent"));
+            menu.Items.Add(Header(Strings.ToolsRunRecent));
             foreach (var configuration in recent)
                 menu.Items.Add(Item(configuration));
             menu.Items.Add(new Separator());

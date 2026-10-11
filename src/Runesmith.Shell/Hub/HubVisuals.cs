@@ -137,12 +137,12 @@ internal static class HubVisuals
     /// <summary>The badge for a notice kind, or null when the kind shows none.</summary>
     public static Control? StateBadge(NoticeKind? kind) => kind switch
     {
-        NoticeKind.Blocked or NoticeKind.Quarantined => StateBadge("Blocked", "ban", "DangerBrush"),
-        NoticeKind.FilesChanged => StateBadge("Files changed", "AlertTriangle", "DangerBrush"),
-        NoticeKind.Frozen => StateBadge("Installs paused", "pause", "InfoBrush"),
-        NoticeKind.Yanked => StateBadge("Withdrawn", "undo", "TextMutedBrush"),
-        NoticeKind.Deprecated => StateBadge("Deprecated", "archive", "TextSecondaryBrush"),
-        NoticeKind.Deleted => StateBadge("Removed from the hub", "Trash", "TextSecondaryBrush"),
+        NoticeKind.Blocked or NoticeKind.Quarantined => StateBadge(Strings.PluginsBadgeBlocked, "ban", "DangerBrush"),
+        NoticeKind.FilesChanged => StateBadge(Strings.PluginsBadgeFilesChanged, "AlertTriangle", "DangerBrush"),
+        NoticeKind.Frozen => StateBadge(Strings.PluginsBadgePaused, "pause", "InfoBrush"),
+        NoticeKind.Yanked => StateBadge(Strings.PluginsBadgeWithdrawn, "undo", "TextMutedBrush"),
+        NoticeKind.Deprecated => StateBadge(Strings.PluginsBadgeDeprecated, "archive", "TextSecondaryBrush"),
+        NoticeKind.Deleted => StateBadge(Strings.PluginsBadgeRemoved, "Trash", "TextSecondaryBrush"),
         _ => null,
     };
 
@@ -164,10 +164,10 @@ internal static class HubVisuals
     /// <summary>The badge for a version's state in the versions list, or null for a published version.</summary>
     public static Control? VersionBadge(VersionState state) => state switch
     {
-        VersionState.Blocked => StateBadge("Blocked", "ban", "DangerBrush"),
-        VersionState.Frozen => StateBadge("Installs paused", "pause", "InfoBrush"),
-        VersionState.Yanked => StateBadge("Yanked", "undo", "TextMutedBrush", struck: true),
-        VersionState.Deleted => StateBadge("Deleted", "Trash", "TextSecondaryBrush"),
+        VersionState.Blocked => StateBadge(Strings.PluginsBadgeBlocked, "ban", "DangerBrush"),
+        VersionState.Frozen => StateBadge(Strings.PluginsBadgePaused, "pause", "InfoBrush"),
+        VersionState.Yanked => StateBadge(Strings.PluginsBadgeYanked, "undo", "TextMutedBrush", struck: true),
+        VersionState.Deleted => StateBadge(Strings.PluginsBadgeDeleted, "Trash", "TextSecondaryBrush"),
         _ => null,
     };
 
@@ -216,7 +216,7 @@ internal static class HubVisuals
         var title = new WrapPanel { ItemSpacing = 6, LineSpacing = 2 };
         title.Children.Add(Themed(new TextBlock { Text = capability.Label, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap }, TextBlock.ForegroundProperty, capability.IsHighRisk ? "DangerBrush" : "TextPrimaryBrush"));
         if (capability.IsNew)
-            title.Children.Add(StateBadge("New for you", "sparkles", "AccentBrush"));
+            title.Children.Add(StateBadge(Strings.PluginsBadgeNew, "sparkles", "AccentBrush"));
 
         var reason = new TextBlock { TextWrapping = TextWrapping.Wrap, Classes = { "secondary" } };
         reason.Inlines!.Add(new Avalonia.Controls.Documents.Run(capability.Reason));

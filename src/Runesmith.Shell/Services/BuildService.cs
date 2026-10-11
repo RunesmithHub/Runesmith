@@ -46,7 +46,7 @@ public sealed class BuildService(
         channel.Show();
         diagnostics.Clear(Source);
         var found = new Dictionary<string, List<Diagnostic>>(StringComparer.Ordinal);
-        task = tasks.Start("Building", Cancel);
+        task = tasks.Start(Strings.ShellBuilding, Cancel);
         task.Report($"with {provider.Name}");
         StateChanged?.Invoke(this, EventArgs.Empty);
 

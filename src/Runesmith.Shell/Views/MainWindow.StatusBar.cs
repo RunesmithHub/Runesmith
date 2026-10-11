@@ -10,9 +10,9 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
-using Runesmith.Sdk.Localization;
 using Runesmith.Editor;
 using Runesmith.Sdk.Commands;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Shell;
 using Runesmith.Shell.Palette;
 using Runesmith.Shell.Services;
@@ -32,7 +32,7 @@ public partial class MainWindow
     private void WireStatusBar()
     {
         CaretButton.Click += (_, _) => _ = commands!.ExecuteAsync(CommandIds.GoToLine);
-        ToolTip.SetTip(CaretButton, Tip("Go to line", CommandIds.GoToLine));
+        CaretButton.Localize(ToolTip.TipProperty, () => Tip(Strings.ShellGoToLineTip, CommandIds.GoToLine));
         LineEndingButton.Click += (_, _) => _ = ChangeLineEndingAsync();
         IndentButton.Click += (_, _) => pages!.ShowSettings("Editor");
         LanguageButton.Click += (_, _) => _ = ChangeLanguageAsync();
@@ -118,7 +118,7 @@ public partial class MainWindow
     {
         var document = watched?.Document;
         var name = document is null ? null : document.IsModified ? document.Name + " *" : document.Name;
-        string[] parts = [.. new[] { name, workspace!.Name, "Runesmith" }.Where(p => !string.IsNullOrEmpty(p))!];
+        string[] parts = [.. new[] { name, workspace!.Name, Strings.ShellProduct }.Where(p => !string.IsNullOrEmpty(p))!];
         Title = string.Join(" - ", parts);
     }
 
@@ -286,9 +286,9 @@ public partial class MainWindow
 
         var items = languages!.Languages
             .OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(l => new QuickPickItem(l.Name, l.Id) { Detail = l.Id == document.LanguageId ? "Current" : null, Icon = Icons.Find(l.Icon) ?? Icons.File })
+            .Select(l => new QuickPickItem(l.Name, l.Id) { Detail = l.Id == document.LanguageId ? Strings.ShellCurrent : null, Icon = Icons.Find(l.Icon) ?? Icons.File })
             .ToList();
-        if (await controller!.PickAsync($"Choose the language of {document.Name}", items) is { Value: string id })
+        if (await controller!.PickAsync(Strings.EditorsChooseLanguage(document.Name), items) is { Value: string id })
             document.LanguageId = id;
     }
 }

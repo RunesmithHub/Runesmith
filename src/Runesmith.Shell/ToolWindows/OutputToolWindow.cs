@@ -6,8 +6,8 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using HammerUI;
 using HammerUI.Controls;
-using Runesmith.Sdk.Localization;
 using Runesmith.Editor;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Shell.Services;
 

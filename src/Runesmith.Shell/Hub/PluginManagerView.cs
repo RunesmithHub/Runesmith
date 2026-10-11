@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -167,12 +168,12 @@ internal sealed class PluginManagerView : DockPanel
         var current = model.Client.Status;
         var (icon, brush, text) = current.Kind switch
         {
-            HubStatusKind.Verified => ("shield-check", "SuccessBrush", $"Hub verified {WelcomePage.Ago(current.CheckedAt ?? DateTimeOffset.Now, DateTimeOffset.Now).ToLowerInvariant()}"),
-            HubStatusKind.Checking => ("Refresh", "TextMutedBrush", "Checking the plugin hub"),
-            HubStatusKind.Offline => ("Info", "TextMutedBrush", "Offline: the saved catalog"),
-            HubStatusKind.Unverifiable or HubStatusKind.VerificationFailed or HubStatusKind.RunesmithTooOld => ("AlertTriangle", "WarningBrush", "The hub can't be verified"),
-            HubStatusKind.TurnedOff => ("Info", "TextMutedBrush", "The plugin hub is off"),
-            _ => ("Info", "TextMutedBrush", "The plugin hub is not set up"),
+            HubStatusKind.Verified => ("shield-check", "SuccessBrush", Strings.PluginsStatusVerified(WelcomePage.Ago(current.CheckedAt ?? DateTimeOffset.Now, DateTimeOffset.Now).ToLower(CultureInfo.CurrentCulture))),
+            HubStatusKind.Checking => ("Refresh", "TextMutedBrush", Strings.PluginsStatusChecking),
+            HubStatusKind.Offline => ("Info", "TextMutedBrush", Strings.PluginsStatusOffline),
+            HubStatusKind.Unverifiable or HubStatusKind.VerificationFailed or HubStatusKind.RunesmithTooOld => ("AlertTriangle", "WarningBrush", Strings.PluginsStatusUnverifiable),
+            HubStatusKind.TurnedOff => ("Info", "TextMutedBrush", Strings.PluginsStatusOff),
+            _ => ("Info", "TextMutedBrush", Strings.PluginsStatusNotSetUp),
         };
         statusIcon.Data = HubVisuals.Icon(icon);
         HubVisuals.Themed(statusIcon, SymbolIcon.ForegroundProperty, brush);
@@ -370,15 +371,15 @@ internal sealed class PluginManagerView : DockPanel
 
         var (subtitle, brush) = update.Kind switch
         {
-            UpdateKind.Automatic => ("Updates by itself: the same line and no new capability.", "TextMutedBrush"),
-            UpdateKind.NeedsReview => (string.Join(" ", update.Reasons) + " It needs your approval.", "WarningBrush"),
-            _ when update.Tier == PluginTier.Unverified => ("Unverified: never updates by itself.", "TextMutedBrush"),
-            _ => ("Automatic updates are off.", "TextMutedBrush"),
+            UpdateKind.Automatic => (Strings.PluginsUpdateAutomatic, "TextMutedBrush"),
+            UpdateKind.NeedsReview => (string.Join(" ", update.Reasons) + " " + Strings.PluginsUpdateNeedsApproval, "WarningBrush"),
+            _ when update.Tier == PluginTier.Unverified => (Strings.PluginsUpdateUnverified, "TextMutedBrush"),
+            _ => (Strings.PluginsUpdateOff, "TextMutedBrush"),
         };
         var note = HubVisuals.Themed(new TextBlock { Text = subtitle, Classes = { "caption" }, TextWrapping = TextWrapping.Wrap }, TextBlock.ForegroundProperty, brush);
 
         Control action = pending
-            ? HubVisuals.StateBadge("Restart to apply", "Check", "SuccessBrush")
+            ? HubVisuals.StateBadge(Strings.PluginsBadgeRestart, "Check", "SuccessBrush")
             : SmallButton(update.Kind == UpdateKind.NeedsReview ? Strings.PluginsReviewUpdate : Strings.PluginsUpdate, () => _ = hub.UpdateAsync(update), accent: update.Kind == UpdateKind.NeedsReview);
         action.IsEnabled = pending || model.Client.Status.CanInstall;
         action.VerticalAlignment = VerticalAlignment.Center;

@@ -142,10 +142,10 @@ public sealed class TerminalToolWindow : IToolWindowProvider
                     FocusLater(session);
             };
             empty = new EmptyState
-                {
-                    Icon = Icons.Find(TerminalIcons.Terminal),
-                    ActionCommand = new Views.RelayCommand(() => owner.NewShell()),
-                }
+            {
+                Icon = Icons.Find(TerminalIcons.Terminal),
+                ActionCommand = new Views.RelayCommand(() => owner.NewShell()),
+            }
                 .Localize(EmptyState.TitleProperty, () => Strings.ToolsTerminalNone)
                 .Localize(EmptyState.HintProperty, () => Strings.ToolsTerminalNoneHint)
                 .Localize(EmptyState.ActionTextProperty, () => Strings.ToolsTerminalNewTerminal);

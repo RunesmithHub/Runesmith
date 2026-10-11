@@ -87,7 +87,7 @@ internal sealed class StartupGuard
             suspects = [.. history[^1].Plugins.Concat(history[^2].Plugins).DistinctBy(s => s.Id)];
 
         var neverShown = history[^1].ShownAt is null && history[^2].ShownAt is null;
-        return new SafeModeOffer(neverShown ? "Runesmith failed to start twice in a row." : "Runesmith closed unexpectedly twice while starting.", suspects);
+        return new SafeModeOffer(neverShown ? Strings.AppFailedTwice : Strings.AppClosedTwice, suspects);
     }
 
     private static bool IsBad(StartRecord record) => !record.SafeMode && record.ExitedAt is null && record.StableAt is null;

@@ -1,8 +1,8 @@
 using System.Composition;
 using Avalonia.Controls;
-using Runesmith.Sdk.Localization;
 using Runesmith.Dap.Protocol;
 using Runesmith.Sdk.Commands;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Sdk.Workspace;
@@ -108,20 +108,23 @@ public sealed class DebugToolWindow : IToolWindowProvider
         switch (session.State)
         {
             case DebugState.Paused:
-                var where = session.CurrentFrame is { Source.Path: { Length: > 0 } path } frame ? $" at {Path.GetFileName(path)}:{frame.Line}" : "";
-                statusItem.Text = $"Paused{where}";
+                statusItem.Text = session.CurrentFrame is { Source.Path: { Length: > 0 } path } frame
+                    ? Strings.ToolsDebugStatusPausedAt(Path.GetFileName(path), frame.Line)
+                    : Strings.ToolsDebugStatusPaused;
                 statusItem.State = StatusBarState.Warning;
-                statusItem.ToolTip = $"{session.Name} is paused{(session.Stop?.Reason is { } reason ? $" ({Reason(reason)})" : "")}. Press F5 to continue.";
+                statusItem.ToolTip = session.Stop?.Reason is { } reason
+                    ? Strings.ToolsDebugStatusPausedTipReason(session.Name, Reason(reason))
+                    : Strings.ToolsDebugStatusPausedTip(session.Name);
                 break;
             case DebugState.Starting:
-                statusItem.Text = $"Starting {session.DebuggerName}";
+                statusItem.Text = Strings.ToolsDebugStatusStarting(session.DebuggerName);
                 statusItem.State = StatusBarState.Busy;
-                statusItem.ToolTip = $"{session.DebuggerName} is starting {session.Name}.";
+                statusItem.ToolTip = Strings.ToolsDebugStatusStartingTip(session.DebuggerName, session.Name);
                 break;
             default:
-                statusItem.Text = $"Debugging {session.Name}";
+                statusItem.Text = Strings.ToolsDebugStatusDebugging(session.Name);
                 statusItem.State = StatusBarState.Normal;
-                statusItem.ToolTip = $"{session.Name} runs under {session.DebuggerName}.";
+                statusItem.ToolTip = Strings.ToolsDebugStatusDebuggingTip(session.Name, session.DebuggerName);
                 break;
         }
     }

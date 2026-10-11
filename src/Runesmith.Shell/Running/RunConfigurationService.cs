@@ -127,7 +127,7 @@ public sealed class RunConfigurationService : IRunConfigurationService, IDisposa
         IsDetecting = true;
         Changed?.Invoke(this, EventArgs.Empty);
 
-        using var task = tasks?.Start("Finding run configurations", cancel.Cancel);
+        using var task = tasks?.Start(Strings.ToolsRunFindingTask, cancel.Cancel);
         var found = await Task.WhenAll(Types.Select(type => DetectAsync(type, rootPath, token)));
         if (token.IsCancellationRequested)
             return;

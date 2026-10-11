@@ -12,9 +12,9 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
-using Runesmith.Sdk.Localization;
 using Runesmith.Editor;
 using Runesmith.Sdk.Commands;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Running;
 using Runesmith.Sdk.Testing;
 using Runesmith.Text;
@@ -312,8 +312,8 @@ internal sealed class TestExplorerView : DockPanel
             return item;
         }
 
-        menu.Items.Add(Item("Run", TestIcons.Run, () => _ = tests.RunAsync(row.Nodes)));
-        menu.Items.Add(Item("Debug", TestIcons.Debug, () => _ = tests.RunAsync(row.Nodes, RunMode.Debug), row.Nodes.Any(n => n.Provider.CanDebug)));
+        menu.Items.Add(Item(Strings.ToolsTestsRun, TestIcons.Run, () => _ = tests.RunAsync(row.Nodes)));
+        menu.Items.Add(Item(Strings.ToolsTestsDebug, TestIcons.Debug, () => _ = tests.RunAsync(row.Nodes, RunMode.Debug), row.Nodes.Any(n => n.Provider.CanDebug)));
         menu.Items.Add(new Separator());
         menu.Items.Add(Item(Strings.ToolsTestsGoToSource, "file-code", () => GoToSource(row), row.Node?.Item is { FilePath: not null }));
         return menu;
@@ -387,7 +387,7 @@ internal sealed class TestExplorerView : DockPanel
         var output = run?.OutputOf(node) is { Length: > 0 } live ? live : result?.Output ?? "";
         if (output.Length > 0)
         {
-            details.Children.Add(Heading("Output"));
+            details.Children.Add(Heading(Strings.ToolsTestsOutput));
             details.Children.Add(Output(output));
         }
     }
@@ -448,7 +448,7 @@ internal sealed class TestExplorerView : DockPanel
 
         if (outputs.Length > 0)
         {
-            details.Children.Add(Heading("Output"));
+            details.Children.Add(Heading(Strings.ToolsTestsOutput));
             details.Children.Add(Output(outputs.ToString()));
         }
     }

@@ -9,6 +9,7 @@ using Avalonia.Media.Immutable;
 using HammerUI;
 using HammerUI.Controls;
 using HammerUI.Theming;
+using Runesmith.Sdk.Localization;
 using Runesmith.Text;
 
 namespace Runesmith.Editor.Popups;
@@ -33,7 +34,7 @@ internal sealed class ChangePopup : Popup
         IsLightDismissEnabled = true;
         caption[!TextBlock.ForegroundProperty] = new DynamicResourceExtension("TextMutedBrush");
 
-        rollback = TextAction(Icons.Undo, "Rollback", "Put the lines back as they were", () => area.Rollback([shown]));
+        rollback = TextAction(Icons.Undo, () => Strings.EditorChangeRollback, () => Strings.EditorChangeRestore, () => area.Rollback([shown]));
         var bar = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -42,10 +43,10 @@ internal sealed class ChangePopup : Popup
             Children =
             {
                 caption,
-                IconAction(Icons.ArrowUp, "Previous change", () => Move(-1)),
-                IconAction(Icons.ArrowDown, "Next change", () => Move(1)),
+                IconAction(Icons.ArrowUp, () => Strings.EditorChangePrevious, () => Move(-1)),
+                IconAction(Icons.ArrowDown, () => Strings.EditorChangeNext, () => Move(1)),
                 rollback,
-                TextAction(Icons.GitCompare, "Show Diff", "Show the file and its base side by side", () => ShowDiffRequested?.Invoke(this, EventArgs.Empty)),
+                TextAction(Icons.GitCompare, () => Strings.EditorChangeShowDiff, () => Strings.EditorChangeShowDiffTip, () => ShowDiffRequested?.Invoke(this, EventArgs.Empty)),
             },
         };
         var divider = new Border { Height = 1 };
@@ -119,22 +120,21 @@ internal sealed class ChangePopup : Popup
         Show(next);
     }
 
-    private static Button IconAction(Geometry icon, string tip, Action action)
+    private static Button IconAction(Geometry icon, Func<string> tip, Action action)
     {
         var button = new Button { Classes = { "icon", "small" }, Focusable = false, Content = new SymbolIcon { Data = icon, Size = 14 } };
         button.Click += (_, _) => action();
-        ToolTip.SetTip(button, tip);
-        return button;
+        return button.Localize(ToolTip.TipProperty, tip);
     }
 
-    private Button TextAction(Geometry icon, string text, string tip, Action action)
+    private Button TextAction(Geometry icon, Func<string> text, Func<string> tip, Action action)
     {
         var button = new Button
         {
             Classes = { "small" },
             Focusable = false,
             Margin = new Thickness(4, 0, 0, 0),
-            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new SymbolIcon { Data = icon, Size = 14 }, new TextBlock { Text = text } } },
+            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new SymbolIcon { Data = icon, Size = 14 }, new TextBlock().Localize(TextBlock.TextProperty, text) } },
         };
         button.Click += (_, _) =>
         {
@@ -142,7 +142,7 @@ internal sealed class ChangePopup : Popup
             action();
             area.Focus();
         };
-        ToolTip.SetTip(button, tip);
+        button.Localize(ToolTip.TipProperty, tip);
         return button;
     }
 }

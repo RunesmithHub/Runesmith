@@ -5,6 +5,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Shell.ToolWindows;
 
@@ -74,11 +75,11 @@ internal sealed class WorkbenchView : Grid
 
         return
         [
-            Item("Move to Left", Icons.PanelLeft, area != DockSide.Left, () => manager.Move(id, DockSide.Left)),
-            Item("Move to Right", Icons.PanelRight, area != DockSide.Right, () => manager.Move(id, DockSide.Right)),
-            Item("Move to Bottom", Icons.PanelBottom, area != DockSide.Bottom, () => manager.Move(id, DockSide.Bottom)),
+            Item(Strings.ToolsWindowMoveLeft, Icons.PanelLeft, area != DockSide.Left, () => manager.Move(id, DockSide.Left)),
+            Item(Strings.ToolsWindowMoveRight, Icons.PanelRight, area != DockSide.Right, () => manager.Move(id, DockSide.Right)),
+            Item(Strings.ToolsWindowMoveBottom, Icons.PanelBottom, area != DockSide.Bottom, () => manager.Move(id, DockSide.Bottom)),
             new Separator(),
-            Item("Hide", Icons.Minus, manager.IsVisible(id), () => manager.Hide(id)),
+            Item(Strings.ToolsWindowHide, Icons.Minus, manager.IsVisible(id), () => manager.Hide(id)),
         ];
     }
 
@@ -161,7 +162,7 @@ internal sealed class WorkbenchView : Grid
             Runesmith.Sdk.Localization.Localized.Changed += (_, _) => UpdateTitle();
             Classes.Add("tool-area");
             Classes.Add(side.ToString().ToLowerInvariant());
-            var options = HeaderButton(Icons.MoreHorizontal, "Options");
+            var options = HeaderButton(Icons.MoreHorizontal, () => Strings.ToolsWindowOptions);
             options.Flyout = MenuFlyouts.Dynamic(flyout =>
             {
                 if (shown is not null)
@@ -170,7 +171,7 @@ internal sealed class WorkbenchView : Grid
                         flyout.Items.Add(entry);
                 }
             });
-            var hide = HeaderButton(Icons.Minus, "Hide");
+            var hide = HeaderButton(Icons.Minus, () => Strings.ToolsWindowHide);
             hide.Click += (_, _) =>
             {
                 if (shown is not null)
@@ -225,11 +226,10 @@ internal sealed class WorkbenchView : Grid
 
         private void UpdateTitle() => title.Text = contentHeader?.HeaderTitle ?? (shown is null ? null : manager.Find(shown)?.Title);
 
-        private static Button HeaderButton(Geometry icon, string tip)
+        private static Button HeaderButton(Geometry icon, Func<string> tip)
         {
             var button = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = icon, Size = 16 }, Focusable = false };
-            ToolTip.SetTip(button, tip);
-            return button;
+            return button.Localize(ToolTip.TipProperty, tip);
         }
     }
 }

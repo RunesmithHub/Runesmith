@@ -341,7 +341,7 @@ public sealed class CustomEditorService : ICustomEditorService
             NotificationKind.Warning,
             exists ? Strings.EditorsChangedOnDisk(panel.Title) : Strings.EditorsDeletedOnDisk(panel.Title),
             exists ? Strings.EditorsChangedOnDiskDetail : Strings.EditorsDeletedEditorDetail,
-            exists ? "Reload" : null,
+            exists ? Strings.EditorsReload : null,
             exists ? () => _ = RevertAsync(panel) : null);
     }
 

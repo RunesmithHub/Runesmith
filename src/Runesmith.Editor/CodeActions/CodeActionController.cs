@@ -77,7 +77,7 @@ internal sealed class CodeActionController : IDisposable
 
         if (actions.Count == 0)
         {
-            showMessage("No quick fixes or refactorings here.");
+            showMessage(Strings.EditorNoCodeActions);
             return;
         }
 

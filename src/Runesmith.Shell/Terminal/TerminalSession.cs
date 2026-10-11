@@ -223,7 +223,7 @@ internal sealed class TerminalSession : ITerminal, IDisposable
         HasExited = true;
         if (Volatile.Read(ref disposed) == 0)
         {
-            var message = code is { } exit ? string.Create(CultureInfo.CurrentCulture, $"Process exited with code {exit}.") : "Process exited.";
+            var message = code is { } exit ? Strings.ToolsTerminalExitedCode(exit) : Strings.ToolsTerminalExited;
             lock (Gate)
                 Screen.Feed($"\r\n\u001b[0;2m{message}\u001b[0m\r\n");
             Changed?.Invoke(this, EventArgs.Empty);

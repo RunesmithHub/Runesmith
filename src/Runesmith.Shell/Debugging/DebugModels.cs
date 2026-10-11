@@ -186,7 +186,7 @@ public sealed class VariablesModel : DebugModel
     private readonly VariableTree tree;
     private StackFrame? shown;
     private DebugSession? session;
-    private string? message = "Variables show while the program is paused.";
+    private string? message = Strings.ToolsDebugVariablesPaused;
 
     public VariablesModel(DebugService debug)
     {
@@ -216,7 +216,7 @@ public sealed class VariablesModel : DebugModel
         if (current is null || frame is null)
         {
             Roots.Clear();
-            Message = current is { State: DebugState.Running or DebugState.Starting } ? "The program is running." : "Variables show while the program is paused.";
+            Message = current is { State: DebugState.Running or DebugState.Starting } ? Strings.ToolsDebugRunning : Strings.ToolsDebugVariablesPaused;
             return;
         }
 
@@ -247,7 +247,7 @@ public sealed class VariablesModel : DebugModel
             first = false;
         }
 
-        Message = Roots.Count == 0 ? "This frame has no variables." : null;
+        Message = Roots.Count == 0 ? Strings.ToolsDebugNoVariables : null;
         await Task.WhenAll(Roots.Where(r => r.IsExpanded).Select(r => r.LoadChildrenAsync()));
     }
 }
@@ -255,7 +255,7 @@ public sealed class VariablesModel : DebugModel
 /// <summary>The Watch pane: the user's expressions, evaluated in the current frame each time the program pauses.</summary>
 public sealed class WatchesModel : DebugModel
 {
-    private const string NotPaused = "Available while paused";
+    private static string NotPaused => Strings.ToolsDebugWatchPaused;
 
     private readonly DebugService debug;
     private readonly BreakpointService store;
@@ -348,7 +348,7 @@ public sealed class CallStackModel : DebugModel
     private readonly Action<StackFrame> navigate;
     private ThreadItem? selectedThread;
     private FrameItem? selectedFrame;
-    private string? message = "The call stack shows while the program is paused.";
+    private string? message = Strings.ToolsDebugStackPaused;
     private bool updating;
 
     /// <param name="navigate">Shows a frame's line in an editor.</param>
@@ -409,7 +409,7 @@ public sealed class CallStackModel : DebugModel
                 Frames.Clear();
                 SelectedThread = null;
                 SelectedFrame = null;
-                Message = session is null ? "The call stack shows while the program is paused." : "The program is running.";
+                Message = session is null ? Strings.ToolsDebugStackPaused : Strings.ToolsDebugRunning;
                 return;
             }
 
@@ -417,7 +417,7 @@ public sealed class CallStackModel : DebugModel
             Sync(Frames, [.. session.Frames.Select(f => new FrameItem(f, f == session.CurrentFrame))]);
             SelectedThread = Threads.FirstOrDefault(t => t.Id == session.ThreadId);
             SelectedFrame = Frames.FirstOrDefault(f => f.IsCurrent);
-            Message = Frames.Count == 0 ? "The thread has no frames to show." : null;
+            Message = Frames.Count == 0 ? Strings.ToolsDebugNoFrames : null;
         }
         finally
         {
@@ -451,9 +451,9 @@ public sealed class BreakpointItem(LineBreakpoint breakpoint, BreakpointStatus? 
     /// <summary>Gets the condition, hit count or log message, for a second line, or null.</summary>
     public string? Detail => string.Join("  ", new[]
     {
-        Breakpoint.Condition is { Length: > 0 } condition ? $"when {condition}" : null,
-        Breakpoint.HitCondition is { Length: > 0 } hits ? $"hit count {hits}" : null,
-        Breakpoint.IsLogPoint ? $"logs {Breakpoint.LogMessage}" : null,
+        Breakpoint.Condition is { Length: > 0 } condition ? Strings.ToolsDebugDetailWhen(condition) : null,
+        Breakpoint.HitCondition is { Length: > 0 } hits ? Strings.ToolsDebugDetailHitCount(hits) : null,
+        Breakpoint.IsLogPoint ? Strings.ToolsDebugDetailLogs(Breakpoint.LogMessage ?? "") : null,
     }.OfType<string>()) is { Length: > 0 } text ? text : null;
 
     public BreakpointStatus? Status { get; } = status;

@@ -36,21 +36,21 @@ public abstract record HubLink
     {
         link = null;
         if (string.IsNullOrEmpty(text))
-            return "The link is empty.";
+            return Strings.HubLinkEmpty;
         if (text.Length > MaxLength)
-            return $"The link is longer than {MaxLength} characters.";
+            return Strings.HubLinkTooLong(MaxLength);
         if (text.Any(c => c <= ' ' || c > '~'))
-            return "The link has characters links cannot have.";
+            return Strings.HubLinkCharacters;
         if (!text.StartsWith(Scheme + "://", StringComparison.OrdinalIgnoreCase))
-            return "Only runesmith:// links open Runesmith.";
+            return Strings.HubLinkScheme;
         if (text.Contains('#', StringComparison.Ordinal))
-            return "A link cannot carry a fragment.";
+            return Strings.HubLinkFragment;
 
         var rest = text[(Scheme.Length + 3)..];
         var slash = rest.IndexOf('/', StringComparison.Ordinal);
         var host = slash < 0 ? rest : rest[..slash];
         if (!string.Equals(host, "hub", StringComparison.Ordinal))
-            return $"Runesmith has no \"{host}\" links; links open the plugin hub's pages.";
+            return Strings.HubLinkHost(host);
 
         var path = slash < 0 ? "" : rest[(slash + 1)..];
         var question = path.IndexOf('?', StringComparison.Ordinal);
@@ -60,17 +60,17 @@ public abstract record HubLink
         if (path == UpdatesPath)
         {
             if (query is not null)
-                return "The updates link takes no parameters.";
+                return Strings.HubLinkUpdatesParameters;
             link = new UpdatesLink();
             return null;
         }
 
         if (!path.StartsWith(PluginPath, StringComparison.Ordinal))
-            return "A link opens a plugin's page or the updates list, and this one names neither.";
+            return Strings.HubLinkNoTarget;
 
         var id = path[PluginPath.Length..];
         if (!PluginId.IsValid(id))
-            return $"\"{id}\" is not a plugin id; ids are lowercase, like publisher.name.";
+            return Strings.HubLinkBadId(id);
 
         SemanticVersion? version = null;
         if (query is not null)
@@ -79,13 +79,13 @@ public abstract record HubLink
             var names = parameters.Select(p => p.Split('=', 2)[0]).ToList();
             var others = names.Where(name => name != VersionParameter).Distinct(StringComparer.Ordinal).ToList();
             if (others.Count > 0)
-                return $"Runesmith refuses {string.Join(", ", others.Select(name => $"\"{name}\""))}: a link carries only a plugin id and a version.";
+                return Strings.HubLinkParameters(string.Join(", ", others.Select(name => $"\"{name}\"")));
             if (parameters.Length > 1)
-                return "A link carries one version at most.";
+                return Strings.HubLinkVersions;
 
             var value = parameters[0].Length > VersionParameter.Length + 1 ? parameters[0][(VersionParameter.Length + 1)..] : "";
             if (!parameters[0].StartsWith(VersionParameter + "=", StringComparison.Ordinal) || !SemanticVersion.TryParse(value, out version))
-                return $"\"{value}\" is not a plugin version, such as 1.2.0.";
+                return Strings.HubLinkBadVersion(value);
         }
 
         link = new PluginLink(id, version);

@@ -59,7 +59,7 @@ workspace-excluded-files-description = Globs, separated by semicolons, of files 
 workspace-restore-the-session = Restore the session
 workspace-restore-the-session-description = Open the last folder and its files again when Runesmith starts.
 workspace-local-copies-replace-plugins = Local copies replace plugins
-workspace-local-copies-replace-plugins-description = Let a plugin in your plugins folder run in place of the plugin with the same id from the hub, 
+workspace-local-copies-replace-plugins-description = Let a plugin in your plugins folder run in place of the plugin with the same id from the hub, such as a build of it you work on. The local copy gets its own secrets and storage. Only your user settings can turn this on. Takes effect when Runesmith starts again.
 
 # Choices of the settings above.
 workspace-choice-off = Off

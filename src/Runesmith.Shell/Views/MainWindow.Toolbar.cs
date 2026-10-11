@@ -6,8 +6,8 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using HammerUI;
 using HammerUI.Controls;
-using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Commands;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Shell;
 using Runesmith.Shell.Commands;
 using Runesmith.Shell.Services;
@@ -118,11 +118,11 @@ public partial class MainWindow
         }
 
         if (commands!.Find(CommandIds.NewProject) is not null)
-            menu.Items.Add(CommandItem(CommandIds.NewProject, "New Project...", Icons.FilePlus));
-        menu.Items.Add(CommandItem(CommandIds.OpenFolder, "Open Folder...", Icons.FolderOpen));
+            menu.Items.Add(CommandItem(CommandIds.NewProject, Strings.ShellNewProject, Icons.FilePlus));
+        menu.Items.Add(CommandItem(CommandIds.OpenFolder, Strings.ShellOpenFolder, Icons.FolderOpen));
         if (commands.Find(CommandIds.CloneRepository) is not null)
-            menu.Items.Add(CommandItem(CommandIds.CloneRepository, "Clone Repository...", Icons.Import));
-        menu.Items.Add(CommandItem(CommandIds.CloseFolder, "Close Folder", Icons.X));
+            menu.Items.Add(CommandItem(CommandIds.CloneRepository, Strings.ShellCloneRepository, Icons.Import));
+        menu.Items.Add(CommandItem(CommandIds.CloseFolder, Strings.ShellCloseFolder, Icons.X));
     }
 
     private void FillSettingsMenu(MenuFlyout menu)
@@ -132,10 +132,10 @@ public partial class MainWindow
         plugins.Click += (_, _) => pages!.ShowSettings(PluginsCategory);
         menu.Items.Add(plugins);
         if (commands!.Find(CommandIds.Sdks) is not null)
-            menu.Items.Add(CommandItem(CommandIds.Sdks, "SDKs", Icons.Package));
-        menu.Items.Add(CommandItem(CommandIds.KeyboardShortcuts, "Keyboard Shortcuts", Icons.Keyboard));
+            menu.Items.Add(CommandItem(CommandIds.Sdks, Strings.SettingsCategorySdks, Icons.Package));
+        menu.Items.Add(CommandItem(CommandIds.KeyboardShortcuts, Strings.ShellKeyboardShortcuts, Icons.Keyboard));
         menu.Items.Add(new Separator());
-        menu.Items.Add(CommandItem(CommandIds.ToggleTheme, "Toggle Light and Dark Theme", Icons.Sun));
+        menu.Items.Add(CommandItem(CommandIds.ToggleTheme, Strings.ShellToggleLightAndDarkTheme, Icons.Sun));
     }
 
     private CommandMenuItem CommandItem(string commandId, string header, Geometry icon)
@@ -282,7 +282,7 @@ public partial class MainWindow
             (Strings.ShellHintCommandPalette, CommandIds.CommandPalette),
         })
         {
-            var keys = commandId == CommandIds.SearchEverywhere ? "Shift Shift" : commands!.GetKeyBinding(commandId)?.Split(" | ")[0];
+            var keys = commandId == CommandIds.SearchEverywhere ? Strings.ShellSearchShiftShift : commands!.GetKeyBinding(commandId)?.Split(" | ")[0];
             if (keys is null)
                 continue;
 

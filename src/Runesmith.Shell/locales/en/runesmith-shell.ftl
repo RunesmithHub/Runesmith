@@ -373,3 +373,34 @@ shell-outline-no-match = No symbol matches the filter.
 shell-key-esc = Esc
 shell-key-enter = Enter
 shell-key-alt-left = Alt+←
+shell-undo-workspace-edit-description = Undo the last change a refactoring, code action, plugin or the Explorer made to files, with the files it created, renamed or deleted.
+shell-redo-workspace-edit-description = Make the last undone workspace edit again.
+shell-show-code-actions-description = Show the quick fixes and refactorings for the caret's line or the selection.
+shell-rename-symbol-description = Rename the symbol at the caret everywhere it is used.
+shell-format-document-description = Format the whole file with the formatter of its language.
+shell-format-selection-description = Format the selected lines with the formatter of their language.
+shell-next-change-description = Move to the next lines that differ from the base, such as the last commit.
+shell-rollback-lines-description = Put the changed lines at the caret or in the selection back as they are in the base.
+shell-show-changes-description = Show the file beside its base, such as the last commit.
+shell-build-description = Build the selected run configuration's project, or the open folder, such as its solution with dotnet build.
+
+## Leftovers of the toolbar, status bar and appearance
+
+shell-clone-repository = Clone Repository...
+shell-go-to-line-tip = Go to line
+shell-current = Current
+shell-name-required = Type a name.
+shell-building = Building
+shell-follow-system = Follow the system
+# Variables:
+#   $dark - the dark theme
+#   $light - the light theme
+shell-dark-or-light = { $dark } or { $light }
+shell-theme-own = The color theme's own
+shell-not-installed = Not installed
+shell-dark = Dark
+shell-light = Light
+# Variables:
+#   $kind - dark or light
+#   $plugin - the plugin it comes from
+shell-kind-from-plugin = { $kind }, { $plugin }

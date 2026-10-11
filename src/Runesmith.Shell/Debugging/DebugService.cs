@@ -80,7 +80,7 @@ public sealed class DebugService : IRunDebugger
     /// <summary>Gets the debug engines plugins provide; one that fails to load is left out.</summary>
     public IReadOnlyList<IDebugAdapterProvider> Providers => providers ??= LoadProviders();
 
-    public string? WhyCannotDebug => Providers.Count == 0 ? "No installed plugin provides a debugger." : null;
+    public string? WhyCannotDebug => Providers.Count == 0 ? Strings.ToolsRunNoDebugger : null;
 
     /// <summary>Gets the session the debugger's controls act on: the last one started that has not ended, or null.</summary>
     public DebugSession? Current

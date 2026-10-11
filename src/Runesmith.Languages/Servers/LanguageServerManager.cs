@@ -372,8 +372,8 @@ public sealed class LanguageServerManager : IDisposable
         }
 
         var kind = session.State == SessionState.Missing ? NotificationKind.Warning : NotificationKind.Error;
-        var title = session.State == SessionState.Missing ? $"{session.Definition.Name} is not installed" : $"{session.Definition.Name} stopped";
-        notifications.Notify(kind, title, message, "Show output", session.Output.Show);
+        var title = session.State == SessionState.Missing ? Strings.LanguagesServerNotInstalled(session.Definition.Name) : Strings.LanguagesServerStoppedTitle(session.Definition.Name);
+        notifications.Notify(kind, title, message, Strings.LanguagesShowOutput, session.Output.Show);
     }
 
     private string GetCommand(LanguageServerDefinition definition) =>

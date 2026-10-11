@@ -9,6 +9,7 @@ using Avalonia.Media.TextFormatting;
 using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Shell.Running;
 
 namespace Runesmith.Shell.Terminal;
@@ -888,8 +889,8 @@ internal sealed partial class TerminalView : Control
         ToolTip.SetTip(this, found switch
         {
             null => null,
-            { Written: { } written } => $"{Target(written)}\nCtrl+click to open",
-            _ => "Ctrl+click to open",
+            { Written: { } written } => Target(written) + "\n" + Strings.ToolsTerminalCtrlClick,
+            _ => Strings.ToolsTerminalCtrlClick,
         });
         InvalidateVisual();
     }
@@ -974,23 +975,23 @@ internal sealed partial class TerminalView : Control
 
     private ContextMenu BuildContextMenu()
     {
-        MenuItem Item(string header, Geometry? icon, string? gesture, Action action)
+        MenuItem Item(Func<string> header, Geometry? icon, string? gesture, Action action)
         {
-            var item = new MenuItem { Header = header, Icon = icon is null ? null : new SymbolIcon { Data = icon, Size = 14 }, InputGesture = gesture is null ? null : KeyGesture.Parse(gesture) };
+            var item = new MenuItem { Icon = icon is null ? null : new SymbolIcon { Data = icon, Size = 14 }, InputGesture = gesture is null ? null : KeyGesture.Parse(gesture) };
             item.Click += (_, _) => action();
-            return item;
+            return item.Localize(MenuItem.HeaderProperty, header);
         }
 
-        var copy = Item("Copy", Icons.Copy, "Ctrl+Shift+C", () => CopySelection());
+        var copy = Item(() => Strings.ToolsTerminalCopy, Icons.Copy, "Ctrl+Shift+C", () => CopySelection());
         var menu = new ContextMenu
         {
             Items =
             {
                 copy,
-                Item("Paste", Icons.Paste, "Ctrl+Shift+V", () => _ = PasteAsync()),
-                Item("Select All", null, null, SelectAll),
+                Item(() => Strings.ToolsTerminalPaste, Icons.Paste, "Ctrl+Shift+V", () => _ = PasteAsync()),
+                Item(() => Strings.ToolsTerminalSelectAll, null, null, SelectAll),
                 new Separator(),
-                Item("Clear", Icons.Eraser, null, Clear),
+                Item(() => Strings.ToolsClear, Icons.Eraser, null, Clear),
             },
         };
         menu.Opening += (_, _) => copy.IsEnabled = HasSelection;

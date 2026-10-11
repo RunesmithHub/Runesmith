@@ -87,3 +87,26 @@ editor-symbol-kind =
         [typeparameter] type parameter
        *[other] symbol
     }
+
+## Find bar buttons, change popup and messages over the editor
+
+editor-find-match-case = Match case (Alt+C)
+editor-find-whole-word = Match whole word (Alt+W)
+editor-find-regex = Use regular expression (Alt+R)
+editor-find-previous = Previous match (Shift+Enter)
+editor-find-next = Next match (Enter)
+editor-find-close = Close (Escape)
+editor-find-replace = Replace
+editor-find-replace-tip = Replace this match (Enter)
+editor-find-replace-all = Replace all
+editor-find-replace-all-tip = Replace every match (Ctrl+Alt+Enter)
+editor-change-rollback = Rollback
+editor-change-previous = Previous change
+editor-change-next = Next change
+editor-change-show-diff = Show Diff
+editor-change-show-diff-tip = Show the file and its base side by side
+editor-nothing-to-rename = Nothing to rename here.
+editor-no-code-actions = No quick fixes or refactorings here.
+# Variables:
+#   $language - the language's name
+editor-no-formatter = No formatter for { $language } files is installed.

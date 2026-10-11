@@ -8,7 +8,7 @@ internal sealed record EditorEntry(EditorProviderDefinition Definition, bool IsB
 /// <summary>Works out which editors can open a file and which one opens it by default.</summary>
 internal sealed class EditorCatalog(IReadOnlyList<EditorEntry> providers, EditorAssociations associations)
 {
-    public const string TextEditorName = "Text Editor";
+    public static string TextEditorName => Strings.EditorsTextEditor;
 
     public IReadOnlyList<EditorEntry> Providers { get; } = providers;
 

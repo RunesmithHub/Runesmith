@@ -86,7 +86,7 @@ internal sealed class PackageInstaller(HubPaths paths, IFileDownloader downloade
                 {
                     File.Delete(path);
                     throw new InstallException(
-                        $"The download of {operation.Name} {operation.To} did not match what the hub published, so nothing was installed. Try again later.",
+                        Strings.HubDownloadMismatch(operation.Name, operation.To?.ToString() ?? ""),
                         $"{url}: expected {package.Length} bytes with SHA-256 {package.Sha256}, got {length} bytes with a different hash.");
                 }
 

@@ -302,8 +302,8 @@ internal sealed class ServerSession : IAsyncDisposable
 
         SetState(missing ? SessionState.Missing : SessionState.Failed);
         context.ReportFailure(this, missing
-            ? $"Runesmith could not start {context.GetCommand(Definition)}. {Definition.InstallHint ?? $"Install it, or set its path in the {Definition.Name} command setting."}"
-            : $"{Definition.Name} failed to start. The output has the details.");
+            ? Strings.LanguagesServerCouldNotStartHint(context.GetCommand(Definition), Definition.InstallHint ?? Strings.LanguagesServerInstallHint(Definition.Name))
+            : Strings.LanguagesServerFailedToStart(Definition.Name));
     }
 
     private void OnClientStateChanged(LanguageClient sender, LanguageServerState state)
@@ -338,7 +338,7 @@ internal sealed class ServerSession : IAsyncDisposable
         {
             Output.AppendLine($"[{DateTime.Now:HH:mm:ss}] {Definition.Name} stopped {MaxCrashes} times within {CrashWindow.TotalMinutes:0} minutes and stays stopped.");
             SetState(SessionState.Failed);
-            context.ReportFailure(this, $"{Definition.Name} kept stopping unexpectedly. Run \"Restart Language Servers\" to try again.");
+            context.ReportFailure(this, Strings.LanguagesServerKeptStopping(Definition.Name));
         }
     }
 
@@ -362,7 +362,7 @@ internal sealed class ServerSession : IAsyncDisposable
         if (message.Type is Protocol.MessageType.Error or Protocol.MessageType.Warning)
         {
             var kind = message.Type == Protocol.MessageType.Error ? NotificationKind.Error : NotificationKind.Warning;
-            context.Notifications.Notify(kind, Definition.Name, message.Message, "Show output", Output.Show);
+            context.Notifications.Notify(kind, Definition.Name, message.Message, Strings.LanguagesShowOutput, Output.Show);
         }
     }
 
@@ -410,12 +410,12 @@ internal sealed class ServerSession : IAsyncDisposable
         var name = Definition.Name;
         (status.Text, status.State, status.ToolTip) = state switch
         {
-            SessionState.Starting => ($"{name}: starting", StatusBarState.Busy, $"Starting {name} in {RootPath}"),
-            SessionState.Running when work is not null => ($"{name}: {Describe(work)}", StatusBarState.Busy, $"{name} is working in {RootPath}"),
-            SessionState.Running => (name, StatusBarState.Success, $"{name} is running in {RootPath}. Click for its output."),
-            SessionState.Missing => ($"{name}: not installed", StatusBarState.Warning, Definition.InstallHint ?? $"Runesmith could not start {Definition.Command}."),
-            SessionState.Failed => ($"{name}: stopped", StatusBarState.Error, $"{name} stopped. Click for its output."),
-            _ => (name, StatusBarState.Normal, $"{name} is stopped."),
+            SessionState.Starting => (Strings.LanguagesStatusStarting(name), StatusBarState.Busy, Strings.LanguagesStatusStartingTip(name, RootPath ?? "")),
+            SessionState.Running when work is not null => (Strings.LanguagesStatusWorking(name, Describe(work)), StatusBarState.Busy, Strings.LanguagesStatusWorkingTip(name, RootPath ?? "")),
+            SessionState.Running => (name, StatusBarState.Success, Strings.LanguagesStatusRunningTip(name, RootPath ?? "")),
+            SessionState.Missing => (Strings.LanguagesStatusMissing(name), StatusBarState.Warning, Definition.InstallHint ?? Strings.LanguagesStatusMissingTip(Definition.Command)),
+            SessionState.Failed => (Strings.LanguagesStatusStopped(name), StatusBarState.Error, Strings.LanguagesStatusStoppedTip(name)),
+            _ => (name, StatusBarState.Normal, Strings.LanguagesStatusIdleTip(name)),
         };
     }
 
@@ -423,7 +423,7 @@ internal sealed class ServerSession : IAsyncDisposable
     {
         var text = string.Join(": ", new[] { work.Title, work.Message }.Where(part => !string.IsNullOrWhiteSpace(part)));
         if (text.Length == 0)
-            text = "working";
+            text = Strings.LanguagesWorking;
         return work.Percentage is { } percentage ? $"{text} ({percentage}%)" : text;
     }
 

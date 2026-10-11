@@ -375,7 +375,7 @@ public sealed class EditorService : IEditorService
 
     public async Task<bool> SaveAsAsync(IDocument document)
     {
-        if (await shell.PickFileToSaveAsync("Save As", document.FilePath is { } path ? Path.GetFileName(path) : document.Name) is not { } target)
+        if (await shell.PickFileToSaveAsync(Strings.EditorsSaveAs, document.FilePath is { } path ? Path.GetFileName(path) : document.Name) is not { } target)
             return false;
 
         var oldId = panels.TryGetValue(document, out var panel) ? panel.Id : null;
@@ -475,7 +475,7 @@ public sealed class EditorService : IEditorService
                 Subtitle = $"{l.FilePath}:{l.Start.Line + 1}",
                 Icon = Icons.FileCode,
             }).ToList();
-            if (await shell.PickAsync("Pick a definition", rows) is not { Value: Sdk.Languages.DocumentLocation picked })
+            if (await shell.PickAsync(Strings.EditorsPickDefinition, rows) is not { Value: Sdk.Languages.DocumentLocation picked })
                 return;
             target = picked;
         }
@@ -619,7 +619,7 @@ public sealed class EditorService : IEditorService
             NotificationKind.Warning,
             exists ? Strings.EditorsChangedOnDisk(e.Document.Name) : Strings.EditorsDeletedOnDisk(e.Document.Name),
             exists ? Strings.EditorsChangedOnDiskDetail : Strings.EditorsDeletedTextDetail,
-            exists ? "Reload" : null,
+            exists ? Strings.EditorsReload : null,
             exists ? () => _ = documents.ReloadAsync(e.Document) : null);
     }
 
@@ -720,8 +720,8 @@ public sealed class EditorService : IEditorService
 
         diffs.Value.Open(
             $"{editor.Document.Name} (changes)",
-            new DiffSide("Base", baseText) { FilePath = path },
-            new DiffSide("Working copy", editor.Area.Snapshot.GetText()) { FilePath = path, IsEditable = true });
+            new DiffSide(Strings.EditorsDiffBase, baseText) { FilePath = path },
+            new DiffSide(Strings.EditorsDiffWorkingCopy, editor.Area.Snapshot.GetText()) { FilePath = path, IsEditable = true });
     }
 
     private DocumentPanel CreatePanel(IDocument document, TextEditor editor)

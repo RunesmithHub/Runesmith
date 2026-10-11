@@ -305,3 +305,27 @@ settings-form-choose-sdk = Choose an SDK
 settings-form-default = default
 # The size of a download that is not known.
 settings-sdks-size-unknown = Unknown
+# Fields of the SDK download dialog.
+settings-sdks-field-vendor = Vendor
+settings-sdks-field-channel = Channel
+settings-sdks-field-version = Version
+settings-sdks-field-package = Package
+settings-sdks-field-architecture = Architecture
+settings-sdks-field-release = Release
+settings-sdks-field-size = Size
+settings-sdks-badge-preview = Preview
+settings-sdks-badge-latest = Latest
+# The badge of an SDK Runesmith installed.
+settings-sdks-badge-runesmith = Runesmith
+# The badge of an SDK the system has.
+settings-sdks-badge-system = System
+# The setting of the SDK builds use by default.
+# Variables:
+#   $kind - the kind of SDK, such as .NET SDK
+settings-sdks-default-setting = Default { $kind }
+# Variables:
+#   $kind - the kind of SDK, such as .NET SDK
+settings-sdks-default-setting-description = The { $kind } builds and new projects use, as its version and folder separated by |; empty for the newest installed.
+# Variables:
+#   $folder - the folder's name
+settings-project-exists = { $folder } exists in this location and is not empty.

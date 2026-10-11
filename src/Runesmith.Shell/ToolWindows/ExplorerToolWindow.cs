@@ -14,8 +14,8 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using HammerUI;
 using HammerUI.Controls;
-using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Commands;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Sdk.Workspace;
 using Runesmith.Shell.Appearance;
@@ -111,10 +111,10 @@ public sealed class ExplorerToolWindow(
             view.ContextMenu = new ContextMenu();
 
             empty = new EmptyState
-                {
-                    Icon = Icons.FolderOpen,
-                    ActionCommand = new RelayCommand(() => _ = commands.ExecuteAsync(CommandIds.OpenFolder)),
-                }
+            {
+                Icon = Icons.FolderOpen,
+                ActionCommand = new RelayCommand(() => _ = commands.ExecuteAsync(CommandIds.OpenFolder)),
+            }
                 .Localize(EmptyState.TitleProperty, () => Strings.ToolsExplorerNone)
                 .Localize(EmptyState.HintProperty, () => Strings.ToolsExplorerNoneHint)
                 .Localize(EmptyState.ActionTextProperty, () => Strings.ToolsExplorerOpenFolder);
@@ -267,9 +267,9 @@ public sealed class ExplorerToolWindow(
             {
                 items.Add(new Separator());
                 if (!node.IsDirectory)
-                    items.Add(MenuItem("Open", Icons.FileCode, () => _ = editors.OpenAsync(node.FullPath)));
-                items.Add(MenuItem("Rename", Icons.PenLine, () => _ = RenameAsync(node), "F2"));
-                items.Add(MenuItem("Delete", Icons.Trash, () => _ = DeleteAsync(node), "Delete"));
+                    items.Add(MenuItem(Strings.ToolsExplorerOpen, Icons.FileCode, () => _ = editors.OpenAsync(node.FullPath)));
+                items.Add(MenuItem(Strings.ToolsExplorerMenuRename, Icons.PenLine, () => _ = RenameAsync(node), "F2"));
+                items.Add(MenuItem(Strings.ToolsExplorerMenuDelete, Icons.Trash, () => _ = DeleteAsync(node), "Delete"));
                 items.Add(new Separator());
                 items.Add(MenuItem(Strings.ToolsExplorerCopyPath, Icons.Copy, () => _ = CopyAsync(node.FullPath)));
                 items.Add(MenuItem(Strings.ToolsExplorerCopyRelativePath, null, () => _ = CopyAsync(Path.GetRelativePath(workspace.RootPath ?? "", node.FullPath))));

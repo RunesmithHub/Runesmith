@@ -89,9 +89,9 @@ public sealed class CoreCommands(
         Sync(CommandIds.Undo, Strings.ShellUndo, Strings.ShellCategoryEdit, "undo", "Ctrl+Z", () => (shell.FocusedTextBox is { } box ? (Action)box.Undo : customEditors.Active is { } custom ? custom.Editor.Undo : Editor!.Undo)(), () => HasEditorOrText() || HasCustomEditor(), Menus.Edit, "1-undo");
         Sync(CommandIds.Redo, Strings.ShellRedo, Strings.ShellCategoryEdit, "redo", "Ctrl+Y | Ctrl+Shift+Z", () => (shell.FocusedTextBox is { } box ? (Action)box.Redo : customEditors.Active is { } custom ? custom.Editor.Redo : Editor!.Redo)(), () => HasEditorOrText() || HasCustomEditor(), Menus.Edit, "1-undo");
         Add(CommandIds.UndoWorkspaceEdit, Strings.ShellUndoWorkspaceEdit, Strings.ShellCategoryEdit, "undo", null, () => workspaceEdits.UndoAsync(), () => workspaceEdits.CanUndo, Menus.Edit, "1-undo",
-            "Undo the last change a refactoring, code action, plugin or the Explorer made to files, with the files it created, renamed or deleted.");
+            Strings.ShellUndoWorkspaceEditDescription);
         Add(CommandIds.RedoWorkspaceEdit, Strings.ShellRedoWorkspaceEdit, Strings.ShellCategoryEdit, "redo", null, () => workspaceEdits.RedoAsync(), () => workspaceEdits.CanRedo, Menus.Edit, "1-undo",
-            "Make the last undone workspace edit again.");
+            Strings.ShellRedoWorkspaceEditDescription);
         Add(CommandIds.Cut, Strings.ShellCut, Strings.ShellCategoryEdit, "cut", "Ctrl+X", () => shell.FocusedTextBox is { } box ? Run(box.Cut) : Editor!.CutAsync(), HasEditorOrText, Menus.Edit, "2-clipboard");
         Add(CommandIds.Copy, Strings.ShellCopy, Strings.ShellCategoryEdit, "copy", "Ctrl+C", () => shell.FocusedTextBox is { } box ? Run(box.Copy) : Editor!.CopyAsync(), HasEditorOrText, Menus.Edit, "2-clipboard");
         Add(CommandIds.Paste, Strings.ShellPaste, Strings.ShellCategoryEdit, "paste", "Ctrl+V", () => shell.FocusedTextBox is { } box ? Run(box.Paste) : Editor!.PasteAsync(), HasEditorOrText, Menus.Edit, "2-clipboard");
@@ -102,13 +102,13 @@ public sealed class CoreCommands(
         Sync(CommandIds.FindInFiles, Strings.ShellFindInFiles, Strings.ShellCategoryEdit, "search", "Ctrl+Shift+F", () => pages.ShowSearch(Editor?.Area.Selection is { IsEmpty: false } s && s.Span.Length < 200 ? Editor.Area.Snapshot.GetText(s.Span) : null), () => workspace.RootPath is not null, Menus.Edit, "3-find");
         Sync(CommandIds.ToggleComment, Strings.ShellToggleLineComment, Strings.ShellCategoryEdit, null, "Ctrl+/", () => Editor!.ToggleComment(), HasEditor, Menus.Edit, "4-lines");
         Add(CommandIds.ShowCodeActions, Strings.ShellShowCodeActions, Strings.ShellCategoryEditor, "lightbulb", "Alt+Enter", () => Editor!.ShowCodeActionsAsync(), HasEditor, Menus.Edit, "5-code",
-            "Show the quick fixes and refactorings for the caret's line or the selection.");
+            Strings.ShellShowCodeActionsDescription);
         Add(CommandIds.Rename, Strings.ShellRenameSymbol, Strings.ShellCategoryEditor, "pen-line", "F2", () => Editor!.RenameAsync(), HasEditor, Menus.Edit, "5-code",
-            "Rename the symbol at the caret everywhere it is used.");
+            Strings.ShellRenameSymbolDescription);
         Add(CommandIds.FormatDocument, Strings.ShellFormatDocument, Strings.ShellCategoryEditor, null, "Shift+Alt+F", () => Editor!.FormatAsync(), HasEditor, Menus.Edit, "5-code",
-            "Format the whole file with the formatter of its language.");
+            Strings.ShellFormatDocumentDescription);
         Add(CommandIds.FormatSelection, Strings.ShellFormatSelection, Strings.ShellCategoryEditor, null, null, () => Editor!.FormatAsync(selectionOnly: true), () => Editor?.Area.Selection.IsEmpty == false,
-            Menus.Edit, "5-code", "Format the selected lines with the formatter of their language.");
+            Menus.Edit, "5-code", Strings.ShellFormatSelectionDescription);
 
         Sync(CommandIds.SelectAll, Strings.ShellSelectAll, Strings.ShellCategorySelection, null, "Ctrl+A", () => (shell.FocusedTextBox is { } box ? (Action)box.SelectAll : Editor!.SelectAll)(), HasEditorOrText, Menus.Selection, "1-select");
         Sync(MoveLinesUp, Strings.ShellMoveLineUp, Strings.ShellCategorySelection, "arrow-up", "Alt+Up", () => Editor!.MoveLines(down: false), HasEditor, Menus.Selection, "2-lines");
@@ -135,16 +135,16 @@ public sealed class CoreCommands(
         Sync(CommandIds.TriggerCompletion, Strings.ShellTriggerSuggestions, Strings.ShellCategoryEditor, "sparkles", "Ctrl+Space", () => Editor!.TriggerCompletion(), HasEditor);
         Sync(CommandIds.TriggerSignatureHelp, Strings.ShellShowParameterHints, Strings.ShellCategoryEditor, null, "Ctrl+Shift+Space", () => Editor!.TriggerSignatureHelp(), HasEditor);
         Sync(NextChange, Strings.ShellNextChange, Strings.ShellCategoryEditor, "arrow-down", "F7", () => Editor!.GoToChange(next: true), HasChanges, Menus.Go, "4-changes",
-            "Move to the next lines that differ from the base, such as the last commit.");
+            Strings.ShellNextChangeDescription);
         Sync(PreviousChange, Strings.ShellPreviousChange, Strings.ShellCategoryEditor, "arrow-up", "Shift+F7", () => Editor!.GoToChange(next: false), HasChanges, Menus.Go, "4-changes");
         Sync(RollbackLines, Strings.ShellRollbackLines, Strings.ShellCategoryEditor, "undo", "Ctrl+Alt+Z", () => Editor!.RollbackChanges(), () => Editor?.Area.ChangesInSelection().Count > 0, Menus.Edit, "4-lines",
-            "Put the changed lines at the caret or in the selection back as they are in the base.");
+            Strings.ShellRollbackLinesDescription);
         Sync(ShowChanges, Strings.ShellShowChanges, Strings.ShellCategoryEditor, "git-compare", null, () => editors.ShowChanges(Editor!), () => Editor?.Area.BaseText is not null, Menus.Go, "4-changes",
-            "Show the file beside its base, such as the last commit.");
+            Strings.ShellShowChangesDescription);
 
         Add(CommandIds.Build, Strings.ShellBuild, Strings.ShellCategoryBuild, "hammer", "Ctrl+Shift+B", () => runs.Value.BuildAsync(runConfigurations.Value.Selected),
             () => !runs.Value.IsBuilding && (build.CanBuild || runConfigurations.Value.Selected is not null), Menus.Build, "1-build",
-            "Build the selected run configuration's project, or the open folder, such as its solution with dotnet build.");
+            Strings.ShellBuildDescription);
         Sync(CommandIds.CancelBuild, Strings.ShellCancelBuild, Strings.ShellCategoryBuild, "x", "Ctrl+Break", () => runs.Value.CancelBuild(), () => runs.Value.IsBuilding, Menus.Build, "1-build");
 
         Sync(ShowWelcome, Strings.ShellWelcome, Strings.ShellCategoryHelp, "sparkles", null, pages.ShowWelcome, menu: Menus.Help, group: "1-start");
@@ -161,13 +161,13 @@ public sealed class CoreCommands(
 
     private async Task OpenFileAsync()
     {
-        if (await shell.PickFileToOpenAsync("Open File", workspace.RootPath) is { } path)
+        if (await shell.PickFileToOpenAsync(Strings.EditorsOpenFile, workspace.RootPath) is { } path)
             await editors.OpenAsync(path);
     }
 
     private async Task OpenFolderAsync()
     {
-        if (await shell.PickFolderAsync("Open Folder", workspace.RootPath) is { } folder)
+        if (await shell.PickFolderAsync(Strings.EditorsOpenFolder, workspace.RootPath) is { } folder)
             await workbench.OpenFolderAsync(folder);
     }
 }

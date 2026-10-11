@@ -6,3 +6,5 @@ app-something-went-wrong = Something went wrong
 # Variables:
 #   $log - the log file
 app-details-in-log = Details are in { $log }.
+app-failed-twice = Runesmith failed to start twice in a row.
+app-closed-twice = Runesmith closed unexpectedly twice while starting.

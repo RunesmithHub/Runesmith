@@ -18,7 +18,7 @@ public sealed class ImageViewerProvider : IEditorProvider
 {
     public const string Id = "runesmith.imageViewer";
 
-    public EditorProviderDefinition Definition { get; } = new(Id, "Image Viewer", ImageFormats.Patterns) { Icon = "image" };
+    public EditorProviderDefinition Definition { get; } = new(Id, Strings.EditorsImageViewer, ImageFormats.Patterns) { Icon = "image" };
 
     public async Task<CustomEditor> CreateEditorAsync(CustomEditorContext context, CancellationToken cancellationToken)
     {
@@ -78,10 +78,10 @@ internal sealed class ImageViewer : CustomEditor
             VerticalAlignment = VerticalAlignment.Center,
             Children =
             {
-                IconButton(Icons.ZoomOut, "Zoom out (-)", () => canvas.Zoom.ZoomOut()),
-                IconButton(Icons.ZoomIn, "Zoom in (+)", () => canvas.Zoom.ZoomIn()),
-                TextButton("Fit", "Fit in the window (0)", canvas.Zoom.Fit),
-                TextButton("1:1", "Actual size (1)", canvas.Zoom.ActualSize),
+                IconButton(Icons.ZoomOut, Strings.EditorsZoomOut, () => canvas.Zoom.ZoomOut()),
+                IconButton(Icons.ZoomIn, Strings.EditorsZoomIn, () => canvas.Zoom.ZoomIn()),
+                TextButton(Strings.EditorsFit, Strings.EditorsFitTip, canvas.Zoom.Fit),
+                TextButton("1:1", Strings.EditorsActualSizeTip, canvas.Zoom.ActualSize),
                 scale,
             },
         };

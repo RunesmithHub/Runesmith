@@ -200,7 +200,7 @@ public sealed class SdksSection
         private (SettingRow Row, Panel Actions) Row(InstalledSdk sdk, bool isDefault)
         {
             var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
-            actions.Children.Add(sdk.Source == SdkSource.Managed ? Badge("Runesmith", "accent") : Badge("System"));
+            actions.Children.Add(sdk.Source == SdkSource.Managed ? Badge(Strings.SettingsSdksBadgeRunesmith, "accent") : Badge(Strings.SettingsSdksBadgeSystem));
 
             var makeDefault = new RadioButton { Content = Strings.SettingsSdksDefault, GroupName = $"sdk-default-{provider.Kind}", IsChecked = isDefault, VerticalAlignment = VerticalAlignment.Center };
             ToolTip.SetTip(makeDefault, Strings.SettingsSdksDefaultTip(provider.Name));

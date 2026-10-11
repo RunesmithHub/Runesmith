@@ -149,11 +149,11 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
             text.Live = await LiveDocumentAsync(text);
             var current = text.Live?.Buffer.Current;
             if (current is null || (!ReferenceEquals(current, text.After) && current.GetText() != text.After.GetText()))
-                return Refuse("The edit was not undone", $"{text.Document.Name} changed since the edit.");
+                return Refuse(Strings.EditorsEditNotUndone, Strings.EditorsChangedSinceEdit(text.Document.Name));
         }
 
         if (step.Actions.Count > 0 && step.Actions[^1].CannotUndo() is { } problem)
-            return Refuse("The edit was not undone", problem);
+            return Refuse(Strings.EditorsEditNotUndone, problem);
 
         cancellationToken.ThrowIfCancellationRequested();
         foreach (var text in step.Texts.AsEnumerable().Reverse())
@@ -179,7 +179,7 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
         {
             foreach (var text in step.Texts)
                 Reapply(text);
-            return Refuse("The edit was not undone", failure);
+            return Refuse(Strings.EditorsEditNotUndone, failure);
         }
 
         undo.RemoveAt(undo.Count - 1);
@@ -213,12 +213,12 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
 
         var step = redo.Peek();
         if (step.Actions.Count > 0 && step.Actions[0].CannotRedo() is { } problem)
-            return Refuse("The edit was not redone", problem);
+            return Refuse(Strings.EditorsEditNotRedone, problem);
 
         cancellationToken.ThrowIfCancellationRequested();
         await CloseAsync(step.Actions.OfType<CreateFileAction>().Where(a => ((CreateFileOperation)a.Operation).Overwrite).SelectMany(a => a.Paths));
         if (!Run(step.Actions, action => Checked(action.CannotRedo, action.Do), action => action.Undo(), out var failure))
-            return Refuse("The edit was not redone", failure);
+            return Refuse(Strings.EditorsEditNotRedone, failure);
 
         foreach (var text in step.Texts)
         {
@@ -275,7 +275,7 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
 
         var (applied, problem) = await ApplyCoreAsync(edit, options, plugin, offerUndo: true, cancellationToken);
         if (problem is not null)
-            Refuse("The edit was not applied", problem);
+            Refuse(Strings.EditorsEditNotApplied, problem);
         return applied;
     }
 
@@ -291,7 +291,7 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
         // Checked before the participants are asked, so they never prepare for operations that are not made.
         ToClose(plan, out var unsavedBefore);
         if (unsavedBefore is not null)
-            return (false, $"{unsavedBefore.Name} has unsaved changes.");
+            return (false, Strings.EditorsProblemUnsaved(unsavedBefore.Name));
 
         var operations = plan.Operations;
         var groups = new Dictionary<string, EditGroup>(PathComparison.Comparer);
@@ -362,11 +362,11 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
 
         var closing = ToClose(plan, out var unsaved);
         if (unsaved is not null)
-            return (false, $"{unsaved.Name} has unsaved changes.");
+            return (false, Strings.EditorsProblemUnsaved(unsaved.Name));
 
         var label = options.Label ?? Describe(operations, targets.Count);
         if (NeedsConfirmation(options, plan, targets.Count)
-            && !await notifications.ConfirmAsync(label, Summarize(operations, targets.Select(t => (t.Target.FinalPath, t.Changes.Count))), "Apply"))
+            && !await notifications.ConfirmAsync(label, Summarize(operations, targets.Select(t => (t.Target.FinalPath, t.Changes.Count))), Strings.EditorsApply))
             return (false, null);
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -384,7 +384,7 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
                 foreach (var text in texts.AsEnumerable().Reverse())
                     Apply(text.Document, Inverse(text.Changes, text.Before));
                 Run(actions.AsEnumerable().Reverse(), action => action.Undo(), action => action.Do(), out _);
-                return (false, $"{Path.GetFileName(target.FinalPath)} could not be opened.");
+                return (false, Strings.EditorsProblemNotOpened(Path.GetFileName(target.FinalPath)));
             }
 
             var before = document.Buffer.Current;
@@ -408,7 +408,7 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
 
         Finish(step, [.. actions.Select(a => a.Operation)]);
         if (actions.Count > 0 && offerUndo)
-            notifications.Notify(NotificationKind.Info, label, null, "Undo", () => _ = UndoIfLastAsync(step));
+            notifications.Notify(NotificationKind.Info, label, null, Strings.EditorsUndo, () => _ = UndoIfLastAsync(step));
         return (true, null);
     }
 
@@ -667,29 +667,29 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
 
     private static string Describe(IReadOnlyList<FileOperation> operations, int textFiles) => operations switch
     {
-        [CreateFileOperation create] => $"Create {Path.GetFileName(create.FilePath)}",
-        [CreateFolderOperation create] => $"Create {Path.GetFileName(create.FolderPath)}",
+        [CreateFileOperation create] => Strings.EditorsLabelCreate(Path.GetFileName(create.FilePath)),
+        [CreateFolderOperation create] => Strings.EditorsLabelCreate(Path.GetFileName(create.FolderPath)),
         [RenameFileOperation rename] when PathComparison.Comparer.Equals(Path.GetDirectoryName(rename.OldPath), Path.GetDirectoryName(rename.NewPath)) =>
-            $"Rename {Path.GetFileName(rename.OldPath)} to {Path.GetFileName(rename.NewPath)}",
-        [RenameFileOperation rename] => $"Move {Path.GetFileName(rename.OldPath)} to {Path.GetFileName(Path.GetDirectoryName(rename.NewPath))}",
-        [DeleteFileOperation delete] => $"Delete {Path.GetFileName(delete.Path)}",
-        { Count: > 1 } => $"{operations.Count} file operations",
-        _ => textFiles == 1 ? "Edit 1 file" : $"Edit {textFiles} files",
+            Strings.EditorsLabelRename(Path.GetFileName(rename.OldPath), Path.GetFileName(rename.NewPath)),
+        [RenameFileOperation rename] => Strings.EditorsLabelMove(Path.GetFileName(rename.OldPath), Path.GetFileName(Path.GetDirectoryName(rename.NewPath)) ?? ""),
+        [DeleteFileOperation delete] => Strings.EditorsLabelDelete(Path.GetFileName(delete.Path)),
+        { Count: > 1 } => Strings.EditorsLabelOperations(operations.Count),
+        _ => Strings.EditorsLabelEditFiles(textFiles),
     };
 
     private static string Summarize(IReadOnlyList<FileOperation> operations, IEnumerable<(string Path, int Changes)> texts)
     {
         var lines = operations.Select(operation => operation switch
         {
-            CreateFileOperation create => $"Create {create.FilePath}",
-            CreateFolderOperation create => $"Create the folder {create.FolderPath}",
-            RenameFileOperation rename => $"Rename {rename.OldPath} to {rename.NewPath}",
-            DeleteFileOperation delete => $"Delete {delete.Path}",
+            CreateFileOperation create => Strings.EditorsSummaryCreate(create.FilePath),
+            CreateFolderOperation create => Strings.EditorsSummaryCreateFolder(create.FolderPath),
+            RenameFileOperation rename => Strings.EditorsSummaryRename(rename.OldPath, rename.NewPath),
+            DeleteFileOperation delete => Strings.EditorsSummaryDelete(delete.Path),
             _ => "",
-        }).Concat(texts.Select(t => t.Changes == 1 ? $"Change {t.Path} in 1 place" : $"Change {t.Path} in {t.Changes} places")).ToList();
+        }).Concat(texts.Select(t => Strings.EditorsSummaryChange(path: t.Path, count: t.Changes))).ToList();
         var shown = lines.Take(SummaryLines).ToList();
         if (lines.Count > SummaryLines)
-            shown.Add($"and {lines.Count - SummaryLines} more.");
+            shown.Add(Strings.EditorsSummaryMore(lines.Count - SummaryLines));
         return string.Join('\n', shown);
     }
 

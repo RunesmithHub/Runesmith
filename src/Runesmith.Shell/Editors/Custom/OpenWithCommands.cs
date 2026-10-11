@@ -46,10 +46,10 @@ public sealed class OpenWithCommands(CustomEditorService customEditors, EditorSe
         var rows = customEditors.GetChoices(path).Select(choice => new QuickPickItem(choice.Name, choice.Id)
         {
             Icon = choice.Id == EditorProviderDefinition.TextEditorId ? Icons.FileText : Icons.Find(customEditors.Catalog.Find(choice.Id)?.Definition.Icon) ?? Icons.File,
-            Subtitle = choice.IsDefault ? $"Default for {key}" : null,
-            Detail = choice.Id == open ? "Open" : null,
+            Subtitle = choice.IsDefault ? Strings.EditorsDefaultFor(key) : null,
+            Detail = choice.Id == open ? Strings.EditorsOpen : null,
         }).ToList();
-        rows.Add(new QuickPickItem($"Set Default Editor for {key}...", SetDefaultEditor) { Icon = Icons.Settings });
+        rows.Add(new QuickPickItem(Strings.EditorsSetDefaultFor(key), SetDefaultEditor) { Icon = Icons.Settings });
 
         switch ((await shell.PickAsync($"Open {Path.GetFileName(path)} with", rows))?.Value)
         {
@@ -65,8 +65,8 @@ public sealed class OpenWithCommands(CustomEditorService customEditors, EditorSe
     private async Task SetDefaultAsync(string path)
     {
         var key = FilePatterns.KeyOf(path);
-        var rows = customEditors.GetChoices(path).Select(choice => new QuickPickItem(choice.Name, choice.Id) { Detail = choice.IsDefault ? "Current" : null }).ToList();
-        if ((await shell.PickAsync($"Default editor for {key}", rows))?.Value is string id)
+        var rows = customEditors.GetChoices(path).Select(choice => new QuickPickItem(choice.Name, choice.Id) { Detail = choice.IsDefault ? Strings.EditorsCurrent : null }).ToList();
+        if ((await shell.PickAsync(Strings.EditorsDefaultEditorFor(key), rows))?.Value is string id)
             customEditors.SetDefault(path, id);
     }
 

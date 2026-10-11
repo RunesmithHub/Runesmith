@@ -546,3 +546,170 @@ tools-diff-count =
 #   $position (Number) - the difference shown, counted from 1
 #   $count (Number) - how many differences
 tools-diff-position = { $position } of { $count }
+
+## Debugger marks in the editor and debugger panes
+
+tools-debug-paused-here = The program is paused here.
+tools-debug-paused-at-breakpoint = The program is paused here, at a breakpoint.
+# The hover of a breakpoint in the gutter; Markdown.
+tools-debug-hover-log-point = **Log point**
+tools-debug-hover-breakpoint = **Breakpoint**
+tools-debug-hover-disabled = Disabled.
+# Variables:
+#   $condition - the condition
+tools-debug-hover-condition = Stops when `{ $condition }`.
+# Variables:
+#   $count - the hit count condition
+tools-debug-hover-hit-count = Hit count: `{ $count }`.
+# Variables:
+#   $message - the log message
+tools-debug-hover-logs = Logs `{ $message }`.
+tools-debug-hover-not-set = The debugger has not set it yet, such as before its code loads.
+tools-debug-hover-click = Click to remove it.
+tools-debug-variables-paused = Variables show while the program is paused.
+tools-debug-running = The program is running.
+tools-debug-no-variables = This frame has no variables.
+tools-debug-watch-paused = Available while paused
+tools-debug-stack-paused = The call stack shows while the program is paused.
+tools-debug-no-frames = The thread has no frames to show.
+tools-debug-disable = Disable
+tools-debug-enable = Enable
+
+## Run panel, tests and terminal leftovers
+
+tools-run-rerun = Rerun
+tools-run-recent = Recent
+tools-run-finding-task = Finding run configurations
+# Variables:
+#   $code (Number) - the exit code
+tools-terminal-exited-code = Process exited with code { NUMBER($code, useGrouping: "false") }.
+tools-terminal-exited = Process exited.
+tools-terminal-copy = Copy
+tools-terminal-paste = Paste
+tools-terminal-select-all = Select All
+tools-tests-run = Run
+tools-tests-debug = Debug
+tools-tests-output = Output
+# Code lens tooltips above a test.
+# Variables:
+#   $name - the test
+tools-tests-run-name = Run { $name }
+# Variables:
+#   $name - the test
+tools-tests-debug-name = Debug { $name }
+tools-tests-show-result = Show the result in the Test Explorer
+# A test's last result.
+# Variables:
+#   $time - how long it took, such as 12 ms
+tools-tests-passed-in = Passed in { $time }
+tools-tests-passed = Passed
+# Variables:
+#   $summary - the failure's first line
+tools-tests-failed-summary = Failed: { $summary }
+# Variables:
+#   $summary - the error's first line
+tools-tests-error-summary = Error: { $summary }
+tools-tests-status-skipped = Skipped
+tools-tests-status-running = Running
+tools-tests-status-queued = Queued
+# Groups of the Test Explorer by status.
+tools-tests-group-failed = Failed
+tools-tests-group-running = Running
+tools-tests-group-passed = Passed
+tools-tests-group-skipped = Skipped
+tools-tests-group-not-run = Not run
+tools-tests-no-file = No file
+tools-tests-no-tag = No tag
+tools-tests-discovering-task = Discovering tests
+tools-tests-debugging-task = Debugging tests
+# Variables:
+#   $count (Number) - how many tests run
+tools-tests-running-task =
+    { $count ->
+        [one] Running 1 test
+       *[other] Running { $count } tests
+    }
+tools-tree-collapse = Collapse
+tools-tree-expand = Expand
+tools-explorer-open = Open
+tools-explorer-menu-rename = Rename
+tools-explorer-menu-delete = Delete
+tools-web-install-webkit = Install WebKitGTK 4.1 (libwebkit2gtk-4.1) and restart Runesmith.
+tools-web-install-webview2 = Install the Microsoft Edge WebView2 Runtime and restart Runesmith.
+tools-web-no-engine = This system has no browser engine Runesmith can use.
+# The menu of a tool window.
+tools-window-move-left = Move to Left
+tools-window-move-right = Move to Right
+tools-window-move-bottom = Move to Bottom
+tools-window-hide = Hide
+tools-window-options = Options
+
+## Debug status in the status bar and breakpoint details
+
+# Variables:
+#   $file - the file's name
+#   $line (Number) - the line
+tools-debug-status-paused-at = Paused at { $file }:{ NUMBER($line, useGrouping: "false") }
+tools-debug-status-paused = Paused
+# Variables:
+#   $name - the run configuration's name
+#   $reason - why it paused, one of tools-debug-reason
+tools-debug-status-paused-tip-reason = { $name } is paused ({ $reason }). Press F5 to continue.
+# Variables:
+#   $name - the run configuration's name
+tools-debug-status-paused-tip = { $name } is paused. Press F5 to continue.
+# Variables:
+#   $debugger - the debugger's name
+tools-debug-status-starting = Starting { $debugger }
+# Variables:
+#   $debugger - the debugger's name
+#   $name - the run configuration's name
+tools-debug-status-starting-tip = { $debugger } is starting { $name }.
+# Variables:
+#   $name - the run configuration's name
+tools-debug-status-debugging = Debugging { $name }
+# Variables:
+#   $name - the run configuration's name
+#   $debugger - the debugger's name
+tools-debug-status-debugging-tip = { $name } runs under { $debugger }.
+# The second line of a breakpoint in the Breakpoints list.
+# Variables:
+#   $condition - the condition
+tools-debug-detail-when = when { $condition }
+# Variables:
+#   $count - the hit count condition
+tools-debug-detail-hit-count = hit count { $count }
+# Variables:
+#   $message - the log message
+tools-debug-detail-logs = logs { $message }
+# The hover of a test's gutter mark; Markdown.
+# Variables:
+#   $name - the test or test class
+#   $many (Number) - 1 for a test, more for a class of tests
+tools-tests-marker =
+    { $many ->
+        [one] **{ $name }**
+
+            Click to run the test.
+       *[other] **{ $name }**
+
+            Click to run the tests.
+    }
+# Variables:
+#   $name - the test or test class
+#   $status - its last result, such as Passed in 12 ms
+#   $many (Number) - 1 for a test, more for a class of tests
+tools-tests-marker-status =
+    { $many ->
+        [one] **{ $name }**
+
+            { $status }.
+
+            Click to run the test again.
+       *[other] **{ $name }**
+
+            { $status }.
+
+            Click to run the tests again.
+    }
+tools-terminal-ctrl-click = Ctrl+click to open

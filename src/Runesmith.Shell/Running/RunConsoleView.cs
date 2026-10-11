@@ -10,8 +10,8 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using HammerUI;
 using HammerUI.Controls;
-using Runesmith.Sdk.Localization;
 using Runesmith.Editor;
+using Runesmith.Sdk.Localization;
 
 namespace Runesmith.Shell.Running;
 
@@ -59,14 +59,14 @@ internal sealed class RunConsoleView : DockPanel
                 MenuItem(Strings.ToolsCopyLine, Icons.Copy, () => _ = CopyAsync(list.SelectedItem is ConsoleLine line ? line.Text : null)),
                 MenuItem(Strings.ToolsCopyAll, null, () => _ = CopyAsync(session.Console.GetText())),
                 new Separator(),
-                MenuItem("Clear", Icons.Trash, session.Console.Clear),
+                MenuItem(Strings.ToolsClear, Icons.Trash, session.Console.Clear),
             },
         };
 
-        var rerunButton = ToolButton(Icons.RotateCw, "Rerun", () => rerun(session));
-        stop = ToolButton(Icons.Stop, "Stop", session.Stop);
+        var rerunButton = ToolButton(Icons.RotateCw, () => Strings.ToolsRunRerun, () => rerun(session));
+        stop = ToolButton(Icons.Stop, () => Strings.ToolsRunTipStop, session.Stop);
         stop.Classes.Add("danger-icon");
-        var clear = ToolButton(Icons.Trash, "Clear", session.Console.Clear);
+        var clear = ToolButton(Icons.Trash, () => Strings.ToolsClear, session.Console.Clear);
         var bar = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -200,10 +200,9 @@ internal sealed class RunConsoleView : DockPanel
         return item;
     }
 
-    private static Button ToolButton(Geometry icon, string tip, Action action)
+    private static Button ToolButton(Geometry icon, Func<string> tip, Action action)
     {
-        var button = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = icon, Size = 14 } };
-        ToolTip.SetTip(button, tip);
+        var button = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = icon, Size = 14 } }.Localize(ToolTip.TipProperty, tip);
         button.Click += (_, _) => action();
         return button;
     }

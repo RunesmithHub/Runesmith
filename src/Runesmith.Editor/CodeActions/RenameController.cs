@@ -90,7 +90,7 @@ internal sealed class RenameController : IDisposable
 
         if (found is null)
         {
-            showMessage("Nothing to rename here.");
+            showMessage(Strings.EditorNothingToRename);
             return;
         }
 
@@ -163,7 +163,7 @@ internal sealed class RenameController : IDisposable
 
             Close();
             if (edit is null)
-                showMessage("Nothing to rename here.");
+                showMessage(Strings.EditorNothingToRename);
             else if (!edit.IsEmpty)
                 await services.WorkspaceEdits.Value.ApplyAsync(edit, CancellationToken.None);
         }

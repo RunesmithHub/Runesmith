@@ -27,11 +27,11 @@ internal static class AppearancePickers
 
     public static List<AppearanceChoice> Themes(AppearanceCatalog catalog) =>
     [
-        new(AppearanceCatalog.System, "Follow the system", $"{catalog.Dark.Theme.Name} or {catalog.Light.Theme.Name}")
+        new(AppearanceCatalog.System, Strings.ShellFollowSystem, Strings.ShellDarkOrLight(catalog.Dark.Theme.Name, catalog.Light.Theme.Name))
         {
             Swatch = [catalog.Dark.Palette.Surface, catalog.Light.Palette.Surface],
         },
-        .. catalog.Themes.Select(e => new AppearanceChoice(e.Theme.Id, e.Theme.Name, Source(e.Plugin, e.Theme.IsDark ? "Dark" : "Light"))
+        .. catalog.Themes.Select(e => new AppearanceChoice(e.Theme.Id, e.Theme.Name, Source(e.Plugin, e.Theme.IsDark ? Strings.ShellDark : Strings.ShellLight))
         {
             Swatch = [e.Palette.Surface, e.Palette.TextPrimary, e.Palette.Accent],
         }),
@@ -39,8 +39,8 @@ internal static class AppearancePickers
 
     public static List<AppearanceChoice> Schemes(AppearanceCatalog catalog) =>
     [
-        new("", "The color theme's own"),
-        .. catalog.Schemes.Select(e => new AppearanceChoice(e.Scheme.Id, e.Scheme.Name, Source(e.Plugin, e.Scheme.IsDark ? "Dark" : "Light"))),
+        new("", Strings.ShellThemeOwn),
+        .. catalog.Schemes.Select(e => new AppearanceChoice(e.Scheme.Id, e.Scheme.Name, Source(e.Plugin, e.Scheme.IsDark ? Strings.ShellDark : Strings.ShellLight))),
     ];
 
     public static List<AppearanceChoice> IconThemes(AppearanceCatalog catalog) =>
@@ -53,7 +53,7 @@ internal static class AppearancePickers
         var selected = choices.FirstOrDefault(c => string.Equals(c.Value, current, StringComparison.OrdinalIgnoreCase));
         if (selected is null)
         {
-            selected = new AppearanceChoice(current, current, "Not installed");
+            selected = new AppearanceChoice(current, current, Strings.ShellNotInstalled);
             choices.Add(selected);
         }
 
@@ -98,7 +98,7 @@ internal static class AppearancePickers
             (null, null) => null,
             (null, _) => kind,
             (_, null) => plugin.Manifest.Name,
-            _ => $"{kind}, {plugin.Manifest.Name}",
+            _ => Strings.ShellKindFromPlugin(kind, plugin.Manifest.Name),
         };
 
     private static DockPanel Entry(AppearanceChoice choice)

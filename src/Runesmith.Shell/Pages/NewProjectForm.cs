@@ -94,7 +94,7 @@ internal static class NewProjectForm
         if (location.Length > 0 && !Path.IsPathRooted(location))
             problems[Location] = Strings.SettingsProjectLocationRequired;
         else if (!problems.ContainsKey(Name) && TargetFolder(values) is { } folder && Directory.Exists(folder) && Directory.EnumerateFileSystemEntries(folder).Any())
-            problems[Name] = $"{Path.GetFileName(folder)} exists in this location and is not empty.";
+            problems[Name] = Strings.SettingsProjectExists(Path.GetFileName(folder));
         return problems;
     }
 

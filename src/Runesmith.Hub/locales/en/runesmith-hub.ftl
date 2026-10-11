@@ -80,3 +80,33 @@ hub-update-downgrades = It downgrades { $name }.
 # Variables:
 #   $name - the plugin
 hub-update-new-capabilities = { $name } gets new capabilities with it.
+
+## Why a runesmith:// link was refused
+
+hub-link-empty = The link is empty.
+# Variables:
+#   $max (Number) - the longest a link may be
+hub-link-too-long = The link is longer than { $max } characters.
+hub-link-characters = The link has characters links cannot have.
+hub-link-scheme = Only runesmith:// links open Runesmith.
+hub-link-fragment = A link cannot carry a fragment.
+# Variables:
+#   $host - the part after runesmith://
+hub-link-host = Runesmith has no "{ $host }" links; links open the plugin hub's pages.
+hub-link-updates-parameters = The updates link takes no parameters.
+hub-link-no-target = A link opens a plugin's page or the updates list, and this one names neither.
+# Variables:
+#   $id - what the link gave as the plugin id
+hub-link-bad-id = "{ $id }" is not a plugin id; ids are lowercase, like publisher.name.
+# Variables:
+#   $names - the parameters it refuses
+hub-link-parameters = Runesmith refuses { $names }: a link carries only a plugin id and a version.
+hub-link-versions = A link carries one version at most.
+# Variables:
+#   $value - what the link gave as the version
+hub-link-bad-version = "{ $value }" is not a plugin version, such as 1.2.0.
+
+# Variables:
+#   $name - the plugin's name
+#   $version - the version
+hub-download-mismatch = The download of { $name } { $version } did not match what the hub published, so nothing was installed. Try again later.

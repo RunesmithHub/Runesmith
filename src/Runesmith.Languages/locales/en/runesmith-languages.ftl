@@ -26,3 +26,62 @@ languages-setting-command = { $server } command
 languages-setting-command-description = The executable to run instead of { $command }, such as a full path. Leave empty to use { $command } from the PATH.
 languages-setting-trace = Trace language servers
 languages-setting-trace-description = Write every message to and from language servers to their output channels, for finding out why a server misbehaves.
+languages-show-output = Show output
+
+## The status of a language server
+
+# Variables:
+#   $server - the language server's name
+languages-server-not-installed = { $server } is not installed
+# Variables:
+#   $server - the language server's name
+languages-server-stopped-title = { $server } stopped
+# Variables:
+#   $command - the command Runesmith ran
+#   $hint - how to install it
+languages-server-could-not-start-hint = Runesmith could not start { $command }. { $hint }
+# Variables:
+#   $server - the language server's name
+languages-server-install-hint = Install it, or set its path in the { $server } command setting.
+# Variables:
+#   $server - the language server's name
+languages-server-failed-to-start = { $server } failed to start. The output has the details.
+# Variables:
+#   $server - the language server's name
+languages-server-kept-stopping = { $server } kept stopping unexpectedly. Run "Restart Language Servers" to try again.
+# Status bar texts.
+# Variables:
+#   $server - the language server's name
+languages-status-starting = { $server }: starting
+# Variables:
+#   $server - the language server's name
+#   $folder - the folder it works in
+languages-status-starting-tip = Starting { $server } in { $folder }
+# Variables:
+#   $server - the language server's name
+#   $work - what it does, such as Indexing (40%)
+languages-status-working = { $server }: { $work }
+# Variables:
+#   $server - the language server's name
+#   $folder - the folder it works in
+languages-status-working-tip = { $server } is working in { $folder }
+# Variables:
+#   $server - the language server's name
+#   $folder - the folder it works in
+languages-status-running-tip = { $server } is running in { $folder }. Click for its output.
+# Variables:
+#   $server - the language server's name
+languages-status-missing = { $server }: not installed
+# Variables:
+#   $command - the command Runesmith ran
+languages-status-missing-tip = Runesmith could not start { $command }.
+# Variables:
+#   $server - the language server's name
+languages-status-stopped = { $server }: stopped
+# Variables:
+#   $server - the language server's name
+languages-status-stopped-tip = { $server } stopped. Click for its output.
+# Variables:
+#   $server - the language server's name
+languages-status-idle-tip = { $server } is stopped.
+languages-working = working

@@ -72,12 +72,12 @@ internal static class Prompt
     public static string? ValidateFileName(string name, string folder, string? except = null)
     {
         if (name.Length == 0)
-            return "Type a name.";
+            return Strings.ShellNameRequired;
         if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
             return "A name cannot contain " + string.Join(" ", Path.GetInvalidFileNameChars().Where(c => c >= ' ').Select(c => c.ToString())) + ".";
         var path = Path.Combine(folder, name);
         if (!string.Equals(name, except, StringComparison.Ordinal) && (File.Exists(path) || Directory.Exists(path)))
-            return $"{name} exists already.";
+            return Strings.EditorsNameExists(name);
         return null;
     }
 }

@@ -27,8 +27,8 @@ internal static class WebViewSupport
             }
         }
 
-        return OperatingSystem.IsLinux() ? "Install WebKitGTK 4.1 (libwebkit2gtk-4.1) and restart Runesmith."
-            : OperatingSystem.IsWindows() ? "Install the Microsoft Edge WebView2 Runtime and restart Runesmith."
-            : "This system has no browser engine Runesmith can use.";
+        return OperatingSystem.IsLinux() ? Strings.ToolsWebInstallWebkit
+            : OperatingSystem.IsWindows() ? Strings.ToolsWebInstallWebview2
+            : Strings.ToolsWebNoEngine;
     }
 }

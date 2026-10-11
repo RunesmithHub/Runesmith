@@ -235,7 +235,7 @@ public sealed class TestRows
             var row = Row($"file/{file.Key}", used);
             row.Node = null;
             row.Nodes = tests;
-            var name = file.Key.Length == 0 ? "No file" : Path.GetFileName(file.Key);
+            var name = file.Key.Length == 0 ? Strings.ToolsTestsNoFile : Path.GetFileName(file.Key);
             var folder = file.Key.Length == 0 || root is null ? null : Path.GetDirectoryName(Path.GetRelativePath(root, file.Key));
             Fill(row, name, string.IsNullOrEmpty(folder) ? null : folder, tests, [.. tests.Select(t => Leaf(t, $"file/{file.Key}/", used))]);
             row.ToolTip = file.Key.Length == 0 ? null : file.Key;
@@ -249,11 +249,11 @@ public sealed class TestRows
     {
         (TestState[] States, string Label)[] groups =
         [
-            ([TestState.Failed, TestState.Errored], "Failed"),
-            ([TestState.Running, TestState.Queued], "Running"),
-            ([TestState.Passed], "Passed"),
-            ([TestState.Skipped], "Skipped"),
-            ([TestState.None], "Not run"),
+            ([TestState.Failed, TestState.Errored], Strings.ToolsTestsGroupFailed),
+            ([TestState.Running, TestState.Queued], Strings.ToolsTestsGroupRunning),
+            ([TestState.Passed], Strings.ToolsTestsGroupPassed),
+            ([TestState.Skipped], Strings.ToolsTestsGroupSkipped),
+            ([TestState.None], Strings.ToolsTestsGroupNotRun),
         ];
         var top = new List<TestRow>();
         foreach (var (states, label) in groups)
@@ -285,7 +285,7 @@ public sealed class TestRows
             var row = Row($"tag/{group.Key}", used);
             row.Node = null;
             row.Nodes = tests;
-            Fill(row, group.Key.Length == 0 ? "No tag" : group.Key, null, tests, [.. tests.Select(t => Leaf(t, $"tag/{group.Key}/", used))]);
+            Fill(row, group.Key.Length == 0 ? Strings.ToolsTestsNoTag : group.Key, null, tests, [.. tests.Select(t => Leaf(t, $"tag/{group.Key}/", used))]);
             top.Add(row);
         }
 

@@ -14,9 +14,9 @@ public sealed class SdkSettings([ImportMany] IEnumerable<ISdkProvider> providers
 
     public IEnumerable<SettingDefinition> Settings =>
     [
-        .. providers.DistinctBy(p => p.Kind, StringComparer.Ordinal).Select(p => new SettingDefinition(SdkService.DefaultKey(p.Kind), $"Default {p.Name}", Category, "")
+        .. providers.DistinctBy(p => p.Kind, StringComparer.Ordinal).Select(p => new SettingDefinition(SdkService.DefaultKey(p.Kind), Strings.SettingsSdksDefaultSetting(p.Name), Category, "")
         {
-            Description = $"The {p.Name} builds and new projects use, as its version and folder separated by |; empty for the newest installed.",
+            Description = Strings.SettingsSdksDefaultSettingDescription(p.Name),
         }),
     ];
 }

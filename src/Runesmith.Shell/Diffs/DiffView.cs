@@ -7,9 +7,9 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
-using Runesmith.Sdk.Localization;
 using Runesmith.Editor;
 using Runesmith.Sdk.Documents;
+using Runesmith.Sdk.Localization;
 using Runesmith.Text;
 
 namespace Runesmith.Shell.Diffs;
