@@ -46,8 +46,11 @@ internal sealed class SemanticTokenStyles(Theme theme, StyleTable styles, string
     private readonly ConcurrentDictionary<(string Type, SemanticTokenModifiers Modifiers), SemanticStyle?> cache = new();
 
     /// <summary>Gets how a token is drawn, or null when no scope of its type has a rule, so the TextMate color stays.</summary>
-    public SemanticStyle? Get(string type, SemanticTokenModifiers modifiers) =>
-        cache.GetOrAdd((type, modifiers & (SemanticTokenModifiers.Readonly | SemanticTokenModifiers.DefaultLibrary | SemanticTokenModifiers.Deprecated)), Resolve);
+    public SemanticStyle? Get(string type, SemanticTokenModifiers modifiers)
+    {
+        var key = (type, modifiers & (SemanticTokenModifiers.Readonly | SemanticTokenModifiers.DefaultLibrary | SemanticTokenModifiers.Deprecated));
+        return cache.TryGetValue(key, out var style) ? style : cache.GetOrAdd(key, Resolve);
+    }
 
     /// <summary>Gets the scopes a token stands for, the ones its modifiers add first.</summary>
     public static IEnumerable<string> ScopesOf(string type, SemanticTokenModifiers modifiers)

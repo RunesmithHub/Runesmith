@@ -61,28 +61,14 @@ public sealed class FoldingModel
     public void SetRanges(IReadOnlyList<FoldingRange> ranges, int lineCount)
     {
         ArgumentNullException.ThrowIfNull(ranges);
-        var folded = regions.Where(r => r.IsCollapsed).Select(r => r.StartLine).ToHashSet();
-        var updated = new List<FoldRegion>(Math.Min(ranges.Count, MaxRegions));
-        int? previousStart = null;
-        foreach (var range in ranges.Where(r => r.StartLine >= 0 && r.EndLine > r.StartLine && r.StartLine < lineCount)
-                     .OrderBy(r => r.StartLine).ThenByDescending(r => r.EndLine))
-        {
-            if (range.StartLine == previousStart)
-                continue;
-
-            previousStart = range.StartLine;
-            var region = new FoldRegion(range.StartLine, Math.Min(range.EndLine, lineCount - 1), range.Kind, range.CollapsedText)
-            {
-                IsCollapsed = folded.Contains(range.StartLine),
-            };
-            if (region.EndLine > region.StartLine)
-                updated.Add(region);
-            if (updated.Count == MaxRegions)
-                break;
-        }
-
-        if (SameRegions(regions, updated))
+        var kept = Usable(ranges, lineCount);
+        if (Matches(kept, lineCount))
             return;
+
+        var folded = regions.Where(r => r.IsCollapsed).Select(r => r.StartLine).ToHashSet();
+        var updated = new List<FoldRegion>(kept.Count);
+        foreach (var range in kept)
+            updated.Add(new FoldRegion(range.StartLine, Math.Min(range.EndLine, lineCount - 1), range.Kind, range.CollapsedText) { IsCollapsed = folded.Contains(range.StartLine) });
 
         regions = updated;
         Rebuild();
@@ -196,12 +182,15 @@ public sealed class FoldingModel
         var before = changeSet.Before;
         var after = changeSet.After;
         var changes = changeSet.Changes;
-        var kept = new List<FoldRegion>(regions.Count);
-        var changed = false;
-        var reordered = false;
         var firstLine = before.GetLineFromPosition(changes[0].Span.Start).LineNumber;
         var lastLine = before.GetLineFromPosition(changes[^1].Span.End).LineNumber;
         var delta = after.LineCount - before.LineCount;
+        if (firstLine == lastLine && delta == 0 && !IsHidden(firstLine) && !AddsLineBreak(changes))
+            return;
+
+        var kept = new List<FoldRegion>(regions.Count);
+        var changed = false;
+        var reordered = false;
         foreach (var region in regions)
         {
             if (region.EndLine >= before.LineCount)
@@ -228,14 +217,13 @@ public sealed class FoldingModel
 
             var start = before.GetLine(region.StartLine).Start;
             var end = before.GetLine(region.EndLine).Start;
-            var hidden = TextSpan.FromBounds(before.GetLine(region.StartLine + 1).Start, before.GetLine(region.EndLine).EndIncludingBreak);
-            if (changes.Any(c => c.Span.Start < start && c.Span.End > start))
+            if (JoinsLineBefore(changes, start))
             {
                 changed = true;
                 continue;
             }
 
-            if (region.IsCollapsed && changes.Any(c => c.Span.Start < hidden.End && c.Span.End > hidden.Start || c.Span.IsEmpty && c.Span.Start >= hidden.Start && c.Span.Start < hidden.End))
+            if (region.IsCollapsed && Touches(changes, TextSpan.FromBounds(before.GetLine(region.StartLine + 1).Start, before.GetLine(region.EndLine).EndIncludingBreak)))
             {
                 region.IsCollapsed = false;
                 changed = true;
@@ -258,7 +246,7 @@ public sealed class FoldingModel
         if (!changed)
             return;
 
-        regions = reordered ? [.. kept.OrderBy(r => r.StartLine).ThenByDescending(r => r.EndLine).DistinctBy(r => r.StartLine)] : kept;
+        regions = reordered ? OnePerStartLine(kept) : kept;
         Rebuild();
     }
 
@@ -365,7 +353,102 @@ public sealed class FoldingModel
         return low;
     }
 
-    private static bool SameRegions(List<FoldRegion> a, List<FoldRegion> b) =>
-        a.Count == b.Count && a.Zip(b).All(pair => pair.First.StartLine == pair.Second.StartLine && pair.First.EndLine == pair.Second.EndLine
-            && pair.First.Kind == pair.Second.Kind && pair.First.CollapsedText == pair.Second.CollapsedText && pair.First.IsCollapsed == pair.Second.IsCollapsed);
+    // The ranges that fit a text of lineCount lines, by first line, keeping the longest of those that start on the same line.
+    private static List<FoldingRange> Usable(IReadOnlyList<FoldingRange> ranges, int lineCount)
+    {
+        var usable = new List<FoldingRange>(Math.Min(ranges.Count, MaxRegions));
+        foreach (var range in ranges)
+        {
+            if (range.StartLine >= 0 && range.StartLine < lineCount && Math.Min(range.EndLine, lineCount - 1) > range.StartLine)
+                usable.Add(range);
+        }
+
+        for (var i = 1; i < usable.Count; i++)
+        {
+            if (usable[i - 1].StartLine > usable[i].StartLine || usable[i - 1].StartLine == usable[i].StartLine && usable[i - 1].EndLine < usable[i].EndLine)
+            {
+                usable = [.. usable.OrderBy(r => r.StartLine).ThenByDescending(r => r.EndLine)];
+                break;
+            }
+        }
+
+        var count = 0;
+        for (var i = 0; i < usable.Count && count < MaxRegions; i++)
+        {
+            if (count == 0 || usable[count - 1].StartLine != usable[i].StartLine)
+                usable[count++] = usable[i];
+        }
+
+        usable.RemoveRange(count, usable.Count - count);
+        return usable;
+    }
+
+    private bool Matches(List<FoldingRange> ranges, int lineCount)
+    {
+        if (ranges.Count != regions.Count)
+            return false;
+
+        for (var i = 0; i < ranges.Count; i++)
+        {
+            var (range, region) = (ranges[i], regions[i]);
+            if (region.StartLine != range.StartLine || region.EndLine != Math.Min(range.EndLine, lineCount - 1) || region.Kind != range.Kind
+                || region.CollapsedText != range.CollapsedText)
+                return false;
+        }
+
+        return true;
+    }
+
+    // Mapping keeps the regions in order of their first lines; of those whose first lines were joined, the one that ends last stays.
+    private static List<FoldRegion> OnePerStartLine(List<FoldRegion> sorted)
+    {
+        var kept = new List<FoldRegion>(sorted.Count);
+        foreach (var region in sorted)
+        {
+            if (kept.Count > 0 && kept[^1].StartLine == region.StartLine)
+            {
+                if (region.EndLine > kept[^1].EndLine)
+                    kept[^1] = region;
+                continue;
+            }
+
+            kept.Add(region);
+        }
+
+        return kept;
+    }
+
+    private static bool AddsLineBreak(IReadOnlyList<TextChange> changes)
+    {
+        foreach (var change in changes)
+        {
+            if (change.NewText.Contains('\n', StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool JoinsLineBefore(IReadOnlyList<TextChange> changes, int lineStart)
+    {
+        foreach (var change in changes)
+        {
+            if (change.Span.Start < lineStart && change.Span.End > lineStart)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool Touches(IReadOnlyList<TextChange> changes, TextSpan hidden)
+    {
+        foreach (var change in changes)
+        {
+            var span = change.Span;
+            if (span.Start < hidden.End && span.End > hidden.Start || span.IsEmpty && span.Start >= hidden.Start && span.Start < hidden.End)
+                return true;
+        }
+
+        return false;
+    }
 }

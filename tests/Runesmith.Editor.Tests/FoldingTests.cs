@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Runesmith.Editor.Editing;
 using Runesmith.Editor.Folding;
 using Runesmith.Sdk.Languages;
 using Runesmith.Text;
@@ -68,6 +69,84 @@ public sealed class FoldingTests
 
         model.Map(buffer.Delete(TextSpan.FromBounds(buffer.Current.GetLine(2).End - 1, buffer.Current.GetLine(3).Start + 1)));
         Assert.Equal([4], model.Regions.Select(r => r.StartLine));
+    }
+
+    [Fact]
+    public void RangesInAnyOrderKeepTheLongestOfThoseThatStartOnALine()
+    {
+        var model = new FoldingModel();
+        model.SetRanges([new FoldingRange(5, 9), new FoldingRange(0, 3), new FoldingRange(5, 12), new FoldingRange(2, 2), new FoldingRange(0, 1), new FoldingRange(7, 20)], 8);
+
+        Assert.Equal([(0, 3), (5, 7)], model.Regions.Select(r => (r.StartLine, r.EndLine)));
+    }
+
+    [Fact]
+    public void TypingOnOneLineMovesNoRegionAndJoiningTwoFirstLinesKeepsTheLongerRegion()
+    {
+        var buffer = new TextBuffer("x\na\nb\nc\nd\ne\nf\n");
+        var model = new FoldingModel();
+        model.SetRanges([new FoldingRange(1, 3), new FoldingRange(2, 5)], buffer.Current.LineCount);
+        model.SetCollapsed(model.RegionAt(2)!, true);
+
+        model.Map(buffer.Insert(buffer.Current.GetLine(1).End, "bc"));
+        model.Map(buffer.Insert(0, "w"));
+        Assert.Equal([(1, 3, false), (2, 5, true)], model.Regions.Select(r => (r.StartLine, r.EndLine, r.IsCollapsed)));
+
+        model.Map(buffer.Delete(new TextSpan(buffer.Current.GetLine(1).End, 1)));
+        Assert.Equal([(1, 4, true)], model.Regions.Select(r => (r.StartLine, r.EndLine, r.IsCollapsed)));
+    }
+
+    [Fact]
+    public void IndentationFoldsMatchThoseOfEachLinesTextInATextOfManyPieces()
+    {
+        var random = new Random(7);
+        string[] indents = ["", "  ", "    ", "\t", "  \t", "\t    ", "        "];
+        string[] bodies = ["x = 1;", "if (a)", "{", "}", "", " ", "\t", "\u00A0y"];
+        var buffer = new TextBuffer("");
+        for (var i = 0; i < 600; i++)
+        {
+            var line = indents[random.Next(indents.Length)] + bodies[random.Next(bodies.Length)] + (random.Next(4) == 0 ? "\r\n" : "\n");
+            var lineNumber = random.Next(buffer.Current.LineCount);
+            buffer.Insert(buffer.Current.GetLine(lineNumber).Start, line);
+        }
+
+        buffer.Insert(buffer.Current.Length, "    tail");
+        foreach (var tabSize in new[] { 2, 4 })
+        {
+            var snapshot = buffer.Current;
+            Assert.Equal(ByLineText(snapshot, tabSize), IndentationFolding.Compute(snapshot, tabSize, TestContext.Current.CancellationToken).Select(r => (r.StartLine, r.EndLine)));
+        }
+
+        static List<(int, int)> ByLineText(TextSnapshot snapshot, int tabSize)
+        {
+            var ranges = new List<(int, int)>();
+            var open = new Stack<(int Indent, int Line)>();
+            var lastText = -1;
+            for (var number = 0; number < snapshot.LineCount; number++)
+            {
+                var text = snapshot.GetLineText(number);
+                if (string.IsNullOrWhiteSpace(text))
+                    continue;
+
+                var indent = EditOperations.VisualColumn(EditOperations.LeadingWhitespace(text), tabSize);
+                Close(indent, lastText);
+                open.Push((indent, number));
+                lastText = number;
+            }
+
+            Close(-1, lastText);
+            return [.. ranges.OrderBy(r => r.Item1)];
+
+            void Close(int indent, int end)
+            {
+                while (open.Count > 0 && open.Peek().Indent >= indent)
+                {
+                    var (_, start) = open.Pop();
+                    if (end > start)
+                        ranges.Add((start, end));
+                }
+            }
+        }
     }
 
     [Fact]

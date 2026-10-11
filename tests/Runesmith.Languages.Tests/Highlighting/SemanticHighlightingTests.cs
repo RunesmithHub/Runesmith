@@ -46,6 +46,33 @@ public sealed class SemanticHighlightingTests
     }
 
     [Fact]
+    public void NeighborsDrawnAlikeBecomeOneTokenAndEmptyTokensAreDropped()
+    {
+        SyntaxToken[] below = [new(0, 3, Keyword), new(3, 0, Type), new(3, 2, Keyword), new(5, 4, Keyword), new(10, 2, Keyword)];
+
+        var merged = SemanticHighlighter.Merge(below, [new OverlayToken(6, 1, Keyword), new OverlayToken(10, 1, Type)], 12, null);
+
+        Assert.Equal([new SyntaxToken(0, 9, Keyword), new SyntaxToken(10, 1, Type), new SyntaxToken(11, 1, Keyword)], merged);
+    }
+
+    [Fact]
+    public Task TokensGivenOutOfOrderGoToTheirLinesInOrder() => HeadlessSession.Value.Dispatch(async () =>
+    {
+        var document = new TestDocument("/work/A.fake", "A.fake", "let a = b\nlet c = d");
+        var features = new Tokens(_ =>
+        [
+            new SemanticToken(new TextSpan(18, 1), SemanticTokenTypes.Class), new SemanticToken(new TextSpan(8, 1), SemanticTokenTypes.Class),
+            new SemanticToken(new TextSpan(4, 1), SemanticTokenTypes.Class), new SemanticToken(new TextSpan(14, 1), SemanticTokenTypes.Class),
+        ]);
+        using var highlighter = new SemanticHighlighter(new Below(), document, features, DarkStyles);
+
+        await WaitAsync(() => highlighter.OverlayOf(1).Count > 0);
+        Assert.Equal([4, 8], highlighter.OverlayOf(0).Select(t => t.Start));
+        Assert.Equal([4, 8], highlighter.OverlayOf(1).Select(t => t.Start));
+        return true;
+    }, TestContext.Current.CancellationToken);
+
+    [Fact]
     public void TypesAndModifiersTakeTheColorsOfTheirScopesInTheScheme()
     {
         var styles = DarkStyles();

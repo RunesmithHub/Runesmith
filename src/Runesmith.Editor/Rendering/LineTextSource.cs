@@ -3,10 +3,15 @@ using Runesmith.Sdk.Languages;
 
 namespace Runesmith.Editor.Rendering;
 
-/// <summary>The text of one line, split into runs at the edges of its syntax tokens and of its inlay hints.</summary>
+/// <summary>The text of one line, split into runs at the edges of its syntax tokens and of its inlay hints; neighbors drawn alike share a
+/// run, so the line is shaped and drawn in as few pieces as it can be.</summary>
 internal sealed class LineTextSource(string text, IReadOnlyList<SyntaxToken> tokens, TextFormatting formatting, LineInlays inlays, TextRunProperties? inlayProperties)
     : ITextSource
 {
+    // The formatter asks for runs from the start of the line onward, so the search for a column's token resumes where the last one ended.
+    private int nextToken;
+    private int lastColumn;
+
     public LineTextSource(string text, IReadOnlyList<SyntaxToken> tokens, TextFormatting formatting)
         : this(text, tokens, formatting, LineInlays.None, null)
     {
@@ -30,25 +35,32 @@ internal sealed class LineTextSource(string text, IReadOnlyList<SyntaxToken> tok
         if (column >= text.Length)
             return new TextEndOfParagraph();
 
-        var properties = formatting.Default;
         var end = Math.Min(limit, text.Length);
-        foreach (var token in tokens)
+        var properties = Segment(column, out var segmentEnd);
+        var runEnd = Math.Min(end, segmentEnd);
+        while (runEnd < end && ReferenceEquals(Segment(runEnd, out segmentEnd), properties))
+            runEnd = Math.Min(end, segmentEnd);
+
+        return new TextCharacters(text.AsMemory(column, runEnd - column), properties);
+    }
+
+    // The properties of the token, or of the gap between tokens, at a column, and the column where it ends.
+    private TextRunProperties Segment(int column, out int end)
+    {
+        if (column < lastColumn)
+            nextToken = 0;
+        lastColumn = column;
+
+        while (nextToken < tokens.Count && Math.Min(tokens[nextToken].Start + tokens[nextToken].Length, text.Length) <= column)
+            nextToken++;
+
+        if (nextToken < tokens.Count && tokens[nextToken].Start <= column)
         {
-            var tokenEnd = Math.Min(token.Start + token.Length, text.Length);
-            if (tokenEnd <= column)
-                continue;
-
-            if (token.Start > column)
-            {
-                end = Math.Min(end, token.Start);
-                break;
-            }
-
-            properties = formatting.Get(token.Style);
-            end = Math.Min(end, tokenEnd);
-            break;
+            end = Math.Min(tokens[nextToken].Start + tokens[nextToken].Length, text.Length);
+            return formatting.Get(tokens[nextToken].Style);
         }
 
-        return new TextCharacters(text.AsMemory(column, end - column), properties);
+        end = nextToken < tokens.Count ? Math.Min(tokens[nextToken].Start, text.Length) : text.Length;
+        return formatting.Default;
     }
 }
