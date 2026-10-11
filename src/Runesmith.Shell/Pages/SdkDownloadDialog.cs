@@ -33,8 +33,8 @@ internal sealed class SdkDownloadDialog
     private readonly TextBlock stage = new() { Classes = { "caption", "muted" } };
     private readonly ProgressBar progress = new() { Minimum = 0, Maximum = 1 };
     private readonly StackPanel progressPanel = new() { Spacing = 4, IsVisible = false };
-    private readonly Button install = new() { Content = "Install", Classes = { "accent" }, IsDefault = true, MinWidth = 84, IsEnabled = false };
-    private readonly Button cancel = new() { Content = "Cancel", IsCancel = true, MinWidth = 84 };
+    private readonly Button install = new() { Content = Strings.SettingsInstall, Classes = { "accent" }, IsDefault = true, MinWidth = 84, IsEnabled = false };
+    private readonly Button cancel = new() { Content = Strings.SettingsCancel, IsCancel = true, MinWidth = 84 };
     private readonly Grid form = new() { ColumnDefinitions = new ColumnDefinitions("Auto,12,*"), RowSpacing = 10 };
     private IReadOnlyList<SdkRelease> releases = [];
     private CancellationTokenSource? installing;
@@ -48,10 +48,8 @@ internal sealed class SdkDownloadDialog
         isDotnet = provider.Kind == "dotnet";
         Dialog = new Dialog
         {
-            Header = $"Download {provider.Name}",
-            Description = isDotnet
-                ? "Releases from Microsoft. Runesmith installs .NET SDKs side by side in one folder, and global.json picks between them."
-                : "Builds of OpenJDK from their vendors: Temurin from Adoptium, the others as the foojay Discovery API lists them.",
+            Header = Strings.SettingsSdksDownloadTitle(provider.Name),
+            Description = isDotnet ? Strings.SettingsSdksDotnetSource : Strings.SettingsSdksJavaSource,
             Width = 560,
             ShowCloseButton = false,
             Content = new StackPanel { Spacing = 14, Children = { form, message, progressPanel } },
@@ -110,21 +108,21 @@ internal sealed class SdkDownloadDialog
 
     private async Task LoadAsync()
     {
-        Show("Loading the releases...", isError: false);
+        Show(Strings.SettingsSdksLoading, isError: false);
         try
         {
             releases = await owner.ReleasesAsync(provider);
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or System.Text.Json.JsonException or TaskCanceledException)
         {
-            Show($"Could not load the releases: {exception.Message}", isError: true);
+            Show(Strings.SettingsSdksLoadFailed(exception.Message), isError: true);
             return;
         }
 
         message.IsVisible = false;
         if (releases.Count == 0)
         {
-            Show($"There is no {provider.Name} to download for this computer.", isError: true);
+            Show(Strings.SettingsSdksNothing(provider.Name), isError: true);
             return;
         }
 
@@ -211,7 +209,7 @@ internal sealed class SdkDownloadDialog
         if (sample.SupportPhase is "preview" or "go-live")
             label.Children.Add(SdksSection.Badge("Preview", "warning"));
         else if (sample.SupportPhase is "maintenance" or "eol")
-            label.Children.Add(new TextBlock { Text = sample.SupportPhase == "eol" ? "out of support" : "maintenance", Classes = { "muted" }, VerticalAlignment = VerticalAlignment.Center });
+            label.Children.Add(new TextBlock { Text = sample.SupportPhase == "eol" ? Strings.SettingsSdksOutOfSupport : Strings.SettingsSdksMaintenance, Classes = { "muted" }, VerticalAlignment = VerticalAlignment.Center });
         return label;
     }
 
@@ -270,7 +268,7 @@ internal sealed class SdkDownloadDialog
         install.IsEnabled = false;
         message.IsVisible = false;
         progressPanel.IsVisible = true;
-        stage.Text = "Starting";
+        stage.Text = Strings.SettingsSdksStarting;
         progress.IsIndeterminate = true;
         var (succeeded, error) = await owner.InstallAsync(provider, release, p =>
         {
@@ -288,7 +286,7 @@ internal sealed class SdkDownloadDialog
         form.IsEnabled = true;
         install.IsEnabled = true;
         progressPanel.IsVisible = false;
-        Show(error is null ? "The install was cancelled." : $"Could not install: {error}", isError: error is not null);
+        Show(error is null ? Strings.SettingsSdksCancelled : Strings.SettingsSdksFailed(error), isError: error is not null);
     }
 
     private void Show(string text, bool isError)

@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.Settings;
 using Runesmith.Shell.Appearance;
@@ -31,7 +32,7 @@ internal sealed class WelcomePage : Grid
     private readonly ContentControl view = new();
     private readonly StackPanel projectList = new() { Spacing = 2 };
     private readonly StackPanel actions = new() { Orientation = Orientation.Horizontal, Spacing = 8 };
-    private readonly SearchBox search = new() { PlaceholderText = "Search projects" };
+    private readonly SearchBox search = new SearchBox().Localize(SearchBox.PlaceholderTextProperty, () => Strings.SettingsWelcomeSearch);
     private readonly Button close;
     private Control? projects;
     private Control? customize;
@@ -50,9 +51,9 @@ internal sealed class WelcomePage : Grid
         ColumnDefinitions = new ColumnDefinitions("232,*");
         this[!BackgroundProperty] = new DynamicResourceExtension("Surface1Brush");
 
-        navigation.Items.Add(NavigationItem("Projects", Icons.Folder));
-        navigation.Items.Add(NavigationItem("Customize", Icons.Palette));
-        navigation.Items.Add(NavigationItem("Plugins", Icons.Puzzle));
+        navigation.Items.Add(NavigationItem(() => Strings.SettingsWelcomeProjects, Icons.Folder));
+        navigation.Items.Add(NavigationItem(() => Strings.SettingsWelcomeCustomize, Icons.Palette));
+        navigation.Items.Add(NavigationItem(() => Strings.SettingsWelcomePlugins, Icons.Puzzle));
         navigation.SelectionChanged += (_, e) =>
         {
             switch (navigation.SelectedIndex)
@@ -95,7 +96,7 @@ internal sealed class WelcomePage : Grid
         sideBorder[!Border.BackgroundProperty] = new DynamicResourceExtension("Surface0Brush");
 
         close = new Button { Classes = { "icon" }, Content = new SymbolIcon { Data = Icons.X, Size = 16 }, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 16, 16, 0), IsVisible = false };
-        ToolTip.SetTip(close, "Back to the workbench");
+        close.Localize(ToolTip.TipProperty, () => Strings.SettingsWelcomeBack);
         close.Click += (_, _) => closeWelcome();
 
         var content = new Panel { Children = { new ScrollViewer { Content = view }, close } };
@@ -128,14 +129,12 @@ internal sealed class WelcomePage : Grid
     public static string Ago(DateTimeOffset when, DateTimeOffset now)
     {
         var elapsed = now - when;
-        return elapsed.TotalMinutes < 1 ? "Just now"
-            : elapsed.TotalHours < 1 ? Plural((int)elapsed.TotalMinutes, "minute") + " ago"
-            : elapsed.TotalDays < 1 ? Plural((int)elapsed.TotalHours, "hour") + " ago"
-            : elapsed.TotalDays < 2 ? "Yesterday"
-            : elapsed.TotalDays < 30 ? Plural((int)elapsed.TotalDays, "day") + " ago"
-            : when.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture);
-
-        static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
+        return elapsed.TotalMinutes < 1 ? Strings.SettingsAgoNow
+            : elapsed.TotalHours < 1 ? Strings.SettingsAgoMinutes((int)elapsed.TotalMinutes)
+            : elapsed.TotalDays < 1 ? Strings.SettingsAgoHours((int)elapsed.TotalHours)
+            : elapsed.TotalDays < 2 ? Strings.SettingsAgoYesterday
+            : elapsed.TotalDays < 30 ? Strings.SettingsAgoDays((int)elapsed.TotalDays)
+            : Strings.SettingsAgoDate(when);
     }
 
     /// <summary>Writes a path under the user's home folder from <c>~</c>, as shells do.</summary>
@@ -145,13 +144,13 @@ internal sealed class WelcomePage : Grid
         return home.Length > 0 && path.StartsWith(home + Path.DirectorySeparatorChar, StringComparison.Ordinal) ? "~" + path[home.Length..] : path;
     }
 
-    private static ListBoxItem NavigationItem(string text, Geometry icon) => new()
+    private static ListBoxItem NavigationItem(Func<string> text, Geometry icon) => new()
     {
         Content = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 10,
-            Children = { new SymbolIcon { Data = icon, Size = 16 }, new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center } },
+            Children = { new SymbolIcon { Data = icon, Size = 16 }, new TextBlock { VerticalAlignment = VerticalAlignment.Center }.Localize(TextBlock.TextProperty, text) },
         },
     };
 
@@ -159,6 +158,7 @@ internal sealed class WelcomePage : Grid
     {
         FillActions();
         commands.Changed += (_, _) => UiThread.Run(FillActions);
+        Localized.Changed += (_, _) => FillProjects();
 
         var bar = new DockPanel { Margin = new Thickness(0, 0, 0, 16) };
         DockPanel.SetDock(actions, Dock.Right);
@@ -172,7 +172,7 @@ internal sealed class WelcomePage : Grid
             Margin = new Thickness(40, 32, 40, 32),
             Children =
             {
-                new TextBlock { Text = "Projects", Classes = { "title" }, Margin = new Thickness(0, 0, 0, 20) },
+                new TextBlock { Classes = { "title" }, Margin = new Thickness(0, 0, 0, 20) }.Localize(TextBlock.TextProperty, () => Strings.SettingsWelcomeProjects),
                 bar,
                 projectList,
             },
@@ -184,10 +184,10 @@ internal sealed class WelcomePage : Grid
     {
         actions.Children.Clear();
         if (commands.Find(CommandIds.NewProject) is not null)
-            actions.Children.Add(ActionButton("New Project", CommandIds.NewProject, Icons.Plus, primary: true));
-        actions.Children.Add(ActionButton("Open", CommandIds.OpenFolder, Icons.FolderOpen, primary: false));
+            actions.Children.Add(ActionButton(Strings.SettingsWelcomeNewProject, CommandIds.NewProject, Icons.Plus, primary: true));
+        actions.Children.Add(ActionButton(Strings.SettingsWelcomeOpen, CommandIds.OpenFolder, Icons.FolderOpen, primary: false));
         if (commands.Find(CommandIds.CloneRepository) is not null)
-            actions.Children.Add(ActionButton("Clone", CommandIds.CloneRepository, Icons.Import, primary: false));
+            actions.Children.Add(ActionButton(Strings.SettingsWelcomeClone, CommandIds.CloneRepository, Icons.Import, primary: false));
     }
 
     private Button ActionButton(string text, string commandId, Geometry icon, bool primary)
@@ -199,7 +199,7 @@ internal sealed class WelcomePage : Grid
         if (primary)
             button.Classes.Add("accent");
         if (commands.GetKeyBinding(commandId) is { } gesture)
-            ToolTip.SetTip(button, $"{text} ({gesture.Split(" | ")[0]})");
+            ToolTip.SetTip(button, Strings.ToolsWithKeys(text, gesture.Split(" | ")[0]));
         button.Click += (_, _) => _ = commands.ExecuteAsync(commandId);
         return button;
     }
@@ -216,8 +216,8 @@ internal sealed class WelcomePage : Grid
             projectList.Children.Add(new EmptyState
             {
                 Icon = Icons.FolderOpen,
-                Title = query.Length == 0 ? "No recent projects" : "No project matches",
-                Hint = query.Length == 0 ? "Open a folder or create a project; it shows here next time." : "Try another part of the name or path.",
+                Title = query.Length == 0 ? Strings.SettingsWelcomeNoRecent : Strings.SettingsWelcomeNoMatch,
+                Hint = query.Length == 0 ? Strings.SettingsWelcomeNoRecentHint : Strings.SettingsWelcomeNoMatchHint,
                 Margin = new Thickness(0, 32),
             });
             return;
@@ -265,7 +265,7 @@ internal sealed class WelcomePage : Grid
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             Content = row,
         };
-        ToolTip.SetTip(button, $"Open {entry.Path}");
+        ToolTip.SetTip(button, Strings.SettingsWelcomeOpenPath(entry.Path));
         button.Click += (_, _) => _ = workbench.OpenFolderAsync(entry.Path);
         button.ContextMenu = new ContextMenu { Items = { RemoveItem(entry.Path) } };
         return button;
@@ -273,7 +273,7 @@ internal sealed class WelcomePage : Grid
 
     private MenuItem RemoveItem(string path)
     {
-        var item = new MenuItem { Header = "Remove from recent projects", Icon = new SymbolIcon { Data = Icons.Trash, Size = 16 } };
+        var item = new MenuItem { Header = Strings.SettingsWelcomeRemoveRecent, Icon = new SymbolIcon { Data = Icons.Trash, Size = 16 } };
         item.Click += (_, _) => recent.Remove(path);
         return item;
     }
@@ -296,6 +296,7 @@ internal sealed class WelcomePage : Grid
         }
 
         themes.Changed += (_, _) => Rebuild();
+        Localized.Changed += (_, _) => Rebuild();
         settings.Changed += (_, e) =>
         {
             if (e.Key is SettingKeys.Theme or SettingKeys.Accent or SettingKeys.ColorScheme or SettingKeys.FileIconTheme)
@@ -309,8 +310,8 @@ internal sealed class WelcomePage : Grid
         var catalog = themes.Catalog;
         void Set(string key, string value) => settings.Set(key, value);
 
-        var keymap = new ComboBox { ItemsSource = new[] { "Default" }, SelectedIndex = 0, IsEnabled = false };
-        ToolTip.SetTip(keymap, "Other keymaps come in a later version; the keyboard shortcuts page changes single bindings.");
+        var keymap = new ComboBox { ItemsSource = new[] { Strings.SettingsKeymapDefault }, SelectedIndex = 0, IsEnabled = false };
+        ToolTip.SetTip(keymap, Strings.SettingsKeymapTip);
 
         return new StackPanel
         {
@@ -320,18 +321,18 @@ internal sealed class WelcomePage : Grid
             Spacing = 4,
             Children =
             {
-                new TextBlock { Text = "Customize", Classes = { "title" }, Margin = new Thickness(0, 0, 0, 20) },
-                Row("Color theme", "The colors of the window and the editor. Plugins can add more.",
+                new TextBlock { Text = Strings.SettingsWelcomeCustomize, Classes = { "title" }, Margin = new Thickness(0, 0, 0, 20) },
+                Row(Strings.SettingsCustomizeTheme, Strings.SettingsCustomizeThemeHint,
                     AppearancePickers.Picker(AppearancePickers.Themes(catalog), settings.Get<string>(SettingKeys.Theme), v => Set(SettingKeys.Theme, v)), 320),
-                Row("Accent color", "Selections, focus and highlights.",
+                Row(Strings.SettingsCustomizeAccent, Strings.SettingsCustomizeAccentHint,
                     AppearancePickers.Accent(settings.Get<string>(SettingKeys.Accent), themes.Current.Palette.Accent, v => Set(SettingKeys.Accent, v)), double.NaN),
-                Row("Syntax colors", "The colors of code in the editor.",
+                Row(Strings.SettingsCustomizeSyntax, Strings.SettingsCustomizeSyntaxHint,
                     AppearancePickers.Picker(AppearancePickers.Schemes(catalog), settings.Get<string>(SettingKeys.ColorScheme), v => Set(SettingKeys.ColorScheme, v)), 320),
-                Row("File icons", "The icons of files and folders.",
+                Row(Strings.SettingsCustomizeIcons, Strings.SettingsCustomizeIconsHint,
                     AppearancePickers.Picker(AppearancePickers.IconThemes(catalog), settings.Get<string>(SettingKeys.FileIconTheme), v => Set(SettingKeys.FileIconTheme, v)), 320),
-                Row("Interface font size", "The text of menus, panels and the status bar.", SizeBox(ShellSettings.UiFontSize, 11, 18)),
-                Row("Editor font size", "The text of the editor.", SizeBox(SettingKeys.FontSize, 10, 28)),
-                Row("Keymap", "The set of keyboard shortcuts.", keymap),
+                Row(Strings.SettingsCustomizeUiFont, Strings.SettingsCustomizeUiFontHint, SizeBox(ShellSettings.UiFontSize, 11, 18)),
+                Row(Strings.SettingsCustomizeEditorFont, Strings.SettingsCustomizeEditorFontHint, SizeBox(SettingKeys.FontSize, 10, 28)),
+                Row(Strings.SettingsCustomizeKeymap, Strings.SettingsCustomizeKeymapHint, keymap),
             },
         };
     }

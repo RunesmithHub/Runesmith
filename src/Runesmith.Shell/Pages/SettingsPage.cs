@@ -48,7 +48,7 @@ internal sealed class SettingsPage : DockPanel
         ItemTemplate = CategoryTemplate,
     };
     private readonly StackPanel sections = new() { Spacing = 24, Margin = new Thickness(28, 16, 28, 40) };
-    private readonly SearchBox search = new() { PlaceholderText = "Search settings", Width = 280 };
+    private readonly SearchBox search = new SearchBox { Width = 280 }.Localize(SearchBox.PlaceholderTextProperty, () => Strings.SettingsSearch);
     private readonly SegmentedControl scope = new();
     private readonly DispatcherTimer refreshTimer;
 
@@ -68,14 +68,14 @@ internal sealed class SettingsPage : DockPanel
         this.openFile = openFile;
         this[!BackgroundProperty] = new DynamicResourceExtension("SurfaceBrush");
 
-        scope.Items.Add(new SegmentedControlItem { Content = "User" });
-        scope.Items.Add(new SegmentedControlItem { Content = "Folder" });
+        scope.Items.Add(new SegmentedControlItem().Localize(ContentControl.ContentProperty, () => Strings.SettingsScopeUser));
+        scope.Items.Add(new SegmentedControlItem().Localize(ContentControl.ContentProperty, () => Strings.SettingsScopeFolder));
         scope.SelectedIndex = 0;
-        ToolTip.SetTip(scope, "User settings apply everywhere; folder settings apply to the open folder only and override the user's.");
+        scope.Localize(ToolTip.TipProperty, () => Strings.SettingsScopeTip);
 
-        var openJson = new Button { Classes = { "subtle", "small" }, Content = "Open settings file" };
+        var openJson = new Button { Classes = { "subtle", "small" } }.Localize(ContentControl.ContentProperty, () => Strings.SettingsOpenFile);
         openJson.Click += (_, _) => _ = OpenJsonAsync();
-        var title = new TextBlock { Text = "Settings", FontSize = 22, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+        var title = new TextBlock { FontSize = 22, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center }.Localize(TextBlock.TextProperty, () => Strings.SettingsTitle);
         var tools = new WrapPanel { ItemSpacing = 10, LineSpacing = 8, VerticalAlignment = VerticalAlignment.Center, Children = { search, scope, openJson } };
         var header = new SideBySidePanel { MinMainWidth = 140, Spacing = 16, Margin = new Thickness(28, 18, 28, 6), Children = { title, tools } };
         DockPanel.SetDock(header, Dock.Top);
@@ -216,7 +216,7 @@ internal sealed class SettingsPage : DockPanel
         }
 
         if (sections.Children.Count == 0)
-            sections.Children.Add(new EmptyState { Icon = Icons.Search, Title = "No settings match", Hint = "Try other words, or clear the search." });
+            sections.Children.Add(new EmptyState { Icon = Icons.Search, Title = Strings.SettingsNoMatch, Hint = Strings.SettingsNoMatchHint });
     }
 
     private static bool Matches(SettingDefinition definition, string query) =>
@@ -270,7 +270,7 @@ internal sealed class SettingsPage : DockPanel
             }
             catch (Exception exception)
             {
-                notifications.Notify(NotificationKind.Error, "A plugin's settings section could not be added", exception.Message);
+                notifications.Notify(NotificationKind.Error, Strings.SettingsSectionFailed, exception.Message);
             }
         }
 
@@ -289,7 +289,7 @@ internal sealed class SettingsPage : DockPanel
             }
             catch (Exception exception)
             {
-                controls.Add(new TextBlock { Text = $"This section could not be shown: {exception.Message}", Classes = { "muted" }, TextWrapping = TextWrapping.Wrap });
+                controls.Add(new TextBlock { Text = Strings.SettingsSectionNotShown(exception.Message), Classes = { "muted" }, TextWrapping = TextWrapping.Wrap });
             }
         }
 
@@ -306,10 +306,10 @@ internal sealed class SettingsPage : DockPanel
 
         var description = definition.Description ?? "";
         if (target == SettingScope.User && effective == SettingScope.Workspace)
-            description += " The open folder sets its own value, which wins.";
+            description += " " + Strings.SettingsFolderWins;
         var userOnly = target == SettingScope.Workspace && CoreSettings.UserOnly.Contains(definition.Key);
         if (userOnly)
-            description += " Switch to User to change it.";
+            description += " " + Strings.SettingsUserOnly;
         description += $"  ({definition.Key})";
 
         var editor = Editor(definition, current, value => Set(definition, value, target));
@@ -318,7 +318,7 @@ internal sealed class SettingsPage : DockPanel
         if (settings.GetValue(definition.Key, target) is not null)
         {
             var reset = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.RotateCcw, Size = 14 } };
-            ToolTip.SetTip(reset, target == SettingScope.Workspace ? "Remove the folder's value" : "Reset to the default");
+            ToolTip.SetTip(reset, target == SettingScope.Workspace ? Strings.SettingsRemoveFolderValue : Strings.SettingsReset);
             reset.Click += (_, _) => settings.Reset(definition.Key, target);
             reset.Margin = new Thickness(0, 0, 8, 0);
             DockPanel.SetDock(reset, Dock.Left);
@@ -490,7 +490,7 @@ internal sealed class SettingsPage : DockPanel
         }
         catch (InvalidOperationException exception)
         {
-            notifications.Notify(NotificationKind.Error, $"{definition.Title} could not be changed", exception.Message);
+            notifications.Notify(NotificationKind.Error, Strings.SettingsChangeFailed(definition.Title), exception.Message);
         }
     }
 
@@ -508,12 +508,12 @@ internal sealed class SettingsPage : DockPanel
         var tools = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         if (openPlugins is not null)
         {
-            var manage = new Button { Classes = { "small" }, Content = "Manage plugins" };
+            var manage = new Button { Classes = { "small" }, Content = Strings.SettingsManagePlugins };
             manage.Click += (_, _) => openPlugins();
             tools.Children.Add(manage);
         }
 
-        var folder = new Button { Classes = { "subtle", "small" }, Content = "Open the plugins folder" };
+        var folder = new Button { Classes = { "subtle", "small" }, Content = Strings.SettingsOpenPluginsFolder };
         folder.Click += (_, _) =>
         {
             Directory.CreateDirectory(RunesmithPaths.UserPlugins);

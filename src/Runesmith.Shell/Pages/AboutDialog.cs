@@ -23,13 +23,13 @@ internal static class AboutDialog
         var facts = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,16,*"), Margin = new Thickness(0, 12, 0, 0) };
         (string, string)[] rows =
         [
-            ("Version", version),
-            ("Plugin API", RunesmithApi.Version.ToString()),
+            (Strings.SettingsAboutVersion, version),
+            (Strings.SettingsAboutApi, RunesmithApi.Version.ToString()),
             (".NET", RuntimeInformation.FrameworkDescription),
-            ("System", $"{RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture})"),
-            ("Plugins", plugins == 1 ? "1 loaded" : $"{plugins} loaded"),
-            ("Settings", RunesmithPaths.Config),
-            ("Logs", RunesmithPaths.Logs),
+            (Strings.SettingsAboutSystem, $"{RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture})"),
+            (Strings.SettingsAboutPlugins, Strings.SettingsAboutPluginsLoaded(plugins)),
+            (Strings.SettingsAboutSettings, RunesmithPaths.Config),
+            (Strings.SettingsAboutLogs, RunesmithPaths.Logs),
         ];
         for (var i = 0; i < rows.Length; i++)
         {
@@ -42,7 +42,7 @@ internal static class AboutDialog
             facts.Children.AddRange([name, value]);
         }
 
-        var close = new Button { Content = "Close", Classes = { "accent" }, IsDefault = true, IsCancel = true, MinWidth = 84 };
+        var close = new Button { Content = Strings.SettingsClose, Classes = { "accent" }, IsDefault = true, IsCancel = true, MinWidth = 84 };
         var dialog = new Dialog
         {
             Width = 520,
@@ -64,7 +64,7 @@ internal static class AboutDialog
                                 Children =
                                 {
                                     new TextBlock { Text = "Runesmith", FontSize = 20, FontWeight = FontWeight.SemiBold },
-                                    new TextBlock { Text = "A fast, extensible code editor", Classes = { "muted" } },
+                                    new TextBlock { Text = Strings.SettingsAboutTagline, Classes = { "muted" } },
                                 },
                             },
                         },

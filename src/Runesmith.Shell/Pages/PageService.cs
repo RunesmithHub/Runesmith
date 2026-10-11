@@ -1,6 +1,7 @@
 using System.Composition;
 using HammerUI;
 using HammerUI.Docking;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Settings;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Sdk.Workspace;
@@ -50,10 +51,18 @@ public sealed class PageService
         this.runtime = runtime;
         layout.AddFactory(id => id switch
         {
-            ShellLayout.SettingsPanel => new DockablePanel(id, "Settings", () => Opened(new SettingsPage(settings.Value, workspace.Value, runtime, notifications, path => editors.Value.OpenAsync(path), () => sdks.Value.Create(), [.. sections], () => hub.Value.Show(Hub.PluginManagerTab.Installed), themes.Value, localization.Value))) { Icon = Icons.Settings },
-            ShortcutsPanel => new DockablePanel(id, "Keyboard Shortcuts", () => new ShortcutsPage(commands.Value, notifications)) { Icon = Icons.Keyboard },
+            ShellLayout.SettingsPanel => Retitled(new DockablePanel(id, Strings.SettingsTitle, () => Opened(new SettingsPage(settings.Value, workspace.Value, runtime, notifications, path => editors.Value.OpenAsync(path), () => sdks.Value.Create(), [.. sections], () => hub.Value.Show(Hub.PluginManagerTab.Installed), themes.Value, localization.Value))) { Icon = Icons.Settings }, () => Strings.SettingsTitle),
+            ShortcutsPanel => Retitled(new DockablePanel(id, Strings.SettingsShortcutsTitle, () => new ShortcutsPage(commands.Value, notifications)) { Icon = Icons.Keyboard },
+                () => Strings.SettingsShortcutsTitle),
             _ => null,
         });
+    }
+
+    // A page's tab keeps the title of the language that shows.
+    private static DockablePanel Retitled(DockablePanel panel, Func<string> title)
+    {
+        Localized.Changed += (_, _) => panel.Title = title();
+        return panel;
     }
 
     /// <summary>Raised when the welcome screen is asked for.</summary>

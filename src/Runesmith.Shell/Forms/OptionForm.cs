@@ -61,7 +61,7 @@ public sealed class OptionForm : StackPanel
 
         advanced = new SectionPanel
         {
-            Header = "Advanced",
+            Header = Strings.SettingsFormAdvanced,
             IsCollapsible = true,
             IsExpanded = false,
             Content = advancedRows,
@@ -288,7 +288,7 @@ public sealed class OptionForm : StackPanel
         {
             ItemsSource = option.Choices,
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            PlaceholderText = option.Placeholder ?? "Choose...",
+            PlaceholderText = option.Placeholder ?? Strings.SettingsFormChoose,
             MaxDropDownHeight = 320,
             ItemTemplate = new FuncDataTemplate<OptionChoice>((choice, _) =>
             {
@@ -310,7 +310,7 @@ public sealed class OptionForm : StackPanel
     {
         var box = new TextBox { PlaceholderText = option.Placeholder, HorizontalAlignment = HorizontalAlignment.Stretch };
         var browse = new Button { Classes = { "icon" }, Content = new SymbolIcon { Data = Icons.FolderOpen, Size = 16 }, VerticalAlignment = VerticalAlignment.Center };
-        ToolTip.SetTip(browse, kind == PathKind.Folder ? "Choose a folder" : "Choose a file");
+        ToolTip.SetTip(browse, kind == PathKind.Folder ? Strings.SettingsFormChooseFolder : Strings.SettingsFormChooseFile);
         browse.Click += async (_, _) =>
         {
             if (await BrowseAsync(browse, option, kind, box.Text) is { } chosen)
@@ -342,7 +342,7 @@ public sealed class OptionForm : StackPanel
     private (Control, Control?, Action<string?>) CreateList(Option option)
     {
         var items = new StackPanel { Spacing = 4 };
-        var add = new Button { Classes = { "subtle", "small" }, Content = option.IsKeyValueList ? "Add variable" : "Add", HorizontalAlignment = HorizontalAlignment.Left };
+        var add = new Button { Classes = { "subtle", "small" }, Content = option.IsKeyValueList ? Strings.SettingsFormAddVariable : Strings.SettingsFormAdd, HorizontalAlignment = HorizontalAlignment.Left };
         var panel = new StackPanel { Spacing = 4, Children = { items, add } };
         var filling = false;
 
@@ -362,19 +362,19 @@ public sealed class OptionForm : StackPanel
         void AddRow(string key, string value)
         {
             var row = new Grid { ColumnDefinitions = option.IsKeyValueList ? new ColumnDefinitions("2*,4,3*,4,Auto") : new ColumnDefinitions("*,4,Auto") };
-            var first = new TextBox { Text = key, PlaceholderText = option.IsKeyValueList ? "Name" : option.Placeholder ?? "Value" };
+            var first = new TextBox { Text = key, PlaceholderText = option.IsKeyValueList ? Strings.SettingsFormName : option.Placeholder ?? Strings.SettingsFormValue };
             OnTextChanged(first, Write);
             row.Children.Add(first);
             if (option.IsKeyValueList)
             {
-                var second = new TextBox { Text = value, PlaceholderText = "Value" };
+                var second = new TextBox { Text = value, PlaceholderText = Strings.SettingsFormValue };
                 OnTextChanged(second, Write);
                 Grid.SetColumn(second, 2);
                 row.Children.Add(second);
             }
 
             var remove = new Button { Classes = { "icon" }, Content = new SymbolIcon { Data = Icons.X, Size = 14 }, VerticalAlignment = VerticalAlignment.Center };
-            ToolTip.SetTip(remove, "Remove");
+            ToolTip.SetTip(remove, Strings.SettingsRemove);
             remove.Click += (_, _) =>
             {
                 items.Children.Remove(row);
@@ -421,7 +421,7 @@ public sealed class OptionForm : StackPanel
         var box = new ComboBox
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            PlaceholderText = "Looking for SDKs...",
+            PlaceholderText = Strings.SettingsFormLookingForSdks,
             MaxDropDownHeight = 320,
             ItemTemplate = new FuncDataTemplate<SdkChoice>((choice, _) => SdkChoiceView(choice)),
         };
@@ -448,7 +448,7 @@ public sealed class OptionForm : StackPanel
             if (canDownload)
                 choices.Add(new SdkChoice(null, IsDefault: false));
             box.ItemsSource = choices;
-            box.PlaceholderText = installed.Count == 0 ? "No SDK found" : "Choose an SDK";
+            box.PlaceholderText = installed.Count == 0 ? Strings.SettingsFormNoSdk : Strings.SettingsFormChooseSdk;
             if (string.IsNullOrEmpty(current) && fallback is not null)
                 Model.Set(option.Id, fallback.Path, byUser: false);
             Select(choices);
@@ -497,7 +497,7 @@ public sealed class OptionForm : StackPanel
             {
                 Orientation = Orientation.Horizontal,
                 Spacing = 8,
-                Children = { new SymbolIcon { Data = Icons.Import, Size = 14 }, new TextBlock { Text = "Download..." } },
+                Children = { new SymbolIcon { Data = Icons.Import, Size = 14 }, new TextBlock { Text = Strings.SettingsSdksDownload } },
             };
         }
 
@@ -506,7 +506,7 @@ public sealed class OptionForm : StackPanel
         var line = new DockPanel { Children = { name } };
         if (choice.IsDefault)
         {
-            var badge = new Badge { Content = "default", Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+            var badge = new Badge { Content = Strings.SettingsFormDefault, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
             line.Children.Add(badge);
         }
 

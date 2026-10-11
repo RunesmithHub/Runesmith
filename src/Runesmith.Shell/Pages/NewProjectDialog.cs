@@ -11,6 +11,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Options;
 using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.Templates;
@@ -33,14 +34,14 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
     private readonly IOutputChannel log;
     private readonly bool offerGit;
     private readonly List<TemplateEntry> entries = [];
-    private readonly SearchBox search = new() { PlaceholderText = "Search templates", Margin = new Thickness(12, 12, 8, 8) };
+    private readonly SearchBox search = new SearchBox { Margin = new Thickness(12, 12, 8, 8) }.Localize(SearchBox.PlaceholderTextProperty, () => Strings.SettingsNewProjectSearch);
     private readonly WrapPanel languageChips = new() { ItemSpacing = 4, LineSpacing = 4, Margin = new Thickness(0, 12, 12, 8), VerticalAlignment = VerticalAlignment.Center };
     private readonly WrapPanel categoryChips = new() { ItemSpacing = 4, LineSpacing = 4, Margin = new Thickness(12, 0, 12, 8) };
     private readonly ListBox list = new() { Classes = { "templates" }, SelectionMode = SelectionMode.Single };
     private readonly TextBlock listStatus = new() { Classes = { "muted" }, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(16, 24), TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center };
     private readonly ContentControl detail = new();
-    private readonly Button create = new() { Content = "Create", Classes = { "accent" }, IsDefault = true, MinWidth = 96, IsEnabled = false };
-    private readonly Button cancel = new() { Content = "Cancel", MinWidth = 84 };
+    private readonly Button create = new() { Content = Strings.SettingsNewProjectCreate, Classes = { "accent" }, IsDefault = true, MinWidth = 96, IsEnabled = false };
+    private readonly Button cancel = new() { Content = Strings.SettingsCancel, MinWidth = 84 };
     private readonly SymbolIcon spinner = new() { Data = Icons.RotateCw, Size = 14, Classes = { "spin" }, IsVisible = false, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock progress = new() { Classes = { "muted" }, VerticalAlignment = VerticalAlignment.Center, MaxWidth = 560, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly CancellationTokenSource closing = new();
@@ -68,7 +69,7 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
         location = session.Location is { } last && Directory.Exists(last) ? last : DefaultLocation();
         createGit = session.CreateGitRepository;
 
-        Header = "New Project";
+        Header = Strings.SettingsNewProject;
         Width = 1040;
         Height = 760;
         Padding = new Thickness(0);
@@ -192,9 +193,9 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
     {
         var hasRows = list.ItemCount > 0;
         listStatus.IsVisible = !hasRows;
-        listStatus.Text = entries.Count == 0 && pendingProviders > 0 ? "Loading templates..."
-            : entries.Count == 0 ? "No templates are installed. Install a template plugin, such as C# templates or Java templates, from Tools > Plugins, or check that yours are on there."
-            : "No templates match. Try other words or clear the filters.";
+        listStatus.Text = entries.Count == 0 && pendingProviders > 0 ? Strings.SettingsNewProjectLoading
+            : entries.Count == 0 ? Strings.SettingsNewProjectNoTemplates
+            : Strings.SettingsNewProjectNoMatch;
     }
 
     private void FillChips()
@@ -321,7 +322,7 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
     }
 
     private static void UpdateLocationHint(OptionForm form) =>
-        form.SetHint(NewProjectForm.Location, NewProjectForm.TargetFolder(form.Model.Values) is { } folder ? $"The project will be created in {folder}" : null);
+        form.SetHint(NewProjectForm.Location, NewProjectForm.TargetFolder(form.Model.Values) is { } folder ? Strings.SettingsNewProjectTarget(folder) : null);
 
     private void UpdateCreateButton() => create.IsEnabled = !isCreating && form?.IsValid == true;
 
@@ -347,14 +348,14 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
 
         var token = closing.Token;
         SetCreating(true);
-        ShowProgress($"Creating {name}...", isError: false);
+        ShowProgress(Strings.SettingsNewProjectCreating(name), isError: false);
         var reporter = new Progress<string>(step => ShowProgress(step, isError: false));
         try
         {
             var result = await Task.Run(() => entry.Provider.CreateAsync(entry.Template, request, reporter, token), token);
             if (gitRequested)
             {
-                ShowProgress("Creating the Git repository...", isError: false);
+                ShowProgress(Strings.SettingsNewProjectCreatingGit, isError: false);
                 await Git.InitAsync(result.Folder, log, token);
             }
 
@@ -463,11 +464,11 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
         var facts = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,12,*"), Margin = new Thickness(0, 4, 0, 0) };
         (string Name, string? Value)[] rows =
         [
-            ("Description", template.Description),
-            ("Author", template.Author),
-            ("Tags", template.Tags.Count > 0 ? string.Join(", ", template.Tags) : null),
-            ("Source", template.Source),
-            ("Id", template.Id),
+            (Strings.SettingsTemplateDescription, template.Description),
+            (Strings.SettingsTemplateAuthor, template.Author),
+            (Strings.SettingsTemplateTags, template.Tags.Count > 0 ? string.Join(", ", template.Tags) : null),
+            (Strings.SettingsTemplateSource, template.Source),
+            (Strings.SettingsTemplateId, template.Id),
         ];
         foreach (var (label, value) in rows.Where(r => !string.IsNullOrWhiteSpace(r.Value)))
         {
@@ -482,7 +483,7 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
             facts.Children.AddRange([name, text]);
         }
 
-        return new SectionPanel { Header = "About this template", IsCollapsible = true, IsExpanded = false, Content = facts, Margin = new Thickness(0, 12, 0, 0), Padding = new Thickness(12, 0, 0, 8), BorderThickness = new Thickness(0, 1, 0, 0) };
+        return new SectionPanel { Header = Strings.SettingsTemplateAbout, IsCollapsible = true, IsExpanded = false, Content = facts, Margin = new Thickness(0, 12, 0, 0), Padding = new Thickness(12, 0, 0, 8), BorderThickness = new Thickness(0, 1, 0, 0) };
     }
 
     private Thumb ResizeGrip()
@@ -496,7 +497,7 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
             Cursor = new Cursor(StandardCursorType.BottomRightCorner),
             Classes = { "resize-grip" },
         };
-        ToolTip.SetTip(grip, "Drag to resize");
+        ToolTip.SetTip(grip, Strings.SettingsDragToResize);
         grip.DragDelta += (_, e) =>
         {
             // The dialog stays centered, so the corner follows the pointer when the size changes by twice the move.

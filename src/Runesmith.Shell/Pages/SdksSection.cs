@@ -41,7 +41,7 @@ public sealed class SdksSection
         var panel = new StackPanel { Spacing = 24 };
         panel.Children.Add(new TextBlock { Text = Category, FontSize = 16, FontWeight = FontWeight.SemiBold });
         if (sdks.Providers.Count == 0)
-            panel.Children.Add(new TextBlock { Text = "No plugin supplies SDKs.", Classes = { "muted" } });
+            panel.Children.Add(new TextBlock { Text = Strings.SettingsSdksNone, Classes = { "muted" } });
         foreach (var provider in sdks.Providers.OrderBy(p => p.Name, StringComparer.CurrentCulture))
             panel.Children.Add(new KindView(this, provider));
         return panel;
@@ -64,7 +64,7 @@ public sealed class SdksSection
     internal async Task<(bool Succeeded, string? Error)> InstallAsync(ISdkProvider provider, SdkRelease release, Action<SdkInstallProgress>? report, CancellationTokenSource cancel)
     {
         var name = Describe(provider, release);
-        using var task = tasks?.Start($"Installing {name}", cancel.Cancel);
+        using var task = tasks?.Start(Strings.SettingsSdksInstalling(name), cancel.Cancel);
         var progress = new Progress<SdkInstallProgress>(p =>
         {
             report?.Invoke(p);
@@ -74,7 +74,7 @@ public sealed class SdksSection
         {
             var sdk = await provider.InstallAsync(release, progress, cancel.Token);
             await sdks.RefreshAsync();
-            notifications.Notify(NotificationKind.Success, $"{name} is installed", sdk.Path);
+            notifications.Notify(NotificationKind.Success, Strings.SettingsSdksInstalled(name), sdk.Path);
             return (true, null);
         }
         catch (OperationCanceledException)
@@ -84,7 +84,7 @@ public sealed class SdksSection
         catch (Exception exception) when (exception is HttpRequestException or IOException or InvalidDataException or UnauthorizedAccessException or NotSupportedException
             or InvalidOperationException)
         {
-            notifications.Notify(NotificationKind.Error, $"Could not install {name}", exception.Message);
+            notifications.Notify(NotificationKind.Error, Strings.SettingsSdksInstallFailed(name), exception.Message);
             return (false, exception.Message);
         }
     }
@@ -124,10 +124,10 @@ public sealed class SdksSection
             this.provider = provider;
             Spacing = 10;
 
-            var download = new Button { Classes = { "small" }, Content = "Download...", VerticalAlignment = VerticalAlignment.Center };
+            var download = new Button { Classes = { "small" }, Content = Strings.SettingsSdksDownload, VerticalAlignment = VerticalAlignment.Center };
             download.Click += (_, _) => _ = owner.notifications.Dialogs.ShowAsync(new SdkDownloadDialog(owner, provider).Dialog);
-            var refresh = new Button { Classes = { "subtle", "small" }, Content = "Refresh", VerticalAlignment = VerticalAlignment.Center };
-            ToolTip.SetTip(refresh, $"Look for installed {provider.Name}s again.");
+            var refresh = new Button { Classes = { "subtle", "small" }, Content = Strings.ToolsRefresh, VerticalAlignment = VerticalAlignment.Center };
+            ToolTip.SetTip(refresh, Strings.SettingsSdksRefreshTip(provider.Name));
             refresh.Click += (_, _) => _ = owner.sdks.RefreshAsync();
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { refresh, download } };
             var header = new DockPanel();
@@ -172,7 +172,7 @@ public sealed class SdksSection
             }
 
             if (installed.Count == 0)
-                rows.Children.Add(new TextBlock { Text = $"No {provider.Name} was found.", Classes = { "muted" }, Margin = new Thickness(12) });
+                rows.Children.Add(new TextBlock { Text = Strings.SettingsSdksNoneFound(provider.Name), Classes = { "muted" }, Margin = new Thickness(12) });
 
             try
             {
@@ -192,7 +192,7 @@ public sealed class SdksSection
                 if (current != generation)
                     return;
 
-                status.Text = $"Could not look for updates: {exception.Message}";
+                status.Text = Strings.SettingsSdksUpdatesFailed(exception.Message);
                 status.IsVisible = true;
             }
         }
@@ -202,8 +202,8 @@ public sealed class SdksSection
             var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
             actions.Children.Add(sdk.Source == SdkSource.Managed ? Badge("Runesmith", "accent") : Badge("System"));
 
-            var makeDefault = new RadioButton { Content = "Default", GroupName = $"sdk-default-{provider.Kind}", IsChecked = isDefault, VerticalAlignment = VerticalAlignment.Center };
-            ToolTip.SetTip(makeDefault, $"Builds and new projects use this {provider.Name}.");
+            var makeDefault = new RadioButton { Content = Strings.SettingsSdksDefault, GroupName = $"sdk-default-{provider.Kind}", IsChecked = isDefault, VerticalAlignment = VerticalAlignment.Center };
+            ToolTip.SetTip(makeDefault, Strings.SettingsSdksDefaultTip(provider.Name));
             makeDefault.IsCheckedChanged += (_, _) =>
             {
                 if (makeDefault.IsChecked == true && !owner.sdks.IsChosenDefault(sdk))
@@ -214,7 +214,7 @@ public sealed class SdksSection
             if (sdk.Source == SdkSource.Managed)
             {
                 var remove = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.Trash, Size = 14 }, VerticalAlignment = VerticalAlignment.Center };
-                ToolTip.SetTip(remove, "Remove");
+                ToolTip.SetTip(remove, Strings.SettingsRemove);
                 remove.Click += (_, _) => _ = RemoveAsync(sdk);
                 actions.Children.Add(remove);
             }
@@ -226,14 +226,14 @@ public sealed class SdksSection
 
         private Button UpdateButton(SdkRelease update)
         {
-            var button = new Button { Classes = { "small", "accent" }, Content = $"Update to {update.Version}", VerticalAlignment = VerticalAlignment.Center };
-            ToolTip.SetTip(button, "Installs the newer version next to this one; remove the older one when nothing needs it.");
+            var button = new Button { Classes = { "small", "accent" }, Content = Strings.SettingsSdksUpdateTo(update.Version), VerticalAlignment = VerticalAlignment.Center };
+            ToolTip.SetTip(button, Strings.SettingsSdksUpdateTip);
             button.Click += async (_, _) =>
             {
                 button.IsEnabled = false;
                 using var cancel = new CancellationTokenSource();
                 await owner.InstallAsync(provider, update, p => button.Content = p.Fraction is { } f ? $"{p.Stage} {f:P0}" : p.Stage, cancel);
-                button.Content = $"Update to {update.Version}";
+                button.Content = Strings.SettingsSdksUpdateTo(update.Version);
                 button.IsEnabled = true;
             };
             return button;
@@ -242,18 +242,18 @@ public sealed class SdksSection
         private async Task RemoveAsync(InstalledSdk sdk)
         {
             var name = sdk.Kind == "dotnet" ? $"{provider.Name} {sdk.Version}" : sdk.DisplayName;
-            if (!await owner.notifications.ConfirmAsync($"Remove {name}?", $"Runesmith deletes it from {sdk.Path}.", "Remove", isDestructive: true))
+            if (!await owner.notifications.ConfirmAsync(Strings.SettingsSdksRemoveTitle(name), Strings.SettingsSdksRemoveQuestion(sdk.Path), Strings.SettingsRemove, isDestructive: true))
                 return;
 
             try
             {
                 await provider.UninstallAsync(sdk, CancellationToken.None);
                 await owner.sdks.RefreshAsync();
-                owner.notifications.Notify(NotificationKind.Success, $"{name} is removed");
+                owner.notifications.Notify(NotificationKind.Success, Strings.SettingsSdksRemoved(name));
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
             {
-                owner.notifications.Notify(NotificationKind.Error, $"Could not remove {name}", exception.Message);
+                owner.notifications.Notify(NotificationKind.Error, Strings.SettingsSdksRemoveFailed(name), exception.Message);
             }
         }
     }

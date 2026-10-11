@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Shell.Commands;
 using Runesmith.Shell.Services;
 using Runesmith.Shell.Views;
@@ -17,7 +18,7 @@ internal sealed class ShortcutsPage : DockPanel
 {
     private readonly CommandService commands;
     private readonly NotificationService notifications;
-    private readonly SearchBox search = new() { PlaceholderText = "Search commands or keys", Width = 320 };
+    private readonly SearchBox search = new SearchBox { Width = 320 }.Localize(SearchBox.PlaceholderTextProperty, () => Strings.SettingsShortcutsSearch);
     private readonly StackPanel rows = new() { Spacing = 2, Margin = new Thickness(28, 8, 28, 40), MaxWidth = 900, HorizontalAlignment = HorizontalAlignment.Left };
 
     public ShortcutsPage(CommandService commands, NotificationService notifications)
@@ -28,15 +29,14 @@ internal sealed class ShortcutsPage : DockPanel
 
         var hint = new TextBlock
         {
-            Text = $"Click a binding to change it. Your bindings are saved in {CommandService.UserBindingsPath}.",
             Classes = { "caption", "muted" },
             TextWrapping = TextWrapping.Wrap,
-        };
+        }.Localize(TextBlock.TextProperty, () => Strings.SettingsShortcutsHint(CommandService.UserBindingsPath));
         var header = new StackPanel { Spacing = 6, Margin = new Thickness(28, 18, 28, 8) };
         var top = new DockPanel();
         DockPanel.SetDock(search, Dock.Right);
         top.Children.Add(search);
-        top.Children.Add(new TextBlock { Text = "Keyboard Shortcuts", FontSize = 22, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+        top.Children.Add(new TextBlock { FontSize = 22, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center }.Localize(TextBlock.TextProperty, () => Strings.SettingsShortcutsTitle));
         header.Children.AddRange([top, hint]);
         DockPanel.SetDock(header, Dock.Top);
         Children.Add(header);
@@ -72,9 +72,9 @@ internal sealed class ShortcutsPage : DockPanel
         var binding = commands.GetKeyBinding(command.Id);
         var change = new Button { Classes = { "subtle", "small" }, MinWidth = 140, HorizontalContentAlignment = HorizontalAlignment.Right };
         change.Content = binding is null
-            ? new TextBlock { Text = "Add a binding", Classes = { "muted" } }
+            ? new TextBlock { Text = Strings.SettingsShortcutsAdd, Classes = { "muted" } }
             : new ShortcutBadge { Text = binding };
-        ToolTip.SetTip(change, "Change the binding");
+        ToolTip.SetTip(change, Strings.SettingsShortcutsChange);
         change.Click += (_, _) => _ = ChangeAsync(command, binding);
 
         var title = new TextBlock { Text = command.Title, VerticalAlignment = VerticalAlignment.Center };
@@ -90,12 +90,12 @@ internal sealed class ShortcutsPage : DockPanel
     {
         var text = await Prompt.AskAsync(
             notifications.Dialogs,
-            $"Key binding of {command.Title}",
-            "Type keys such as Ctrl+Shift+K; separate several with | . Leave it empty to remove the binding.",
+            Strings.SettingsShortcutsDialogTitle(command.Title),
+            Strings.SettingsShortcutsDialogHint,
             current ?? "",
             value => value.Length == 0 || Bindings.Parse(value).Count == value.Split('|', StringSplitOptions.RemoveEmptyEntries).Length
                 ? null
-                : "Some keys are not known. Write modifiers first, then one key, such as Ctrl+Alt+Down or F5.");
+                : Strings.SettingsShortcutsUnknown);
         if (text is null)
             return;
 

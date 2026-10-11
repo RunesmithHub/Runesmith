@@ -23,11 +23,11 @@ internal static class NewProjectForm
         ArgumentNullException.ThrowIfNull(template);
         List<Option> options =
         [
-            new(Name, "Name", OptionKind.Text) { IsRequired = true, Placeholder = "MyProject" },
-            new(Location, "Location", OptionKind.Path) { IsRequired = true, PathKind = PathKind.Folder },
+            new(Name, Strings.SettingsProjectName, OptionKind.Text) { IsRequired = true, Placeholder = Strings.SettingsProjectNamePlaceholder },
+            new(Location, Strings.SettingsProjectLocation, OptionKind.Path) { IsRequired = true, PathKind = PathKind.Folder },
         ];
         if (offerGit)
-            options.Add(new Option(Git, "Create Git repository", OptionKind.Toggle));
+            options.Add(new Option(Git, Strings.SettingsProjectGit, OptionKind.Toggle));
         options.AddRange(template.Options.Options);
         return new OptionSet(options);
     }
@@ -92,7 +92,7 @@ internal static class NewProjectForm
         if (name.Length > 0 && NameProblem(name) is { } nameProblem)
             problems[Name] = nameProblem;
         if (location.Length > 0 && !Path.IsPathRooted(location))
-            problems[Location] = "Type a full path, or choose a folder.";
+            problems[Location] = Strings.SettingsProjectLocationRequired;
         else if (!problems.ContainsKey(Name) && TargetFolder(values) is { } folder && Directory.Exists(folder) && Directory.EnumerateFileSystemEntries(folder).Any())
             problems[Name] = $"{Path.GetFileName(folder)} exists in this location and is not empty.";
         return problems;
@@ -103,7 +103,7 @@ internal static class NewProjectForm
     {
         ArgumentNullException.ThrowIfNull(name);
         if (name.Trim().Length == 0)
-            return "Type a name.";
+            return Strings.SettingsProjectNameRequired;
         if (name != name.Trim())
             return "A name cannot start or end with a space.";
         if (name is "." or ".." || name.EndsWith('.'))
