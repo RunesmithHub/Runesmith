@@ -97,6 +97,8 @@ public sealed class TerminalServiceTests
         });
         var exited = new TaskCompletionSource();
         terminal.Exited += (_, _) => exited.TrySetResult();
+        if (terminal.HasExited)
+            exited.TrySetResult();
         await exited.Task.WaitAsync(Timeout, Token);
 
         lock (terminal.Gate)
