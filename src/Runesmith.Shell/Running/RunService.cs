@@ -116,7 +116,7 @@ public sealed class RunService
         BuildResult? result;
         try
         {
-            using var task = tasks?.Start($"Building {configuration.Name}", cancel.Cancel);
+            using var task = tasks?.Start(Strings.ToolsRunBuildingTask(configuration.Name), cancel.Cancel);
             result = await BuildWithTypeAsync(type, configuration, root, channel, cancel.Token).ConfigureAwait(true);
         }
         finally
@@ -132,9 +132,9 @@ public sealed class RunService
         {
             var kind = result.Succeeded ? (result.Warnings > 0 ? NotificationKind.Warning : NotificationKind.Success) : NotificationKind.Error;
             var detail = result.Succeeded && result.Warnings == 0
-                ? $"{configuration.Name} built in {Seconds(result.Duration)} s."
-                : $"{Count(result.Errors, "error")} and {Count(result.Warnings, "warning")}.";
-            notifications.Notify(kind, result.Succeeded ? "Build succeeded" : "Build failed", detail);
+                ? Strings.ToolsRunBuiltIn(configuration.Name, result.Duration.TotalSeconds)
+                : Strings.ToolsRunBuildProblems(result.Errors, result.Warnings);
+            notifications.Notify(kind, result.Succeeded ? Strings.ToolsRunBuildSucceeded : Strings.ToolsRunBuildFailed, detail);
         }
 
         return result;
@@ -156,7 +156,7 @@ public sealed class RunService
         var type = configurations.FindType(configuration.TypeId);
         if (FindActive(configuration.Name) is { } active)
         {
-            if (!await notifications.ConfirmAsync($"{configuration.Name} is running", $"Stop {configuration.Name} and run it again?", "Stop and Rerun").ConfigureAwait(true))
+            if (!await notifications.ConfirmAsync(Strings.ToolsRunRerunTitle(configuration.Name), Strings.ToolsRunRerunQuestion(configuration.Name), Strings.ToolsRunRerunButton).ConfigureAwait(true))
                 return null;
 
             active.Stop();
@@ -184,7 +184,7 @@ public sealed class RunService
 
     private async Task ExecuteAsync(RunSession session, string root, IReadOnlyList<string> chain)
     {
-        using var task = tasks?.Start($"Running {session.Configuration.Name}", session.Stop);
+        using var task = tasks?.Start(Strings.ToolsRunRunningTask(session.Configuration.Name), session.Stop);
         var configuration = session.Configuration;
         var console = session.Console;
         var token = session.StopToken;
@@ -203,7 +203,7 @@ public sealed class RunService
                 if (!await RunStepAsync(session, type, step, root, chain).ConfigureAwait(true) || token.IsCancellationRequested)
                 {
                     if (!token.IsCancellationRequested)
-                        console.AppendLine($"{Describe(step)} failed, so {configuration.Name} did not start.", ConsoleSource.Error);
+                        console.AppendLine(Strings.ToolsRunStepFailed(Describe(step), configuration.Name), ConsoleSource.Error);
                     session.Finish(null);
                     return;
                 }
@@ -218,10 +218,10 @@ public sealed class RunService
                 if (session.State == RunState.Running)
                 {
                     console.AppendLine(session.WasStopped
-                        ? $"Stopped after {Seconds(session.Elapsed)} s."
+                        ? Strings.ToolsRunStoppedAfter(session.Elapsed.TotalSeconds)
                         : debugged is { } code
-                            ? string.Create(CultureInfo.CurrentCulture, $"Process finished with exit code {code} in {Seconds(session.Elapsed)} s.")
-                            : $"Debugging ended after {Seconds(session.Elapsed)} s.", ConsoleSource.System);
+                            ? Strings.ToolsRunFinishedWithCode(code, session.Elapsed.TotalSeconds)
+                            : Strings.ToolsRunDebuggingEnded(session.Elapsed.TotalSeconds), ConsoleSource.System);
                 }
 
                 session.Finish(debugged);
@@ -238,8 +238,8 @@ public sealed class RunService
             session.Started(process);
             var exitCode = await process.Exited.ConfigureAwait(true);
             console.AppendLine(process.WasStopped
-                ? $"Stopped after {Seconds(session.Elapsed)} s."
-                : string.Create(CultureInfo.CurrentCulture, $"Process finished with exit code {exitCode} in {Seconds(session.Elapsed)} s."), ConsoleSource.System);
+                ? Strings.ToolsRunStoppedAfter(session.Elapsed.TotalSeconds)
+                : Strings.ToolsRunFinishedWithCode(exitCode, session.Elapsed.TotalSeconds), ConsoleSource.System);
             session.Finish(exitCode);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -266,13 +266,13 @@ public sealed class RunService
         if (terminal.HasExited)
             exited.TrySetResult(terminal.ExitCode);
         session.StartedElsewhere(terminal.Kill);
-        console.AppendLine("The program runs in the Terminal panel.", ConsoleSource.System);
+        console.AppendLine(Strings.ToolsRunInTerminal, ConsoleSource.System);
         var code = await exited.Task.ConfigureAwait(true);
         console.AppendLine(session.WasStopped
-            ? $"Stopped after {Seconds(session.Elapsed)} s."
+            ? Strings.ToolsRunStoppedAfter(session.Elapsed.TotalSeconds)
             : code is { } exit
-                ? string.Create(CultureInfo.CurrentCulture, $"Process finished with exit code {exit} in {Seconds(session.Elapsed)} s.")
-                : $"Process finished in {Seconds(session.Elapsed)} s.", ConsoleSource.System);
+                ? Strings.ToolsRunFinishedWithCode(exit, session.Elapsed.TotalSeconds)
+                : Strings.ToolsRunFinished(session.Elapsed.TotalSeconds), ConsoleSource.System);
         return code;
     }
 
@@ -380,14 +380,11 @@ public sealed class RunService
 
     private static string Describe(BeforeLaunchStep step) => step.Kind switch
     {
-        BeforeLaunchKind.Build => "The build",
-        BeforeLaunchKind.RunConfiguration => $"Running {step.Argument}",
-        _ => $"The command {step.Argument}",
+        BeforeLaunchKind.Build => Strings.ToolsRunStepBuild,
+        BeforeLaunchKind.RunConfiguration => Strings.ToolsRunStepConfiguration(step.Argument ?? ""),
+        _ => Strings.ToolsRunStepCommand(step.Argument ?? ""),
     };
 
-    private static string Seconds(TimeSpan time) => time.TotalSeconds.ToString("0.0", CultureInfo.CurrentCulture);
-
-    private static string Count(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
 
     // Lets a configuration's build write into its run's console.
     private sealed class ConsoleChannel(string name, ConsoleBuffer console) : IOutputChannel

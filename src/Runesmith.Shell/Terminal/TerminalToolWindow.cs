@@ -10,6 +10,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Settings;
 using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.Terminals;
@@ -63,7 +64,7 @@ public sealed class TerminalToolWindow : IToolWindowProvider
         };
     }
 
-    public ToolWindowDefinition Definition { get; } = new(Id, "Terminal", TerminalIcons.Terminal, DockSide.Bottom) { Order = 2, KeyBinding = "Ctrl+`" };
+    public ToolWindowDefinition Definition => new(Id, Strings.ToolsWindowTerminal, TerminalIcons.Terminal, DockSide.Bottom) { Order = 2, KeyBinding = "Ctrl+`" };
 
     /// <summary>Gets the terminal whose tab is selected, or null.</summary>
     internal TerminalSession? Active => panel?.Active;
@@ -86,7 +87,7 @@ public sealed class TerminalToolWindow : IToolWindowProvider
         }
         catch (InvalidOperationException exception)
         {
-            notifications.Notify(NotificationKind.Error, "The terminal could not start", exception.Message);
+            notifications.Notify(NotificationKind.Error, Strings.ToolsTerminalStartFailed, exception.Message);
             return null;
         }
     }
@@ -141,17 +142,17 @@ public sealed class TerminalToolWindow : IToolWindowProvider
                     FocusLater(session);
             };
             empty = new EmptyState
-            {
-                Icon = Icons.Find(TerminalIcons.Terminal),
-                Title = "No terminal is open",
-                Hint = "Start your shell in the open folder.",
-                ActionText = "New Terminal",
-                ActionCommand = new Views.RelayCommand(() => owner.NewShell()),
-            };
+                {
+                    Icon = Icons.Find(TerminalIcons.Terminal),
+                    ActionCommand = new Views.RelayCommand(() => owner.NewShell()),
+                }
+                .Localize(EmptyState.TitleProperty, () => Strings.ToolsTerminalNone)
+                .Localize(EmptyState.HintProperty, () => Strings.ToolsTerminalNoneHint)
+                .Localize(EmptyState.ActionTextProperty, () => Strings.ToolsTerminalNewTerminal);
             actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
-            actions.Children.Add(Action(Icons.Plus, "terminal.new", "New Terminal", () => owner.NewShell()));
-            actions.Children.Add(Action(Icons.Eraser, "terminal.clear", "Clear", ClearActive));
-            actions.Children.Add(Action(Icons.Trash, "terminal.kill", "Kill Terminal", () => Active?.Close()));
+            actions.Children.Add(Action(Icons.Plus, "terminal.new", () => Strings.ToolsTerminalNewTerminal, () => owner.NewShell()));
+            actions.Children.Add(Action(Icons.Eraser, "terminal.clear", () => Strings.ToolsTerminalClearTerminal, ClearActive));
+            actions.Children.Add(Action(Icons.Trash, "terminal.kill", () => Strings.ToolsTerminalKillTerminal, () => Active?.Close()));
             Children.Add(tabs);
             Children.Add(empty);
             owner.terminals.Tabs.CollectionChanged += OnTabsChanged;
@@ -262,7 +263,7 @@ public sealed class TerminalToolWindow : IToolWindowProvider
             var icon = new SymbolIcon { Data = Icons.Find(TerminalIcons.Terminal), Size = 14, VerticalAlignment = VerticalAlignment.Center };
             var title = new TextBlock { Text = session.Title, VerticalAlignment = VerticalAlignment.Center, MaxWidth = 220, TextTrimming = TextTrimming.CharacterEllipsis };
             var close = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.X, Size = 12 }, Padding = new Thickness(2), VerticalAlignment = VerticalAlignment.Center };
-            ToolTip.SetTip(close, "Close; ends the terminal's program");
+            ToolTip.SetTip(close, Strings.ToolsTerminalCloseTip);
             close.Click += (_, e) =>
             {
                 e.Handled = true;
@@ -274,7 +275,7 @@ public sealed class TerminalToolWindow : IToolWindowProvider
             {
                 Interlocked.Exchange(ref pending, 0);
                 title.Text = session.Title;
-                ToolTip.SetTip(title, session.HasExited ? $"{session.Title} (ended)" : $"{session.Title}\n{session.CurrentDirectory}");
+                ToolTip.SetTip(title, session.HasExited ? Strings.ToolsTerminalEnded(session.Title) : $"{session.Title}\n{session.CurrentDirectory}");
                 if (session.HasExited)
                     title[!TextBlock.ForegroundProperty] = new DynamicResourceExtension("TextMutedBrush");
             }
@@ -289,10 +290,10 @@ public sealed class TerminalToolWindow : IToolWindowProvider
             return new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { icon, title, close } };
         }
 
-        private Button Action(Geometry icon, string commandId, string title, Action action)
+        private Button Action(Geometry icon, string commandId, Func<string> title, Action action)
         {
-            var button = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = icon, Size = 14 } };
-            ToolTip.SetTip(button, owner.commands.Value.GetKeyBinding(commandId) is { } keys ? $"{title} ({keys})" : title);
+            var button = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = icon, Size = 14 } }
+                .Localize(ToolTip.TipProperty, () => owner.commands.Value.GetKeyBinding(commandId) is { } keys ? Strings.ToolsWithKeys(title(), keys) : title());
             button.Click += (_, _) => action();
             return button;
         }

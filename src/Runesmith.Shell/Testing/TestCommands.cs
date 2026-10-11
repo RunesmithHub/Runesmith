@@ -27,7 +27,7 @@ public sealed class TestCommands(TestService tests, Lazy<EditorService> editors,
     public const string DebugItem = "test.debugItem";
     public const string ShowItem = "test.showItem";
 
-    private const string Category = "Test";
+    private static string Category => Strings.ToolsCategoryTest;
     private const string Group = "3-tests";
 
     public void Contribute(ICommandRegistry registry)
@@ -35,35 +35,35 @@ public sealed class TestCommands(TestService tests, Lazy<EditorService> editors,
         ArgumentNullException.ThrowIfNull(registry);
         TestIcons.Register();
         registry.Add(
-            new CommandDefinition(RunAll, "Run All Tests", Category) { Icon = TestIcons.RunAll, KeyBinding = "Ctrl+Alt+U", Description = "Run every test in the folder." },
+            new CommandDefinition(RunAll, Strings.ToolsTestsRunAllTests, Category) { Icon = TestIcons.RunAll, KeyBinding = "Ctrl+Alt+U", Description = Strings.ToolsTestsRunAllTestsDescription },
             _ => Show(tests.RunAllAsync()),
             _ => HasTests);
         registry.Add(
-            new CommandDefinition(DebugAll, "Debug All Tests", Category) { Icon = TestIcons.Debug, Description = "Debug every test in the folder." },
+            new CommandDefinition(DebugAll, Strings.ToolsTestsDebugAllTests, Category) { Icon = TestIcons.Debug, Description = Strings.ToolsTestsDebugAllTestsDescription },
             _ => Show(tests.RunAllAsync(RunMode.Debug)),
             _ => HasTests && tests.Providers.Any(p => p.CanDebug));
         registry.Add(
-            new CommandDefinition(RerunFailed, "Rerun Failed Tests", Category) { Icon = TestIcons.RerunFailed, KeyBinding = "Ctrl+Alt+Shift+U", Description = "Run the tests that failed again." },
+            new CommandDefinition(RerunFailed, Strings.ToolsTestsRerunFailedTests, Category) { Icon = TestIcons.RerunFailed, KeyBinding = "Ctrl+Alt+Shift+U", Description = Strings.ToolsTestsRerunFailedTestsDescription },
             _ => Show(tests.RerunFailedAsync()),
             _ => HasFailures);
         registry.Add(
-            new CommandDefinition(RerunLast, "Rerun Last Tests", Category) { Icon = "rotate-cw", Description = "Run the tests of the last run again." },
+            new CommandDefinition(RerunLast, Strings.ToolsTestsRerunLastTests, Category) { Icon = "rotate-cw", Description = Strings.ToolsTestsRerunLastTestsDescription },
             _ => Show(tests.RerunLastAsync()),
             _ => tests.HasLastRun);
         registry.Add(
-            new CommandDefinition(RunAtCaret, "Run Tests at Caret", Category) { Icon = TestIcons.Run, KeyBinding = "Ctrl+Shift+F10", Description = "Run the test or class the caret is in." },
+            new CommandDefinition(RunAtCaret, Strings.ToolsTestsRunTestsAtCaret, Category) { Icon = TestIcons.Run, KeyBinding = "Ctrl+Shift+F10", Description = Strings.ToolsTestsRunTestsAtCaretDescription },
             _ => AtCaret(RunMode.Run),
             _ => NodeAtCaret() is not null);
         registry.Add(
-            new CommandDefinition(DebugAtCaret, "Debug Tests at Caret", Category) { Icon = TestIcons.Debug, KeyBinding = "Ctrl+Shift+F9", Description = "Debug the test or class the caret is in." },
+            new CommandDefinition(DebugAtCaret, Strings.ToolsTestsDebugTestsAtCaret, Category) { Icon = TestIcons.Debug, KeyBinding = "Ctrl+Shift+F9", Description = Strings.ToolsTestsDebugTestsAtCaretDescription },
             _ => AtCaret(RunMode.Debug),
             _ => NodeAtCaret() is { Provider.CanDebug: true });
         registry.Add(
-            new CommandDefinition(RunFile, "Run Tests in File", Category) { Icon = TestIcons.Run, Description = "Run the tests of the file in the editor." },
+            new CommandDefinition(RunFile, Strings.ToolsTestsRunTestsInFile, Category) { Icon = TestIcons.Run, Description = Strings.ToolsTestsRunTestsInFileDescription },
             _ => Show(tests.RunAsync(TestsInActiveFile())),
             _ => TestsInActiveFile().Count > 0);
         registry.Add(
-            new CommandDefinition(Stop, "Stop Tests", Category) { Icon = "stop", Description = "Stop the tests that run." },
+            new CommandDefinition(Stop, Strings.ToolsTestsStopTests, Category) { Icon = "stop", Description = Strings.ToolsTestsStopTestsDescription },
             _ =>
             {
                 tests.Stop();
@@ -71,19 +71,19 @@ public sealed class TestCommands(TestService tests, Lazy<EditorService> editors,
             },
             _ => tests.IsRunning);
         registry.Add(
-            new CommandDefinition(Refresh, "Refresh Tests", Category) { Icon = "refresh", Description = "Find the folder's tests again." },
+            new CommandDefinition(Refresh, Strings.ToolsTestsRefreshTests, Category) { Icon = "refresh", Description = Strings.ToolsTestsRefreshTestsDescription },
             _ => tests.DiscoverAllAsync(),
             _ => tests.Providers.Count > 0);
         registry.Add(
-            new CommandDefinition(RunItem, "Run Test", Category) { Icon = TestIcons.Run, ShowInPalette = false },
+            new CommandDefinition(RunItem, Strings.ToolsTestsRunTest, Category) { Icon = TestIcons.Run, ShowInPalette = false },
             argument => argument is TestNode node ? Show(tests.RunAsync([node])) : Task.CompletedTask,
             argument => argument is TestNode);
         registry.Add(
-            new CommandDefinition(DebugItem, "Debug Test", Category) { Icon = TestIcons.Debug, ShowInPalette = false },
+            new CommandDefinition(DebugItem, Strings.ToolsTestsDebugTest, Category) { Icon = TestIcons.Debug, ShowInPalette = false },
             argument => argument is TestNode node ? Show(tests.RunAsync([node], RunMode.Debug)) : Task.CompletedTask,
             argument => argument is TestNode { Provider.CanDebug: true });
         registry.Add(
-            new CommandDefinition(ShowItem, "Show Test Result", Category) { Icon = TestIcons.Tests, ShowInPalette = false },
+            new CommandDefinition(ShowItem, Strings.ToolsTestsShowTestResult, Category) { Icon = TestIcons.Tests, ShowInPalette = false },
             argument =>
             {
                 if (argument is TestNode node)

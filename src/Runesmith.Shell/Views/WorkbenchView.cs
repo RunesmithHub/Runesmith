@@ -158,6 +158,7 @@ internal sealed class WorkbenchView : Grid
         public ToolWindowArea(ToolWindowManager manager, DockSide side)
         {
             this.manager = manager;
+            Runesmith.Sdk.Localization.Localized.Changed += (_, _) => UpdateTitle();
             Classes.Add("tool-area");
             Classes.Add(side.ToString().ToLowerInvariant());
             var options = HeaderButton(Icons.MoreHorizontal, "Options");

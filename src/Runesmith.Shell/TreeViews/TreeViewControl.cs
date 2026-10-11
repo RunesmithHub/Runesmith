@@ -14,6 +14,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Shell.Appearance;
@@ -83,7 +84,7 @@ internal sealed class TreeViewControl : DockPanel, IToolWindowHeader
         list.ContextRequested += OnContextRequested;
         list.ContextMenu = new ContextMenu();
 
-        empty = new EmptyState { Icon = Icons.Find(definition.ToolWindow.Icon) ?? Icons.ListTree, Title = definition.EmptyMessage ?? "Nothing to show", IsVisible = false };
+        empty = new EmptyState { Icon = Icons.Find(definition.ToolWindow.Icon) ?? Icons.ListTree, Title = definition.EmptyMessage ?? Strings.ToolsTreeNothing, IsVisible = false };
         loading = new ProgressBar { IsIndeterminate = true, Height = 2, MinHeight = 2, IsVisible = false, VerticalAlignment = VerticalAlignment.Top };
         messageText = new TextBlock { TextWrapping = TextWrapping.Wrap, Classes = { "caption" } };
         message = new Border { Padding = new Thickness(10, 6), Margin = new Thickness(6, 4, 6, 2), CornerRadius = new CornerRadius(6), Child = messageText, IsVisible = false };
@@ -92,8 +93,8 @@ internal sealed class TreeViewControl : DockPanel, IToolWindowHeader
 
         if (definition.ShowFilter)
         {
-            filter = new SearchBox { PlaceholderText = "Filter", Margin = new Thickness(6, 4, 6, 2) };
-            AutomationProperties.SetName(filter, $"Filter {definition.ToolWindow.Title}");
+            filter = new SearchBox { Margin = new Thickness(6, 4, 6, 2) }.Localize(SearchBox.PlaceholderTextProperty, () => Strings.ToolsTreeFilter);
+            filter.Localize(AutomationProperties.NameProperty, () => Strings.ToolsTreeFilterName(definition.ToolWindow.Title));
             filter.PropertyChanged += (_, e) =>
             {
                 if (e.Property == SearchBox.TextProperty)
@@ -183,7 +184,7 @@ internal sealed class TreeViewControl : DockPanel, IToolWindowHeader
         messageText.Text = model.Message;
         var isEmpty = model.Rows.Count == 0 && !model.IsLoading;
         empty.IsVisible = isEmpty && (model.IsEmpty || model.Error is not null || model.Filter.Length > 0);
-        empty.Title = model.Error is not null ? "The items could not be loaded" : model.Filter.Length > 0 ? "Nothing matches the filter" : model.Definition.EmptyMessage ?? "Nothing to show";
+        empty.Title = model.Error is not null ? Strings.ToolsTreeLoadFailed : model.Filter.Length > 0 ? Strings.ToolsTreeNoMatch : model.Definition.EmptyMessage ?? Strings.ToolsTreeNothing;
         empty.Hint = model.Error;
     }
 
@@ -239,7 +240,7 @@ internal sealed class TreeViewControl : DockPanel, IToolWindowHeader
             }
         }
 
-        actions.Children.Add(Action(HammerUI.Icons.ChevronsUp, "Collapse all", model.CollapseAll));
+        actions.Children.Add(Action(HammerUI.Icons.ChevronsUp, Strings.ToolsCollapseAll, model.CollapseAll));
         UpdateActions();
     }
 

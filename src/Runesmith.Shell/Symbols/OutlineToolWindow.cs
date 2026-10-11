@@ -29,7 +29,7 @@ public sealed class OutlineToolWindow(EditorService editors, DocumentSymbols sym
 {
     public const string Id = "outline";
 
-    public ToolWindowDefinition Definition { get; } = new(Id, "Outline", "list-tree", DockSide.Left) { Order = 2 };
+    public ToolWindowDefinition Definition => new(Id, Strings.ToolsWindowOutline, "list-tree", DockSide.Left) { Order = 2 };
 
     public Control CreateContent() => new OutlineView(editors, symbols);
 }

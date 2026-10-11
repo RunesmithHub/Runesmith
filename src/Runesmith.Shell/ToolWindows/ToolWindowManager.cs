@@ -123,7 +123,7 @@ public sealed class ToolWindowManager : IToolWindowManager, ICommandContributor
         {
             var id = "view." + definition.Id;
             registry.Add(
-                new CommandDefinition(id, $"Show {definition.Title}", "View") { Icon = definition.Icon, KeyBinding = definition.KeyBinding },
+                new CommandDefinition(id, Strings.ToolsWindowShow(definition.Title), Strings.ToolsCategoryView) { Icon = definition.Icon, KeyBinding = definition.KeyBinding },
                 _ =>
                 {
                     Toggle(definition.Id);
@@ -177,11 +177,15 @@ public sealed class ToolWindowManager : IToolWindowManager, ICommandContributor
 
     private ToolStripeItem Item(string id)
     {
+        var definition = providers[id].Definition;
         if (!items.TryGetValue(id, out var item))
         {
-            var definition = providers[id].Definition;
             item = new ToolStripeItem(id, definition.Title, Icons.Find(definition.Icon) ?? Icons.PanelLeft) { Badge = badges.GetValueOrDefault(id) };
             items[id] = item;
+        }
+        else if (item.Title != definition.Title)
+        {
+            item.Title = definition.Title;
         }
 
         return item;

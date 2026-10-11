@@ -11,6 +11,7 @@ using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 using Avalonia.Threading;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Editor;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Sdk.Workspace;
@@ -32,7 +33,7 @@ public sealed class SearchToolWindow(FindInFiles search, IWorkspace workspace, E
 
     private SearchView? view;
 
-    public ToolWindowDefinition Definition { get; } = new(Id, "Search", "search", DockSide.Left) { Order = 1, IsVisibleByDefault = true };
+    public ToolWindowDefinition Definition => new(Id, Strings.ToolsWindowSearch, "search", DockSide.Left) { Order = 1, IsVisibleByDefault = true };
 
     public Control CreateContent() => view = new SearchView(search, workspace, editors, icons);
 
@@ -51,12 +52,12 @@ public sealed class SearchToolWindow(FindInFiles search, IWorkspace workspace, E
         private readonly IWorkspace workspace;
         private readonly EditorService editors;
         private readonly FileIcons icons;
-        private readonly TextBox query = new() { PlaceholderText = "Search", Classes = { "small" } };
-        private readonly TextBox include = new() { PlaceholderText = "Files to include, such as *.cs; src/**", Classes = { "small" } };
-        private readonly TextBox exclude = new() { PlaceholderText = "Files to exclude", Classes = { "small" } };
-        private readonly ToggleButton matchCase = Option("Aa", "Match case");
-        private readonly ToggleButton wholeWord = Option("ab", "Match whole word");
-        private readonly ToggleButton regex = Option(".*", "Use regular expression");
+        private readonly TextBox query = new TextBox { Classes = { "small" } }.Localize(TextBox.PlaceholderTextProperty, () => Strings.ToolsSearchPlaceholder);
+        private readonly TextBox include = new TextBox { Classes = { "small" } }.Localize(TextBox.PlaceholderTextProperty, () => Strings.ToolsSearchInclude);
+        private readonly TextBox exclude = new TextBox { Classes = { "small" } }.Localize(TextBox.PlaceholderTextProperty, () => Strings.ToolsSearchExclude);
+        private readonly ToggleButton matchCase = Option("Aa", () => Strings.ToolsSearchMatchCase);
+        private readonly ToggleButton wholeWord = Option("ab", () => Strings.ToolsSearchWholeWord);
+        private readonly ToggleButton regex = Option(".*", () => Strings.ToolsSearchRegex);
         private readonly TextBlock status = new() { Classes = { "caption", "muted" }, Margin = new Thickness(12, 4), TextWrapping = TextWrapping.Wrap };
         private readonly ObservableCollection<FileRow> results = [];
         private readonly DispatcherTimer debounce;
@@ -163,14 +164,14 @@ public sealed class SearchToolWindow(FindInFiles search, IWorkspace workspace, E
             var text = query.Text ?? "";
             if (text.Length == 0 || workspace.RootPath is null)
             {
-                status.Text = workspace.RootPath is null ? "Open a folder to search its files." : "";
+                status.Text = workspace.RootPath is null ? Strings.ToolsSearchOpenFolder : "";
                 return;
             }
 
             var options = (matchCase.IsChecked == true ? TextSearchOptions.MatchCase : 0)
                 | (wholeWord.IsChecked == true ? TextSearchOptions.WholeWord : 0)
                 | (regex.IsChecked == true ? TextSearchOptions.Regex : 0);
-            status.Text = "Searching...";
+            status.Text = Strings.ToolsSearchSearching;
             var count = 0;
             var limited = false;
             try
@@ -187,13 +188,13 @@ public sealed class SearchToolWindow(FindInFiles search, IWorkspace workspace, E
                     limited |= file.IsLimitReached;
                 }
 
-                var files = results.Count == 1 ? "1 file" : $"{results.Count:N0} files";
-                var found = count == 1 ? "1 result" : $"{count:N0} results";
-                status.Text = count == 0 ? "No results." : $"{found} in {files}" + (limited ? $", stopped at {FindInFiles.MaxMatches:N0}" : "") + ".";
+                status.Text = count == 0 ? Strings.ToolsSearchNoResults
+                    : limited ? Strings.ToolsSearchSummaryLimited(results: count, files: results.Count, limit: FindInFiles.MaxMatches)
+                    : Strings.ToolsSearchSummary(results: count, files: results.Count);
             }
             catch (ArgumentException exception)
             {
-                status.Text = $"The pattern is not valid: {exception.Message}";
+                status.Text = Strings.ToolsSearchInvalid(exception.Message);
             }
             catch (OperationCanceledException)
             {
@@ -241,7 +242,7 @@ public sealed class SearchToolWindow(FindInFiles search, IWorkspace workspace, E
             return new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { number, line } };
         }
 
-        private static ToggleButton Option(string text, string tip)
+        private static ToggleButton Option(string text, Func<string> tip)
         {
             var button = new ToggleButton
             {
@@ -249,8 +250,7 @@ public sealed class SearchToolWindow(FindInFiles search, IWorkspace workspace, E
                 MinWidth = 26,
                 Content = new TextBlock { Text = text, FontFamily = new FontFamily(EditorOptions.BundledFontFamily), FontSize = 12 },
             };
-            ToolTip.SetTip(button, tip);
-            return button;
+            return button.Localize(ToolTip.TipProperty, tip);
         }
     }
 }

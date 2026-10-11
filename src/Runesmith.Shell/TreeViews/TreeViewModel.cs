@@ -301,7 +301,7 @@ internal sealed class TreeViewModel : ITreeView, IDisposable
             node.Loading?.Dispose();
             node.Loading = new CancellationTokenSource();
             var token = node.Loading.Token;
-            var placeholder = new TreeNode(new TreeItem("Loading…"), node, node.Key + "/…", TreeNodeKind.Loading);
+            var placeholder = new TreeNode(new TreeItem(Strings.ToolsTreeLoading), node, node.Key + "/…", TreeNodeKind.Loading);
             ShowChildren(node, [placeholder]);
             var loaded = await LoadChildrenAsync(node, token);
             HideChildren(node);
@@ -312,7 +312,7 @@ internal sealed class TreeViewModel : ITreeView, IDisposable
             }
 
             node.Children = loaded.Error is { } problem
-                ? [new TreeNode(new TreeItem($"Could not load the items: {problem}"), node, node.Key + "/!", TreeNodeKind.Error)]
+                ? [new TreeNode(new TreeItem(Strings.ToolsTreeCouldNotLoad(problem)), node, node.Key + "/!", TreeNodeKind.Error)]
                 : loaded.Nodes;
         }
 

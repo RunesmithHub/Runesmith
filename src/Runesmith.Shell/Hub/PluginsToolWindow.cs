@@ -13,7 +13,7 @@ namespace Runesmith.Shell.Hub;
 public sealed class PluginsToolWindow(
     Lazy<HubService> hub, NotificationService notifications, OutputService output, Lazy<PageService> pages, Lazy<ShellLocalization> localization) : IToolWindowProvider
 {
-    public ToolWindowDefinition Definition { get; } = new(HubService.ToolWindowId, "Plugins", "puzzle", DockSide.Right) { Order = 20 };
+    public ToolWindowDefinition Definition => new(HubService.ToolWindowId, Strings.ToolsWindowPlugins, "puzzle", DockSide.Right) { Order = 20 };
 
     public Control CreateContent() =>
         new PluginManagerView(hub.Value, notifications, output, compact: true, () => pages.Value.ShowSettings(HubSettings.Category), localization.Value);

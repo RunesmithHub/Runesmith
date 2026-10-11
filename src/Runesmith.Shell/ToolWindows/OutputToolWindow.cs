@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Editor;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Shell.Services;
@@ -17,12 +18,12 @@ namespace Runesmith.Shell.ToolWindows;
 [method: ImportingConstructor]
 public sealed class OutputToolWindow(OutputService output) : IToolWindowProvider
 {
-    public ToolWindowDefinition Definition { get; } =
-        new(OutputService.OutputToolWindowId, "Output", "terminal", DockSide.Bottom) { Order = 1, IsVisibleByDefault = true, KeyBinding = "Ctrl+Shift+U" };
+    public ToolWindowDefinition Definition =>
+        new(OutputService.OutputToolWindowId, Strings.ToolsWindowOutput, "terminal", DockSide.Bottom) { Order = 1, IsVisibleByDefault = true, KeyBinding = "Ctrl+Shift+U" };
 
     public Control CreateContent()
     {
-        var channels = new ComboBox { ItemsSource = output.Channels, MinWidth = 200, PlaceholderText = "No output yet", Classes = { "small" } };
+        var channels = new ComboBox { ItemsSource = output.Channels, MinWidth = 200, Classes = { "small" } }.Localize(ComboBox.PlaceholderTextProperty, () => Strings.ToolsOutputNoneYet);
         var lines = new ListBox
         {
             Classes = { "rows" },
@@ -31,10 +32,12 @@ public sealed class OutputToolWindow(OutputService output) : IToolWindowProvider
             ItemTemplate = new FuncDataTemplate<string?>((line, _) => new SelectableTextBlock { Text = line, TextWrapping = TextWrapping.NoWrap }),
         };
         var clear = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.Trash, Size = 14 } };
-        ToolTip.SetTip(clear, "Clear the channel");
+        clear.Localize(ToolTip.TipProperty, () => Strings.ToolsOutputClear);
         clear.Click += (_, _) => (channels.SelectedItem as OutputChannel)?.Clear();
 
-        var empty = new EmptyState { Icon = Icons.Terminal, Title = "No output", Hint = "Builds, language analyzers and plugins write their logs here." };
+        var empty = new EmptyState { Icon = Icons.Terminal }
+            .Localize(EmptyState.TitleProperty, () => Strings.ToolsOutputNone)
+            .Localize(EmptyState.HintProperty, () => Strings.ToolsOutputNoneHint);
 
         void Select(OutputChannel? channel)
         {

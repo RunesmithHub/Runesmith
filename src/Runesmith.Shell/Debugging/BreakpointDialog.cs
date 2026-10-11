@@ -16,13 +16,13 @@ internal static class BreakpointDialog
     /// <param name="focusLogMessage">Whether the log message gets the keyboard focus, as when adding a log point.</param>
     public static async Task<BreakpointEdit?> ShowAsync(DialogService dialogs, LineBreakpoint breakpoint, bool exists, bool focusLogMessage)
     {
-        var condition = Field(breakpoint.Condition, "Such as count > 3");
-        var hitCount = Field(breakpoint.HitCondition, "Such as 5");
-        var logMessage = Field(breakpoint.LogMessage, "Such as count is {count}");
-        var enabled = new CheckBox { Content = "Enabled", IsChecked = breakpoint.IsEnabled };
-        var ok = new Button { Content = "OK", Classes = { "accent" }, IsDefault = true, MinWidth = 84 };
-        var cancel = new Button { Content = "Cancel", IsCancel = true, MinWidth = 84 };
-        var remove = new Button { Content = "Remove", Classes = { "danger" }, MinWidth = 84, IsVisible = exists };
+        var condition = Field(breakpoint.Condition, Strings.ToolsBreakpointConditionPlaceholder);
+        var hitCount = Field(breakpoint.HitCondition, Strings.ToolsBreakpointHitCountPlaceholder);
+        var logMessage = Field(breakpoint.LogMessage, Strings.ToolsBreakpointLogPlaceholder);
+        var enabled = new CheckBox { Content = Strings.ToolsBreakpointEnabled, IsChecked = breakpoint.IsEnabled };
+        var ok = new Button { Content = Strings.ToolsOk, Classes = { "accent" }, IsDefault = true, MinWidth = 84 };
+        var cancel = new Button { Content = Strings.ToolsCancel, IsCancel = true, MinWidth = 84 };
+        var remove = new Button { Content = Strings.ToolsRemove, Classes = { "danger" }, MinWidth = 84, IsVisible = exists };
         var footer = new DockPanel { LastChildFill = false };
         DockPanel.SetDock(remove, Dock.Left);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { cancel, ok } };
@@ -31,7 +31,7 @@ internal static class BreakpointDialog
 
         var dialog = new Dialog
         {
-            Header = $"Breakpoint at {Path.GetFileName(breakpoint.Path)}:{breakpoint.Line + 1}",
+            Header = Strings.ToolsBreakpointTitle(Path.GetFileName(breakpoint.Path), breakpoint.Line + 1),
             Width = 480,
             ShowCloseButton = false,
             Content = new StackPanel
@@ -39,9 +39,9 @@ internal static class BreakpointDialog
                 Spacing = 6,
                 Children =
                 {
-                    Label("Condition"), condition, Hint("Stops only when this expression is true."),
-                    Label("Hit count"), hitCount, Hint("Stops only once the line has run this many times."),
-                    Label("Log message"), logMessage, Hint("Writes this to the debug console instead of stopping; put expressions in braces."),
+                    Label(Strings.ToolsBreakpointCondition), condition, Hint(Strings.ToolsBreakpointConditionHint),
+                    Label(Strings.ToolsBreakpointHitCount), hitCount, Hint(Strings.ToolsBreakpointHitCountHint),
+                    Label(Strings.ToolsBreakpointLog), logMessage, Hint(Strings.ToolsBreakpointLogHint),
                     enabled,
                 },
             },

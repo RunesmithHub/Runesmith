@@ -32,7 +32,7 @@ public sealed class ReferencesToolWindow(EditorService editors, IDocumentService
 
     private CancellationTokenSource? showing;
 
-    public ToolWindowDefinition Definition { get; } = new(Id, "References", "link", DockSide.Bottom) { Order = 3 };
+    public ToolWindowDefinition Definition => new(Id, Strings.ToolsWindowReferences, "link", DockSide.Bottom) { Order = 3 };
 
     /// <summary>Gets what the panel lists.</summary>
     public ReferencesModel Model { get; } = new();

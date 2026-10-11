@@ -30,7 +30,7 @@ internal sealed class PluginWebView : IWebView
         UnavailableReason = unavailableReason;
         if (unavailableReason is not null)
         {
-            Control = new EmptyState { Icon = Icons.Link, Title = "Web content cannot be shown", Hint = unavailableReason };
+            Control = new EmptyState { Icon = Icons.Link, Title = Strings.ToolsWebUnavailable, Hint = unavailableReason };
             return;
         }
 

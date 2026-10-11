@@ -14,6 +14,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Sdk.Workspace;
@@ -44,7 +45,7 @@ public sealed class ExplorerToolWindow(
 {
     public const string Id = "explorer";
 
-    public ToolWindowDefinition Definition { get; } = new(Id, "Explorer", "folder-open", DockSide.Left) { IsVisibleByDefault = true, KeyBinding = "Ctrl+Shift+E" };
+    public ToolWindowDefinition Definition => new(Id, Strings.ToolsWindowExplorer, "folder-open", DockSide.Left) { IsVisibleByDefault = true, KeyBinding = "Ctrl+Shift+E" };
 
     private ExplorerView? view;
 
@@ -88,10 +89,10 @@ public sealed class ExplorerToolWindow(
                 Spacing = 2,
                 Children =
                 {
-                    Action(Icons.FilePlus, "New file", () => _ = NewAsync(SelectedFolder(), folder: false)),
-                    Action(Icons.FolderPlus, "New folder", () => _ = NewAsync(SelectedFolder(), folder: true)),
-                    Action(Icons.Refresh, "Refresh", () => tree.Root?.Refresh()),
-                    Action(Icons.ChevronsUp, "Collapse all", CollapseAll),
+                    Action(Icons.FilePlus, () => Strings.ToolsExplorerNewFileTip, () => _ = NewAsync(SelectedFolder(), folder: false)),
+                    Action(Icons.FolderPlus, () => Strings.ToolsExplorerNewFolderTip, () => _ = NewAsync(SelectedFolder(), folder: true)),
+                    Action(Icons.Refresh, () => Strings.ToolsRefresh, () => tree.Root?.Refresh()),
+                    Action(Icons.ChevronsUp, () => Strings.ToolsCollapseAll, CollapseAll),
                 },
             };
             view = new TreeView
@@ -110,13 +111,13 @@ public sealed class ExplorerToolWindow(
             view.ContextMenu = new ContextMenu();
 
             empty = new EmptyState
-            {
-                Icon = Icons.FolderOpen,
-                Title = "No folder open",
-                Hint = "Open a folder to see its files here.",
-                ActionText = "Open Folder",
-                ActionCommand = new RelayCommand(() => _ = commands.ExecuteAsync(CommandIds.OpenFolder)),
-            };
+                {
+                    Icon = Icons.FolderOpen,
+                    ActionCommand = new RelayCommand(() => _ = commands.ExecuteAsync(CommandIds.OpenFolder)),
+                }
+                .Localize(EmptyState.TitleProperty, () => Strings.ToolsExplorerNone)
+                .Localize(EmptyState.HintProperty, () => Strings.ToolsExplorerNoneHint)
+                .Localize(EmptyState.ActionTextProperty, () => Strings.ToolsExplorerOpenFolder);
             Children.Add(new Panel { Children = { view, empty } });
 
             tree.PropertyChanged += OnTreeChanged;
@@ -259,8 +260,8 @@ public sealed class ExplorerToolWindow(
             var parent = node is null ? workspace.RootPath : node.IsDirectory ? node.FullPath : Path.GetDirectoryName(node.FullPath);
             var items = new List<Control>
             {
-                MenuItem("New File", Icons.FilePlus, () => _ = NewAsync(parent, folder: false)),
-                MenuItem("New Folder", Icons.FolderPlus, () => _ = NewAsync(parent, folder: true)),
+                MenuItem(Strings.ToolsExplorerNewFile, Icons.FilePlus, () => _ = NewAsync(parent, folder: false)),
+                MenuItem(Strings.ToolsExplorerNewFolder, Icons.FolderPlus, () => _ = NewAsync(parent, folder: true)),
             };
             if (node is not null)
             {
@@ -270,9 +271,9 @@ public sealed class ExplorerToolWindow(
                 items.Add(MenuItem("Rename", Icons.PenLine, () => _ = RenameAsync(node), "F2"));
                 items.Add(MenuItem("Delete", Icons.Trash, () => _ = DeleteAsync(node), "Delete"));
                 items.Add(new Separator());
-                items.Add(MenuItem("Copy Path", Icons.Copy, () => _ = CopyAsync(node.FullPath)));
-                items.Add(MenuItem("Copy Relative Path", null, () => _ = CopyAsync(Path.GetRelativePath(workspace.RootPath ?? "", node.FullPath))));
-                items.Add(MenuItem(OperatingSystem.IsMacOS() ? "Reveal in Finder" : "Reveal in File Manager", Icons.ExternalLink, () => Launcher.Reveal(node.FullPath)));
+                items.Add(MenuItem(Strings.ToolsExplorerCopyPath, Icons.Copy, () => _ = CopyAsync(node.FullPath)));
+                items.Add(MenuItem(Strings.ToolsExplorerCopyRelativePath, null, () => _ = CopyAsync(Path.GetRelativePath(workspace.RootPath ?? "", node.FullPath))));
+                items.Add(MenuItem(OperatingSystem.IsMacOS() ? Strings.ToolsExplorerRevealFinder : Strings.ToolsExplorerReveal, Icons.ExternalLink, () => Launcher.Reveal(node.FullPath)));
                 items.AddRange(MenuBuilder.ContributedItems(commands, ContextMenus.Explorer, new ContextMenuTarget(node.FullPath, node.IsDirectory)));
             }
 
@@ -284,7 +285,7 @@ public sealed class ExplorerToolWindow(
             if (parent is null)
                 return;
 
-            var name = await Prompt.AskAsync(notifications.Dialogs, folder ? "New Folder" : "New File", $"Name, in {Path.GetFileName(parent)}", "",
+            var name = await Prompt.AskAsync(notifications.Dialogs, folder ? Strings.ToolsExplorerNewFolder : Strings.ToolsExplorerNewFile, Strings.ToolsExplorerNameIn(Path.GetFileName(parent)), "",
                 n => Prompt.ValidateFileName(n, parent));
             if (name is not null)
                 await files.CreateAsync(parent, name, folder);
@@ -300,7 +301,7 @@ public sealed class ExplorerToolWindow(
         {
             var folder = Path.GetDirectoryName(node.FullPath)!;
             var extension = node.IsDirectory ? 0 : Path.GetExtension(node.Name).Length;
-            var name = await Prompt.AskAsync(notifications.Dialogs, "Rename", $"New name for {node.Name}", node.Name,
+            var name = await Prompt.AskAsync(notifications.Dialogs, Strings.ToolsExplorerRename, Strings.ToolsExplorerNewName(node.Name), node.Name,
                 n => Prompt.ValidateFileName(n, folder, except: node.Name), (0, node.Name.Length - extension));
             if (name is null || name == node.Name)
                 return;
@@ -329,10 +330,9 @@ public sealed class ExplorerToolWindow(
             return item;
         }
 
-        private static Button Action(Geometry icon, string tip, Action action)
+        private static Button Action(Geometry icon, Func<string> tip, Action action)
         {
-            var button = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = icon, Size = 16 } };
-            ToolTip.SetTip(button, tip);
+            var button = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = icon, Size = 16 } }.Localize(ToolTip.TipProperty, tip);
             button.Click += (_, _) => action();
             return button;
         }

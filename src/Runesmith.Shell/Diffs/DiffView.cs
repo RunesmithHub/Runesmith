@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Editor;
 using Runesmith.Sdk.Documents;
 using Runesmith.Text;
@@ -37,8 +38,8 @@ internal sealed class DiffView : DockPanel, IDisposable
         ApplyOptions(options);
         Right.Area.IsReadOnly = !isRightEditable;
 
-        previous = IconButton(Icons.ArrowUp, "Previous difference (Shift+F7)", () => Move(-1));
-        next = IconButton(Icons.ArrowDown, "Next difference (F7)", () => Move(1));
+        previous = IconButton(Icons.ArrowUp, () => Strings.ToolsDiffPrevious, () => Move(-1));
+        next = IconButton(Icons.ArrowDown, () => Strings.ToolsDiffNext, () => Move(1));
         counter[!TextBlock.ForegroundProperty] = new DynamicResourceExtension("TextMutedBrush");
         var toolbar = new Border
         {
@@ -161,9 +162,9 @@ internal sealed class DiffView : DockPanel, IDisposable
 
     private void UpdateCounter()
     {
-        counter.Text = hunks.Count == 0 ? "No differences"
-            : current < 0 ? string.Create(CultureInfo.CurrentCulture, $"{hunks.Count} {(hunks.Count == 1 ? "difference" : "differences")}")
-            : string.Create(CultureInfo.CurrentCulture, $"{current + 1} of {hunks.Count}");
+        counter.Text = hunks.Count == 0 ? Strings.ToolsDiffNone
+            : current < 0 ? Strings.ToolsDiffCount(hunks.Count)
+            : Strings.ToolsDiffPosition(current + 1, hunks.Count);
         previous.IsEnabled = hunks.Count > 0 && current > 0;
         next.IsEnabled = hunks.Count > 0 && current < hunks.Count - 1;
     }
@@ -210,11 +211,10 @@ internal sealed class DiffView : DockPanel, IDisposable
         return panel;
     }
 
-    private static Button IconButton(Geometry icon, string tip, Action action)
+    private static Button IconButton(Geometry icon, Func<string> tip, Action action)
     {
-        var button = new Button { Classes = { "icon", "small" }, Focusable = false, Content = new SymbolIcon { Data = icon, Size = 14 } };
+        var button = new Button { Classes = { "icon", "small" }, Focusable = false, Content = new SymbolIcon { Data = icon, Size = 14 } }.Localize(ToolTip.TipProperty, tip);
         button.Click += (_, _) => action();
-        ToolTip.SetTip(button, tip);
         return button;
     }
 }

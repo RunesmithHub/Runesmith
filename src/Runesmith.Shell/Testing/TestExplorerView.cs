@@ -12,6 +12,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Editor;
 using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.Running;
@@ -66,18 +67,18 @@ internal sealed class TestExplorerView : DockPanel
 
         var refresh = CommandButton(TestCommands.Refresh, "refresh", null);
         buttons[TestCommands.Refresh] = refresh;
-        var collapse = SmallButton(Icons.ChevronsUp, "Collapse All", rows.CollapseAll);
+        var collapse = SmallButton(Icons.ChevronsUp, () => Strings.ToolsTestsCollapseAll, rows.CollapseAll);
         tools.Children.AddRange([refresh, collapse]);
 
-        filter = new TextBox { PlaceholderText = "Filter by name, or @tag", Classes = { "small" }, Width = 220, VerticalAlignment = VerticalAlignment.Center };
+        filter = new TextBox { Classes = { "small" }, Width = 220, VerticalAlignment = VerticalAlignment.Center }.Localize(TextBox.PlaceholderTextProperty, () => Strings.ToolsTestsFilter);
         filter.TextChanged += (_, _) => MarkDirty();
         failedOnly = new ToggleButton { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.Filter, Size = 14 }, VerticalAlignment = VerticalAlignment.Center };
-        ToolTip.SetTip(failedOnly, "Show only failed tests");
+        failedOnly.Localize(ToolTip.TipProperty, () => Strings.ToolsTestsFailedOnly);
         failedOnly.IsCheckedChanged += (_, _) => MarkDirty();
         grouping = new ComboBox
         {
             Classes = { "small" },
-            ItemsSource = new[] { "Group by project", "Group by file", "Group by status", "Group by tag" },
+            ItemsSource = new[] { Strings.ToolsTestsGroupProject, Strings.ToolsTestsGroupFile, Strings.ToolsTestsGroupStatus, Strings.ToolsTestsGroupTag },
             SelectedIndex = 0,
             VerticalAlignment = VerticalAlignment.Center,
         };
@@ -191,14 +192,14 @@ internal sealed class TestExplorerView : DockPanel
         var hasTests = tests.Tree.AllRoots.Count > 0;
         empty.IsVisible = rows.Roots.Count == 0;
         (empty.Icon, empty.Title, empty.Hint) = tests.Providers.Count == 0
-            ? (Icons.Find(TestIcons.Tests), "No test provider", "Install a plugin that finds tests, such as the plugin for your language, from the plugin hub.")
+            ? (Icons.Find(TestIcons.Tests), Strings.ToolsTestsNoProvider, Strings.ToolsTestsNoProviderHint)
             : root() is null
-                ? (Icons.Find(TestIcons.Tests), "No folder is open", "Open a folder to see its tests.")
+                ? (Icons.Find(TestIcons.Tests), Strings.ToolsTestsNoFolder, Strings.ToolsTestsNoFolderHint)
                 : tests.IsDiscovering && !hasTests
-                    ? (Icons.RotateCw, "Finding tests...", "The tests show here as they are found.")
+                    ? (Icons.RotateCw, Strings.ToolsTestsFinding, Strings.ToolsTestsFindingHint)
                     : hasTests
-                        ? (Icons.Search, "No tests match", "Change the filter, or show every test.")
-                        : (Icons.Find(TestIcons.Tests), "No tests found", "Build the folder, then refresh the tests.");
+                        ? (Icons.Search, Strings.ToolsTestsNoMatch, Strings.ToolsTestsNoMatchHint)
+                        : (Icons.Find(TestIcons.Tests), Strings.ToolsTestsNone, Strings.ToolsTestsNoneHint);
     }
 
     private void UpdateButtons()
@@ -223,7 +224,7 @@ internal sealed class TestExplorerView : DockPanel
         if (total == 0)
             return;
 
-        void Add(TestState state, int count, string label)
+        void Add(TestState state, int count, Func<int, string> label)
         {
             if (count == 0)
                 return;
@@ -232,19 +233,19 @@ internal sealed class TestExplorerView : DockPanel
             var symbol = new SymbolIcon { Data = Icons.Find(icon), Size = 13, VerticalAlignment = VerticalAlignment.Center };
             symbol[!SymbolIcon.ForegroundProperty] = new DynamicResourceExtension(brush);
             var item = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { symbol, new TextBlock { Text = count.ToString(CultureInfo.CurrentCulture), VerticalAlignment = VerticalAlignment.Center } } };
-            ToolTip.SetTip(item, $"{count} {label}");
+            ToolTip.SetTip(item, label(count));
             summary.Children.Add(item);
         }
 
-        Add(TestState.Passed, counts.GetValueOrDefault(TestState.Passed), "passed");
-        Add(TestState.Failed, counts.GetValueOrDefault(TestState.Failed) + counts.GetValueOrDefault(TestState.Errored), "failed");
-        Add(TestState.Skipped, counts.GetValueOrDefault(TestState.Skipped), "skipped");
-        Add(TestState.Running, counts.GetValueOrDefault(TestState.Running) + counts.GetValueOrDefault(TestState.Queued), "running or waiting");
-        Add(TestState.None, counts.GetValueOrDefault(TestState.None), "not run");
+        Add(TestState.Passed, counts.GetValueOrDefault(TestState.Passed), n => Strings.ToolsTestsCountPassed(n));
+        Add(TestState.Failed, counts.GetValueOrDefault(TestState.Failed) + counts.GetValueOrDefault(TestState.Errored), n => Strings.ToolsTestsCountFailed(n));
+        Add(TestState.Skipped, counts.GetValueOrDefault(TestState.Skipped), n => Strings.ToolsTestsCountSkipped(n));
+        Add(TestState.Running, counts.GetValueOrDefault(TestState.Running) + counts.GetValueOrDefault(TestState.Queued), n => Strings.ToolsTestsCountRunning(n));
+        Add(TestState.None, counts.GetValueOrDefault(TestState.None), n => Strings.ToolsTestsCountNotRun(n));
 
-        var text = rows.Shown == total ? Tests(total) : $"{rows.Shown} of {Tests(total)}";
+        var text = rows.Shown == total ? Strings.ToolsTestsTotal(total) : Strings.ToolsTestsShownOf(shown: rows.Shown, count: total);
         if (tests.CurrentRun is { } run)
-            text += run.State == TestRunState.Running ? $"  ·  running {TestDecorations.Format(run.Elapsed)}" : $"  ·  last run {TestDecorations.Format(run.Elapsed)}";
+            text += "  ·  " + (run.State == TestRunState.Running ? Strings.ToolsTestsRunningFor(TestDecorations.Format(run.Elapsed)) : Strings.ToolsTestsLastRun(TestDecorations.Format(run.Elapsed)));
         summary.Children.Add(new TextBlock { Text = text, Classes = { "caption", "muted" }, VerticalAlignment = VerticalAlignment.Center });
         FitSummary();
     }
@@ -269,7 +270,6 @@ internal sealed class TestExplorerView : DockPanel
         summary.IsVisible = summary.DesiredSize.Width <= available;
     }
 
-    private static string Tests(int count) => count == 1 ? "1 test" : $"{count} tests";
 
     private static StackPanel Row(TestRow row)
     {
@@ -315,7 +315,7 @@ internal sealed class TestExplorerView : DockPanel
         menu.Items.Add(Item("Run", TestIcons.Run, () => _ = tests.RunAsync(row.Nodes)));
         menu.Items.Add(Item("Debug", TestIcons.Debug, () => _ = tests.RunAsync(row.Nodes, RunMode.Debug), row.Nodes.Any(n => n.Provider.CanDebug)));
         menu.Items.Add(new Separator());
-        menu.Items.Add(Item("Go to Source", "file-code", () => GoToSource(row), row.Node?.Item is { FilePath: not null }));
+        menu.Items.Add(Item(Strings.ToolsTestsGoToSource, "file-code", () => GoToSource(row), row.Node?.Item is { FilePath: not null }));
         return menu;
     }
 
@@ -356,11 +356,11 @@ internal sealed class TestExplorerView : DockPanel
 
         var result = node.Result;
         if (state is TestState.None)
-            details.Children.Add(Muted("This test has not run yet."));
+            details.Children.Add(Muted(Strings.ToolsTestsNotRun));
         else if (state is TestState.Queued or TestState.Running)
-            details.Children.Add(Muted(state == TestState.Running ? "Running..." : "Waiting to run..."));
+            details.Children.Add(Muted(state == TestState.Running ? Strings.ToolsTestsRunning : Strings.ToolsTestsWaiting));
         else if (state == TestState.Skipped)
-            details.Children.Add(Muted(result?.SkipReason is { Length: > 0 } reason ? $"Skipped: {reason}" : "Skipped."));
+            details.Children.Add(Muted(result?.SkipReason is { Length: > 0 } reason ? Strings.ToolsTestsSkippedReason(reason) : Strings.ToolsTestsSkipped));
 
         if (result?.Failure is { } failure)
         {
@@ -371,7 +371,7 @@ internal sealed class TestExplorerView : DockPanel
                 details.Children.Add(Comparison(failure.Expected, failure.Actual));
             if (failure.StackTrace.Count > 0)
             {
-                details.Children.Add(Heading("Stack trace"));
+                details.Children.Add(Heading(Strings.ToolsTestsStackTrace));
                 var frames = new StackPanel { Spacing = 2 };
                 foreach (var frame in failure.StackTrace)
                 {
@@ -405,9 +405,9 @@ internal sealed class TestExplorerView : DockPanel
             var state = run.State == TestRunState.Running ? TestState.Running : run.Count().Keys.Any(s => s is TestState.Failed or TestState.Errored) ? TestState.Failed : TestState.Passed;
             var title = run.State switch
             {
-                TestRunState.Running => run.Mode == RunMode.Debug ? "Debugging tests" : "Running tests",
-                TestRunState.Stopped => "The last run was stopped",
-                _ => "Last run",
+                TestRunState.Running => run.Mode == RunMode.Debug ? Strings.ToolsTestsDebugging : Strings.ToolsTestsRunningTitle,
+                TestRunState.Stopped => Strings.ToolsTestsStopped,
+                _ => Strings.ToolsTestsLastRunTitle,
             };
             details.Children.Add(Title(state, title, TestDecorations.Format(run.Elapsed)));
             var counts = run.Count();
@@ -420,7 +420,7 @@ internal sealed class TestExplorerView : DockPanel
         }
         else
         {
-            details.Children.Add(Muted("Select a test to see its result and output. Run tests with the buttons above or from the gutter beside them."));
+            details.Children.Add(Muted(Strings.ToolsTestsSelect));
             return;
         }
 
@@ -428,7 +428,7 @@ internal sealed class TestExplorerView : DockPanel
         {
             if (run is not null && run.Output.Count > 0)
             {
-                details.Children.Add(Heading("Run output"));
+                details.Children.Add(Heading(Strings.ToolsTestsRunOutput));
                 details.Children.Add(Output(run.Output.GetText()));
             }
 
@@ -510,7 +510,7 @@ internal sealed class TestExplorerView : DockPanel
             FontSize = mono ? 12 : 13,
         };
         link[!TextBlock.ForegroundProperty] = new DynamicResourceExtension("AccentBrush");
-        ToolTip.SetTip(link, $"Open {path}");
+        ToolTip.SetTip(link, Strings.ToolsOpenPath(path));
         link.PointerPressed += (_, e) =>
         {
             e.Handled = true;
@@ -530,10 +530,9 @@ internal sealed class TestExplorerView : DockPanel
         return button;
     }
 
-    private static Button SmallButton(Geometry icon, string tip, Action action)
+    private static Button SmallButton(Geometry icon, Func<string> tip, Action action)
     {
-        var button = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = icon, Size = 14 } };
-        ToolTip.SetTip(button, tip);
+        var button = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = icon, Size = 14 } }.Localize(ToolTip.TipProperty, tip);
         button.Click += (_, _) => action();
         return button;
     }

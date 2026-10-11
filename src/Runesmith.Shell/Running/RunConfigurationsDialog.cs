@@ -38,8 +38,8 @@ internal sealed class RunConfigurationsDialog : Dialog
     private readonly List<Entry> entries = [];
     private readonly ListBox list = new() { Classes = { "configurations" }, SelectionMode = SelectionMode.Single };
     private readonly ContentControl detail = new();
-    private readonly Button ok = new() { Content = "OK", Classes = { "accent" }, IsDefault = true, MinWidth = 84 };
-    private readonly Button cancel = new() { Content = "Cancel", MinWidth = 84 };
+    private readonly Button ok = new() { Content = Strings.ToolsOk, Classes = { "accent" }, IsDefault = true, MinWidth = 84 };
+    private readonly Button cancel = new() { Content = Strings.ToolsCancel, MinWidth = 84 };
     private readonly Button remove;
     private readonly Button copy;
     private readonly Dictionary<Entry, TextBlock> rowNames = [];
@@ -54,7 +54,7 @@ internal sealed class RunConfigurationsDialog : Dialog
         foreach (var configuration in service.Configurations)
             entries.Add(Entry.From(configuration, service.FindType(configuration.TypeId), OptionsOf(configuration.TypeId)));
 
-        Header = "Run Configurations";
+        Header = Strings.ToolsRunDialogTitle;
         Width = 1000;
         Height = 740;
         Padding = new Thickness(0);
@@ -81,11 +81,11 @@ internal sealed class RunConfigurationsDialog : Dialog
                 Select(entry);
         };
 
-        var add = ToolButton(Icons.Plus, "Add a configuration");
+        var add = ToolButton(Icons.Plus, Strings.ToolsRunAddTip);
         add.Flyout = AddMenu();
-        remove = ToolButton(Icons.Minus, "Remove the configuration");
+        remove = ToolButton(Icons.Minus, Strings.ToolsRunRemoveTip);
         remove.Click += (_, _) => RemoveSelected();
-        copy = ToolButton(Icons.Copy, "Copy the configuration");
+        copy = ToolButton(Icons.Copy, Strings.ToolsRunCopyTip);
         copy.Click += (_, _) => CopySelected();
         var tools = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(10, 10, 10, 6), Children = { add, remove, copy } };
 
@@ -161,8 +161,8 @@ internal sealed class RunConfigurationsDialog : Dialog
             detail.Content = new EmptyState
             {
                 Icon = Icons.Play,
-                Title = "No run configurations",
-                Hint = "Add one with the + button. Configurations for runnable projects appear here by themselves.",
+                Title = Strings.ToolsRunNone,
+                Hint = Strings.ToolsRunNoneHint,
             };
             return;
         }
@@ -180,22 +180,22 @@ internal sealed class RunConfigurationsDialog : Dialog
 
         var content = new StackPanel { Spacing = 18, Children = { EntryHeader(entry), current, BeforeLaunchSection(entry) } };
         if (entry.Type is null)
-            content.Children.Insert(1, new MessageBox($"No plugin provides the configuration type {entry.TypeId}; turn on the plugin that adds it to change the settings."));
+            content.Children.Insert(1, new MessageBox(Strings.ToolsRunMissingType(entry.TypeId)));
         detail.Content = content;
     }
 
     private static Option[] HeaderOptions() =>
     [
-        new(NameId, "Name", OptionKind.Text) { IsRequired = true, Placeholder = "My configuration" },
-        new(StoreId, "Store as", OptionKind.Choice)
+        new(NameId, Strings.ToolsRunOptionName, OptionKind.Text) { IsRequired = true, Placeholder = Strings.ToolsRunOptionNamePlaceholder },
+        new(StoreId, Strings.ToolsRunOptionStore, OptionKind.Choice)
         {
             Default = "shared",
             Choices =
             [
-                new("shared", "Shared") { Description = "Saved in .runesmith/run.json, so it can be committed with the folder." },
-                new("local", "Local") { Description = "Saved only for you, outside the folder." },
+                new("shared", Strings.ToolsRunOptionShared) { Description = Strings.ToolsRunOptionSharedDescription },
+                new("local", Strings.ToolsRunOptionLocal) { Description = Strings.ToolsRunOptionLocalDescription },
             ],
-            Description = "Shared configurations are saved in .runesmith/run.json; local ones only for you.",
+            Description = Strings.ToolsRunOptionStoreDescription,
         },
     ];
 
@@ -204,7 +204,7 @@ internal sealed class RunConfigurationsDialog : Dialog
         var name = values.Get(NameId)?.Trim() ?? "";
         var problems = new Dictionary<string, string>(StringComparer.Ordinal);
         if (name.Length > 0 && entries.Any(e => !ReferenceEquals(e, entry) && e.Name == name))
-            problems[NameId] = $"Another configuration is named {name}.";
+            problems[NameId] = Strings.ToolsRunNameTaken(name);
         return problems;
     }
 
@@ -221,7 +221,7 @@ internal sealed class RunConfigurationsDialog : Dialog
 
         if (entry.IsDetected)
         {
-            var note = new TextBlock { Text = "Found in the folder. Changing it saves it as your own.", FontSize = 12 };
+            var note = new TextBlock { Text = Strings.ToolsRunDetectedNote, FontSize = 12 };
             note.Bind(TextBlock.ForegroundProperty, note.GetResourceObservable("TextMutedBrush"));
             text.Children.Add(note);
         }
@@ -234,10 +234,10 @@ internal sealed class RunConfigurationsDialog : Dialog
     private SectionPanel BeforeLaunchSection(Entry entry)
     {
         var rows = new StackPanel { Spacing = 4 };
-        var add = new Button { Classes = { "subtle", "small" }, Content = Label(Icons.Plus, "Add step") };
+        var add = new Button { Classes = { "subtle", "small" }, Content = Label(Icons.Plus, Strings.ToolsRunAddStep) };
         var section = new SectionPanel
         {
-            Header = "Before launch",
+            Header = Strings.ToolsRunBeforeLaunch,
             Content = new StackPanel { Spacing = 6, Children = { rows, add } },
             Margin = new Thickness(0, 4, 0, 0),
         };
@@ -247,7 +247,7 @@ internal sealed class RunConfigurationsDialog : Dialog
             rows.Children.Clear();
             if (entry.Steps.Count == 0)
             {
-                var none = new TextBlock { Text = "Nothing runs first; the program starts as it is.", FontSize = 12, Margin = new Thickness(2, 4) };
+                var none = new TextBlock { Text = Strings.ToolsRunNoSteps, FontSize = 12, Margin = new Thickness(2, 4) };
                 none.Bind(TextBlock.ForegroundProperty, none.GetResourceObservable("TextMutedBrush"));
                 rows.Children.Add(none);
             }
@@ -257,8 +257,8 @@ internal sealed class RunConfigurationsDialog : Dialog
         }
 
         var menu = new MenuFlyout();
-        menu.Items.Add(MenuItem("Build", Icons.Hammer, "Build the configuration's project", () => AddStep(new BeforeLaunchStep(BeforeLaunchKind.Build))));
-        var others = new MenuItem { Header = "Run Configuration", Icon = new SymbolIcon { Data = Icons.Play, Size = 14 } };
+        menu.Items.Add(MenuItem(Strings.ToolsRunStepMenuBuild, Icons.Hammer, Strings.ToolsRunStepMenuBuildTip, () => AddStep(new BeforeLaunchStep(BeforeLaunchKind.Build))));
+        var others = new MenuItem { Header = Strings.ToolsRunStepMenuConfiguration, Icon = new SymbolIcon { Data = Icons.Play, Size = 14 } };
         menu.Opening += (_, _) =>
         {
             others.Items.Clear();
@@ -267,7 +267,7 @@ internal sealed class RunConfigurationsDialog : Dialog
             others.IsEnabled = others.Items.Count > 0;
         };
         menu.Items.Add(others);
-        menu.Items.Add(MenuItem("Command", Icons.Terminal, "Run a command line in the folder", () => AddStep(new BeforeLaunchStep(BeforeLaunchKind.Command, ""))));
+        menu.Items.Add(MenuItem(Strings.ToolsRunStepMenuCommand, Icons.Terminal, Strings.ToolsRunStepMenuCommandTip, () => AddStep(new BeforeLaunchStep(BeforeLaunchKind.Command, ""))));
         add.Flyout = menu;
 
         void AddStep(BeforeLaunchStep step)
@@ -294,7 +294,7 @@ internal sealed class RunConfigurationsDialog : Dialog
         Control field = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center };
         if (step.Kind == BeforeLaunchKind.Command)
         {
-            var box = new TextBox { Text = step.Argument, PlaceholderText = "A command line, such as npm install", Classes = { "small" } };
+            var box = new TextBox { Text = step.Argument, PlaceholderText = Strings.ToolsRunCommandPlaceholder, Classes = { "small" } };
             box.PropertyChanged += (_, e) =>
             {
                 if (e.Property == TextBox.TextProperty)
@@ -316,21 +316,21 @@ internal sealed class RunConfigurationsDialog : Dialog
             field = Labeled(text, box);
         }
 
-        var up = ToolButton(Icons.ArrowUp, "Move up");
+        var up = ToolButton(Icons.ArrowUp, Strings.ToolsRunMoveUp);
         up.IsEnabled = index > 0;
         up.Click += (_, _) =>
         {
             (entry.Steps[index - 1], entry.Steps[index]) = (entry.Steps[index], entry.Steps[index - 1]);
             refill();
         };
-        var down = ToolButton(Icons.ArrowDown, "Move down");
+        var down = ToolButton(Icons.ArrowDown, Strings.ToolsRunMoveDown);
         down.IsEnabled = index < entry.Steps.Count - 1;
         down.Click += (_, _) =>
         {
             (entry.Steps[index + 1], entry.Steps[index]) = (entry.Steps[index], entry.Steps[index + 1]);
             refill();
         };
-        var delete = ToolButton(Icons.X, "Remove the step");
+        var delete = ToolButton(Icons.X, Strings.ToolsRunRemoveStep);
         delete.Click += (_, _) =>
         {
             entry.Steps.RemoveAt(index);
@@ -380,7 +380,7 @@ internal sealed class RunConfigurationsDialog : Dialog
         }
 
         if (menu.Items.Count == 0)
-            menu.Items.Add(new MenuItem { Header = "No plugin adds configuration types", IsEnabled = false });
+            menu.Items.Add(new MenuItem { Header = Strings.ToolsRunNoTypes, IsEnabled = false });
         return menu;
     }
 
@@ -502,7 +502,7 @@ internal sealed class RunConfigurationsDialog : Dialog
     {
         var name = new TextBlock { Text = entry.Name, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
         rowNames[entry] = name;
-        var tag = new TextBlock { FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Text = entry.IsDetected ? "found" : entry.IsLocal ? "local" : "" };
+        var tag = new TextBlock { FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Text = entry.IsDetected ? Strings.ToolsRunTagFound : entry.IsLocal ? Strings.ToolsRunTagLocal : "" };
         tag.Bind(TextBlock.ForegroundProperty, tag.GetResourceObservable("TextDisabledBrush"));
         var icon = new SymbolIcon { Data = Icons.Find(entry.Type?.Icon) ?? Icons.Play, Size = 14, VerticalAlignment = VerticalAlignment.Center, Classes = { "type-icon" } };
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,8,*,6,Auto"), Margin = new Thickness(12, 0, 0, 0), Children = { icon, name, tag } };

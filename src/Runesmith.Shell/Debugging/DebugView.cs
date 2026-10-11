@@ -13,6 +13,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Dap.Protocol;
 using Runesmith.Editor;
 using Runesmith.Sdk.Commands;
@@ -44,7 +45,9 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
     private readonly TextBlock callStackMessage = Message();
     private readonly TextBlock variablesMessage = Message();
     private readonly ListBox consoleList;
-    private readonly EmptyState consoleEmpty = new() { Icon = Icons.Terminal, Title = "No output yet", Hint = "The program's output and your evaluations show here while you debug." };
+    private readonly EmptyState consoleEmpty = new EmptyState { Icon = Icons.Terminal }
+        .Localize(EmptyState.TitleProperty, () => Strings.ToolsDebugConsoleEmpty)
+        .Localize(EmptyState.HintProperty, () => Strings.ToolsDebugConsoleEmptyHint);
     private readonly TextBox consoleInput;
     private readonly ConsoleLinkResolver resolver;
     private readonly Action<string, int, int> open;
@@ -85,16 +88,16 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
             actions.Children.Add(buttons[id]);
         }
 
-        consoleInput = new TextBox { PlaceholderText = "Evaluate an expression in the paused frame and press Enter", Classes = { "small" }, Margin = new Thickness(8, 4, 8, 6) };
+        consoleInput = new TextBox { Classes = { "small" }, Margin = new Thickness(8, 4, 8, 6) }.Localize(TextBox.PlaceholderTextProperty, () => Strings.ToolsDebugConsoleInput);
         consoleList = ConsoleList();
         var tabs = new TabControl
         {
             Padding = new Thickness(0),
             Items =
             {
-                new TabItem { Header = "Variables", Content = VariablesTab() },
-                new TabItem { Header = "Console", Content = ConsoleTab() },
-                new TabItem { Header = "Breakpoints", Content = BreakpointsTab() },
+                new TabItem { Content = VariablesTab() }.Localize(TabItem.HeaderProperty, () => Strings.ToolsDebugTabVariables),
+                new TabItem { Content = ConsoleTab() }.Localize(TabItem.HeaderProperty, () => Strings.ToolsDebugTabConsole),
+                new TabItem { Content = BreakpointsTab() }.Localize(TabItem.HeaderProperty, () => Strings.ToolsDebugTabBreakpoints),
             },
         };
         Children.Add(tabs);
@@ -128,9 +131,9 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
         var newTitle = session switch
         {
             null => null,
-            { State: DebugState.Paused } => $"{session.Name}, paused{(session.Stop?.Reason is { } reason ? " " + DebugToolWindow.Reason(reason) : "")}",
-            { State: DebugState.Starting } => $"{session.Name}, starting",
-            _ => $"{session.Name}, running",
+            { State: DebugState.Paused } => session.Stop?.Reason is { } reason ? Strings.ToolsDebugTitlePaused(session.Name, DebugToolWindow.Reason(reason)) : Strings.ToolsDebugTitlePausedPlain(session.Name),
+            { State: DebugState.Starting } => Strings.ToolsDebugTitleStarting(session.Name),
+            _ => Strings.ToolsDebugTitleRunning(session.Name),
         };
         if (newTitle != title)
         {
@@ -212,18 +215,18 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
 
         var variableTree = Tree(variables.Roots, watchTree: false);
         var watchTree = Tree(watches.Items, watchTree: true);
-        var addWatch = SmallButton(Icons.Plus, "Add a watch expression", () => _ = AddWatchAsync());
+        var addWatch = SmallButton(Icons.Plus, () => Strings.ToolsDebugAddWatchTip, () => _ = AddWatchAsync());
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,1.6*,Auto,1.2*") };
-        Place(grid, Pane("Call Stack", null, stackBody), 0);
+        Place(grid, Pane(() => Strings.ToolsDebugPaneCallStack, null, stackBody), 0);
         Place(grid, Splitter(), 1);
-        Place(grid, Pane("Variables", null, new Panel { Children = { variableTree, variablesMessage } }), 2);
+        Place(grid, Pane(() => Strings.ToolsDebugPaneVariables, null, new Panel { Children = { variableTree, variablesMessage } }), 2);
         Place(grid, Splitter(), 3);
         var watchHint = Message();
-        watchHint.Text = "Press + to watch an expression, or right-click a variable and choose Add to Watch.";
+        watchHint.Localize(TextBlock.TextProperty, () => Strings.ToolsDebugWatchHint);
         void UpdateWatchHint() => watchHint.IsVisible = watches.Items.Count == 0;
         watches.Items.CollectionChanged += (_, _) => UpdateWatchHint();
         UpdateWatchHint();
-        Place(grid, Pane("Watch", addWatch, new Panel { Children = { watchTree, watchHint } }), 4);
+        Place(grid, Pane(() => Strings.ToolsDebugPaneWatch, addWatch, new Panel { Children = { watchTree, watchHint } }), 4);
         return grid;
     }
 
@@ -235,7 +238,7 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
 
     private static GridSplitter Splitter() => new() { ResizeDirection = GridResizeDirection.Columns, Width = 1, Classes = { "workbench" } };
 
-    private static DockPanel Pane(string name, Control? action, Control content)
+    private static DockPanel Pane(Func<string> name, Control? action, Control content)
     {
         var header = new DockPanel { Margin = new Thickness(10, 6, 6, 4), Height = 22 };
         if (action is not null)
@@ -244,7 +247,7 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
             header.Children.Add(action);
         }
 
-        header.Children.Add(new TextBlock { Text = name, FontWeight = FontWeight.SemiBold, FontSize = 12, VerticalAlignment = VerticalAlignment.Center });
+        header.Children.Add(new TextBlock { FontWeight = FontWeight.SemiBold, FontSize = 12, VerticalAlignment = VerticalAlignment.Center }.Localize(TextBlock.TextProperty, name));
         DockPanel.SetDock(header, Dock.Top);
         return new DockPanel { MinWidth = 140, Children = { header, content } };
     }
@@ -262,7 +265,7 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new Panel { Width = 12, Children = { marker } }, name } };
         if (frame.Location is { } location)
             row.Children.Add(new TextBlock { Text = location, Classes = { "caption", "muted" }, VerticalAlignment = VerticalAlignment.Center });
-        ToolTip.SetTip(row, frame.Frame.Source?.Path ?? "No source for this frame");
+        ToolTip.SetTip(row, frame.Frame.Source?.Path ?? Strings.ToolsDebugNoSource);
         return row;
     }
 
@@ -333,30 +336,30 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
         var menu = new ContextMenu();
         if (tree.SelectedItem is VariableNode { IsPlaceholder: false } node)
         {
-            menu.Items.Add(Item("Copy Value", Icons.Copy, () => _ = CopyAsync(node.Value)));
+            menu.Items.Add(Item(Strings.ToolsDebugCopyValue, Icons.Copy, () => _ = CopyAsync(node.Value)));
             if (!node.IsScope && !watchTree)
-                menu.Items.Add(Item("Add to Watch", Icons.Eye, () => watches.Add(node.Name)));
+                menu.Items.Add(Item(Strings.ToolsDebugAddToWatch, Icons.Eye, () => watches.Add(node.Name)));
             if (watchTree && items.IndexOf(node) is >= 0 and var index)
             {
-                menu.Items.Add(Item("Edit Watch...", null, () => _ = EditWatchAsync(index, node.Name)));
-                menu.Items.Add(Item("Remove Watch", Icons.Trash, () => watches.Remove(index)));
+                menu.Items.Add(Item(Strings.ToolsDebugEditWatch, null, () => _ = EditWatchAsync(index, node.Name)));
+                menu.Items.Add(Item(Strings.ToolsDebugRemoveWatch, Icons.Trash, () => watches.Remove(index)));
             }
         }
 
         if (watchTree)
-            menu.Items.Add(Item("Add Watch...", Icons.Plus, () => _ = AddWatchAsync()));
+            menu.Items.Add(Item(Strings.ToolsDebugAddWatch, Icons.Plus, () => _ = AddWatchAsync()));
         return menu;
     }
 
     private async Task AddWatchAsync()
     {
-        if (await Prompt.AskAsync(notifications.Dialogs, "Add Watch", "Expression", validate: text => text.Length == 0 ? "Type an expression." : null) is { Length: > 0 } expression)
+        if (await Prompt.AskAsync(notifications.Dialogs, Strings.ToolsDebugAddWatchTitle, Strings.ToolsDebugExpression, validate: text => text.Length == 0 ? Strings.ToolsDebugExpressionRequired : null) is { Length: > 0 } expression)
             watches.Add(expression);
     }
 
     private async Task EditWatchAsync(int index, string expression)
     {
-        if (await Prompt.AskAsync(notifications.Dialogs, "Edit Watch", "Expression", expression) is { } edited)
+        if (await Prompt.AskAsync(notifications.Dialogs, Strings.ToolsDebugEditWatchTitle, Strings.ToolsDebugExpression, expression) is { } edited)
             watches.Edit(index, edited);
     }
 
@@ -410,10 +413,10 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
         {
             Items =
             {
-                Item("Copy Line", Icons.Copy, () => _ = CopyAsync(list.SelectedItem is ConsoleLine line ? line.Text : null)),
-                Item("Copy All", null, () => _ = CopyAsync(shownConsole?.GetText())),
+                Item(Strings.ToolsCopyLine, Icons.Copy, () => _ = CopyAsync(list.SelectedItem is ConsoleLine line ? line.Text : null)),
+                Item(Strings.ToolsCopyAll, null, () => _ = CopyAsync(shownConsole?.GetText())),
                 new Separator(),
-                Item("Clear", Icons.Trash, () => shownConsole?.Clear()),
+                Item(Strings.ToolsClear, Icons.Trash, () => shownConsole?.Clear()),
             },
         };
         return list;
@@ -486,7 +489,7 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
             }
 
             filters.IsVisible = true;
-            filters.Children.Add(new TextBlock { Text = "Stop on", Classes = { "muted" }, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) });
+            filters.Children.Add(new TextBlock { Text = Strings.ToolsDebugStopOn, Classes = { "muted" }, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) });
             foreach (var filter in breakpointList.ExceptionFilters)
             {
                 var box = new CheckBox { Content = filter.Label, IsChecked = filter.IsEnabled, Margin = new Thickness(0, 0, 14, 0) };
@@ -507,12 +510,14 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
             Margin = new Thickness(6, 4, 8, 0),
             Children =
             {
-                SmallButton(Icons.Check, "Enable all breakpoints", () => breakpoints.EnableAll(true)),
-                SmallButton(Icons.Slash, "Disable all breakpoints", () => breakpoints.EnableAll(false)),
-                SmallButton(Icons.Trash, "Remove all breakpoints", () => _ = commands.ExecuteAsync(DebugCommands.RemoveAllBreakpoints)),
+                SmallButton(Icons.Check, () => Strings.ToolsDebugEnableAll, () => breakpoints.EnableAll(true)),
+                SmallButton(Icons.Slash, () => Strings.ToolsDebugDisableAll, () => breakpoints.EnableAll(false)),
+                SmallButton(Icons.Trash, () => Strings.ToolsDebugRemoveAll, () => _ = commands.ExecuteAsync(DebugCommands.RemoveAllBreakpoints)),
             },
         };
-        var empty = new EmptyState { Icon = Icons.Circle, Title = "No breakpoints", Hint = "Click beside a line number, or press F9 on a line, to add one." };
+        var empty = new EmptyState { Icon = Icons.Circle }
+            .Localize(EmptyState.TitleProperty, () => Strings.ToolsDebugNoBreakpoints)
+            .Localize(EmptyState.HintProperty, () => Strings.ToolsDebugNoBreakpointsHint);
         void UpdateEmpty() => empty.IsVisible = breakpointList.Items.Count == 0;
         breakpointList.Items.CollectionChanged += (_, _) => UpdateEmpty();
         UpdateEmpty();
@@ -543,7 +548,7 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
         if (item.Detail is { } detail)
             row.Children.Add(new TextBlock { Text = detail, Classes = { "caption" }, VerticalAlignment = VerticalAlignment.Center });
         if (item.IsUnverified)
-            row.Children.Add(new TextBlock { Text = item.Status?.Message ?? "Not set yet", Classes = { "caption", "muted" }, VerticalAlignment = VerticalAlignment.Center });
+            row.Children.Add(new TextBlock { Text = item.Status?.Message ?? Strings.ToolsDebugBreakpointNotSet, Classes = { "caption", "muted" }, VerticalAlignment = VerticalAlignment.Center });
         ToolTip.SetTip(row, item.Breakpoint.Path);
         return row;
     }
@@ -555,11 +560,11 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
             return menu;
 
         var target = new ContextMenuTarget(item.Breakpoint.Path) { Lines = (item.Breakpoint.Line + 1, item.Breakpoint.Line + 1) };
-        menu.Items.Add(Item("Go to Line", null, () => open(item.Breakpoint.Path, item.Breakpoint.Line + 1, 1)));
-        menu.Items.Add(Item("Edit Breakpoint...", Icons.Settings, () => _ = commands.ExecuteAsync(DebugCommands.EditBreakpoint, target)));
+        menu.Items.Add(Item(Strings.ToolsDebugGoToLine, null, () => open(item.Breakpoint.Path, item.Breakpoint.Line + 1, 1)));
+        menu.Items.Add(Item(Strings.ToolsDebugEditBreakpoint, Icons.Settings, () => _ = commands.ExecuteAsync(DebugCommands.EditBreakpoint, target)));
         menu.Items.Add(Item(item.IsEnabled ? "Disable" : "Enable", null, () => item.IsEnabled = !item.IsEnabled));
         menu.Items.Add(new Separator());
-        menu.Items.Add(Item("Remove", Icons.Trash, () => breakpointList.Remove(item)));
+        menu.Items.Add(Item(Strings.ToolsRemove, Icons.Trash, () => breakpointList.Remove(item)));
         return menu;
     }
 
@@ -571,10 +576,9 @@ internal sealed class DebugView : DockPanel, IToolWindowHeader
         return path;
     }
 
-    private static Button SmallButton(Geometry icon, string tip, Action action)
+    private static Button SmallButton(Geometry icon, Func<string> tip, Action action)
     {
-        var button = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = icon, Size = 14 } };
-        ToolTip.SetTip(button, tip);
+        var button = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = icon, Size = 14 } }.Localize(ToolTip.TipProperty, tip);
         button.Click += (_, _) => action();
         return button;
     }

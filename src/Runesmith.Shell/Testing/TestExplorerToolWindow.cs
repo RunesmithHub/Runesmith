@@ -43,7 +43,7 @@ public sealed class TestExplorerToolWindow : IToolWindowProvider
         tests.Tree.Changed += (_, _) => UpdateBadge();
     }
 
-    public ToolWindowDefinition Definition { get; } = new(Id, "Test Explorer", TestIcons.Tests, DockSide.Bottom) { Order = 3, KeyBinding = "Ctrl+Shift+J" };
+    public ToolWindowDefinition Definition => new(Id, Strings.ToolsWindowTestExplorer, TestIcons.Tests, DockSide.Bottom) { Order = 3, KeyBinding = "Ctrl+Shift+J" };
 
     public Control CreateContent()
     {

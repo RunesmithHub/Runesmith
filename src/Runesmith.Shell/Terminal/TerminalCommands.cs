@@ -17,21 +17,21 @@ public sealed class TerminalCommands(Lazy<TerminalToolWindow> window, Lazy<Edito
     public const string RunSelection = "terminal.runSelection";
     public const string OpenHere = "terminal.openHere";
 
-    private const string Category = "Terminal";
+    private static string Category => Strings.ToolsCategoryTerminal;
 
     public void Contribute(ICommandRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(registry);
         TerminalIcons.Register();
         registry.Add(
-            new CommandDefinition(New, "New Terminal", Category) { Icon = "plus", KeyBinding = "Ctrl+Shift+`", Description = "Start your shell in a new terminal tab." },
+            new CommandDefinition(New, Strings.ToolsTerminalNewTerminal, Category) { Icon = "plus", KeyBinding = "Ctrl+Shift+`", Description = Strings.ToolsTerminalNewTerminalDescription },
             _ =>
             {
                 window.Value.NewShell();
                 return Task.CompletedTask;
             });
         registry.Add(
-            new CommandDefinition(Kill, "Kill Terminal", Category) { Icon = "trash", Description = "End the selected terminal's program and close its tab." },
+            new CommandDefinition(Kill, Strings.ToolsTerminalKillTerminal, Category) { Icon = "trash", Description = Strings.ToolsTerminalKillTerminalDescription },
             _ =>
             {
                 window.Value.Active?.Close();
@@ -39,7 +39,7 @@ public sealed class TerminalCommands(Lazy<TerminalToolWindow> window, Lazy<Edito
             },
             _ => window.Value.Active is not null);
         registry.Add(
-            new CommandDefinition(Clear, "Clear Terminal", Category) { Icon = "eraser", Description = "Clear the selected terminal's screen and scrollback." },
+            new CommandDefinition(Clear, Strings.ToolsTerminalClearTerminal, Category) { Icon = "eraser", Description = Strings.ToolsTerminalClearTerminalDescription },
             _ =>
             {
                 window.Value.ClearActive();
@@ -47,11 +47,11 @@ public sealed class TerminalCommands(Lazy<TerminalToolWindow> window, Lazy<Edito
             },
             _ => window.Value.Active is not null);
         registry.Add(
-            new CommandDefinition(RunSelection, "Run Selected Text in Terminal", Category) { Icon = TerminalIcons.Terminal, Description = "Type the editor's selection, or its line, into the terminal and press Enter." },
+            new CommandDefinition(RunSelection, Strings.ToolsTerminalRunSelectedTextInTerminal, Category) { Icon = TerminalIcons.Terminal, Description = Strings.ToolsTerminalRunSelectedTextInTerminalDescription },
             _ => RunSelectionAsync(),
             _ => editors.Value.Active is not null);
         registry.Add(
-            new CommandDefinition(OpenHere, "Open in Terminal", Category) { Icon = TerminalIcons.Terminal, Description = "Start your shell in this folder.", ShowInPalette = false },
+            new CommandDefinition(OpenHere, Strings.ToolsTerminalOpenInTerminal, Category) { Icon = TerminalIcons.Terminal, Description = Strings.ToolsTerminalOpenInTerminalDescription, ShowInPalette = false },
             argument =>
             {
                 if (argument is ContextMenuTarget target)

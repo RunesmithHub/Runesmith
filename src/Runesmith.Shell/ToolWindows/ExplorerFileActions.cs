@@ -14,21 +14,21 @@ internal sealed class ExplorerFileActions(WorkspaceEditService edits, IEditorSer
     {
         var path = Path.Combine(parent, name);
         FileOperation operation = folder ? new CreateFolderOperation(path) : new CreateFileOperation(path);
-        if (await ApplyAsync(operation, $"{name} could not be created") && !folder)
+        if (await ApplyAsync(operation, Strings.ToolsExplorerCreateFailed(name)) && !folder)
             await editors.OpenAsync(path);
     }
 
     /// <summary>Gives a file or folder a new name in the same folder.</summary>
     public Task RenameAsync(string path, string name) =>
-        ApplyAsync(new RenameFileOperation(path, Path.Combine(Path.GetDirectoryName(path)!, name)), $"{Path.GetFileName(path)} could not be renamed");
+        ApplyAsync(new RenameFileOperation(path, Path.Combine(Path.GetDirectoryName(path)!, name)), Strings.ToolsExplorerRenameFailed(Path.GetFileName(path)));
 
     /// <summary>Deletes a file, or a folder with everything in it, once the user agrees.</summary>
     public async Task DeleteAsync(string path, bool isFolder)
     {
         var name = Path.GetFileName(path);
-        var what = isFolder ? $"the folder {name} and everything in it" : name;
-        if (await notifications.ConfirmAsync("Delete?", $"Delete {what}?", "Delete", isDestructive: true))
-            await ApplyAsync(new DeleteFileOperation(path) { Recursive = isFolder }, $"{name} could not be deleted");
+        var question = isFolder ? Strings.ToolsExplorerDeleteFolder(name) : Strings.ToolsExplorerDeleteFile(name);
+        if (await notifications.ConfirmAsync(Strings.ToolsExplorerDeleteTitle, question, Strings.ToolsExplorerDelete, isDestructive: true))
+            await ApplyAsync(new DeleteFileOperation(path) { Recursive = isFolder }, Strings.ToolsExplorerDeleteFailed(name));
     }
 
     private async Task<bool> ApplyAsync(FileOperation operation, string failure)

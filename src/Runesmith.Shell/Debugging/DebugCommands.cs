@@ -31,7 +31,7 @@ public sealed class DebugCommands(
     public const string RemoveAllBreakpoints = "debug.removeAllBreakpoints";
     public const string AddWatch = "debug.addWatch";
 
-    private const string Category = "Debug";
+    private static string Category => Strings.ToolsCategoryDebug;
     private const string Menu = Menus.Run;
 
     public void Contribute(ICommandRegistry registry)
@@ -39,56 +39,56 @@ public sealed class DebugCommands(
         ArgumentNullException.ThrowIfNull(registry);
         DebugIcons.Register();
         registry.Add(
-            new CommandDefinition(CommandIds.ToggleBreakpoint, "Toggle Breakpoint", Category) { Icon = DebugIcons.Breakpoint, KeyBinding = "F9", Description = "Add a breakpoint to the line, or remove its breakpoint." },
+            new CommandDefinition(CommandIds.ToggleBreakpoint, Strings.ToolsDebugToggleBreakpoint, Category) { Icon = DebugIcons.Breakpoint, KeyBinding = "F9", Description = Strings.ToolsDebugToggleBreakpointDescription },
             argument => Run(() => Toggle(argument)),
             argument => TargetOf(argument) is not null);
         registry.Add(
-            new CommandDefinition(EditBreakpoint, "Edit Breakpoint...", Category) { Icon = "settings", Description = "Set the breakpoint's condition, hit count or log message." },
+            new CommandDefinition(EditBreakpoint, Strings.ToolsDebugEditBreakpoint, Category) { Icon = "settings", Description = Strings.ToolsDebugEditBreakpointDescription },
             argument => EditAsync(argument, logPoint: false),
             argument => TargetOf(argument) is not null);
         registry.Add(
-            new CommandDefinition(AddLogPoint, "Add Log Point...", Category) { Icon = DebugIcons.LogPoint, Description = "Write a message to the debug console when the line runs, without stopping." },
+            new CommandDefinition(AddLogPoint, Strings.ToolsDebugAddLogPoint, Category) { Icon = DebugIcons.LogPoint, Description = Strings.ToolsDebugAddLogPointDescription },
             argument => EditAsync(argument, logPoint: true),
             argument => TargetOf(argument) is { } target && breakpoints.Find(target.Path, target.Line) is null);
         registry.Add(
-            new CommandDefinition(ToggleBreakpointEnabled, "Enable or Disable Breakpoint", Category) { Description = "Turn the line's breakpoint off without removing it, or on again." },
+            new CommandDefinition(ToggleBreakpointEnabled, Strings.ToolsDebugEnableOrDisableBreakpoint, Category) { Description = Strings.ToolsDebugEnableOrDisableBreakpointDescription },
             argument => Run(() => ToggleEnabled(argument)),
             argument => TargetOf(argument) is { } target && breakpoints.Find(target.Path, target.Line) is not null);
         registry.Add(
-            new CommandDefinition(RemoveAllBreakpoints, "Remove All Breakpoints", Category) { Icon = "trash", Description = "Remove every breakpoint in the folder." },
+            new CommandDefinition(RemoveAllBreakpoints, Strings.ToolsDebugRemoveAllBreakpoints, Category) { Icon = "trash", Description = Strings.ToolsDebugRemoveAllBreakpointsDescription },
             _ => RemoveAllAsync(),
             _ => breakpoints.All.Count > 0);
         registry.Add(
-            new CommandDefinition(AddWatch, "Add Watch...", Category) { Icon = "eye", Description = "Watch an expression's value while debugging." },
+            new CommandDefinition(AddWatch, Strings.ToolsDebugAddWatch, Category) { Icon = "eye", Description = Strings.ToolsDebugAddWatchDescription },
             _ => AddWatchAsync(),
             _ => true);
 
         registry.Add(
-            new CommandDefinition(CommandIds.Continue, "Continue", Category) { Icon = DebugIcons.Continue, KeyBinding = "F5", Description = "Resume the paused program, or start debugging the selected configuration." },
+            new CommandDefinition(CommandIds.Continue, Strings.ToolsDebugContinue, Category) { Icon = DebugIcons.Continue, KeyBinding = "F5", Description = Strings.ToolsDebugContinueDescription },
             _ => ContinueAsync(),
             _ => debug.Current is { State: DebugState.Paused } || debug.Current is null && runCommands.Value.WhyCannotDebug(configurations.Value.Selected) is null);
         registry.Add(
-            new CommandDefinition(CommandIds.Pause, "Pause", Category) { Icon = "pause", Description = "Pause the running program." },
+            new CommandDefinition(CommandIds.Pause, Strings.ToolsDebugPause, Category) { Icon = "pause", Description = Strings.ToolsDebugPauseDescription },
             _ => debug.Current?.PauseAsync() ?? Task.CompletedTask,
             _ => debug.Current is { State: DebugState.Running });
         registry.Add(
-            new CommandDefinition(CommandIds.StepOver, "Step Over", Category) { Icon = DebugIcons.StepOver, KeyBinding = "F10", Description = "Run the current line and pause at the next one." },
+            new CommandDefinition(CommandIds.StepOver, Strings.ToolsDebugStepOver, Category) { Icon = DebugIcons.StepOver, KeyBinding = "F10", Description = Strings.ToolsDebugStepOverDescription },
             _ => debug.Current?.StepOverAsync() ?? Task.CompletedTask,
             _ => IsPaused);
         registry.Add(
-            new CommandDefinition(CommandIds.StepInto, "Step Into", Category) { Icon = DebugIcons.StepInto, KeyBinding = "F11", Description = "Step into the call on the current line." },
+            new CommandDefinition(CommandIds.StepInto, Strings.ToolsDebugStepInto, Category) { Icon = DebugIcons.StepInto, KeyBinding = "F11", Description = Strings.ToolsDebugStepIntoDescription },
             _ => debug.Current?.StepIntoAsync() ?? Task.CompletedTask,
             _ => IsPaused);
         registry.Add(
-            new CommandDefinition(CommandIds.StepOut, "Step Out", Category) { Icon = DebugIcons.StepOut, KeyBinding = "Shift+F11", Description = "Run until the current function returns." },
+            new CommandDefinition(CommandIds.StepOut, Strings.ToolsDebugStepOut, Category) { Icon = DebugIcons.StepOut, KeyBinding = "Shift+F11", Description = Strings.ToolsDebugStepOutDescription },
             _ => debug.Current?.StepOutAsync() ?? Task.CompletedTask,
             _ => IsPaused);
         registry.Add(
-            new CommandDefinition(CommandIds.RestartDebugging, "Restart Debugging", Category) { Icon = "rotate-cw", KeyBinding = "Ctrl+Shift+F5", Description = "Stop the program and debug it again." },
+            new CommandDefinition(CommandIds.RestartDebugging, Strings.ToolsDebugRestartDebugging, Category) { Icon = "rotate-cw", KeyBinding = "Ctrl+Shift+F5", Description = Strings.ToolsDebugRestartDebuggingDescription },
             _ => RestartAsync(),
             _ => debug.Current is { } session && debug.RunOf(session) is not null);
         registry.Add(
-            new CommandDefinition(CommandIds.StopDebugging, "Stop Debugging", Category) { Icon = "stop", KeyBinding = "Shift+F5", Description = "End the program and the debugger." },
+            new CommandDefinition(CommandIds.StopDebugging, Strings.ToolsDebugStopDebugging, Category) { Icon = "stop", KeyBinding = "Shift+F5", Description = Strings.ToolsDebugStopDebuggingDescription },
             _ => StopAsync(),
             _ => debug.Current is not null);
 
@@ -166,7 +166,7 @@ public sealed class DebugCommands(
     private async Task RemoveAllAsync()
     {
         var count = breakpoints.All.Count;
-        if (count > 1 && !await notifications.ConfirmAsync("Remove all breakpoints", $"Remove all {count} breakpoints in the folder?", "Remove All", isDestructive: true))
+        if (count > 1 && !await notifications.ConfirmAsync(Strings.ToolsDebugRemoveAllTitle, Strings.ToolsDebugRemoveAllQuestion(count), Strings.ToolsDebugRemoveAllButton, isDestructive: true))
             return;
 
         breakpoints.RemoveAll();
@@ -182,7 +182,7 @@ public sealed class DebugCommands(
             : "";
         var expression = selected.Contains('\n', StringComparison.Ordinal) ? "" : selected;
         if (expression.Length == 0)
-            expression = await Prompt.AskAsync(notifications.Dialogs, "Add Watch", "Expression", validate: text => text.Length == 0 ? "Type an expression." : null) ?? "";
+            expression = await Prompt.AskAsync(notifications.Dialogs, Strings.ToolsDebugAddWatchTitle, Strings.ToolsDebugExpression, validate: text => text.Length == 0 ? Strings.ToolsDebugExpressionRequired : null) ?? "";
         if (expression.Length == 0)
             return;
 

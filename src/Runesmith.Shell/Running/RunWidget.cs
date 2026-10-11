@@ -73,14 +73,20 @@ public sealed class RunWidget : StackPanel
         var selected = configurations.Selected;
         var type = selected is null ? null : configurations.FindType(selected.TypeId);
         selectorIcon.Data = Icons.Find(type?.Icon) ?? Icons.Play;
-        selectorName.Text = selected?.Name ?? (configurations.IsDetecting ? "Finding configurations..." : "Add Configuration...");
-        ToolTip.SetTip(selector, selected is null ? "Choose or add a run configuration" : $"{selected.Name} ({type?.Name ?? selected.TypeId})");
+        selectorName.Text = selected?.Name ?? (configurations.IsDetecting ? Strings.ToolsRunFinding : Strings.ToolsRunAddConfiguration);
+        ToolTip.SetTip(selector, selected is null ? Strings.ToolsRunChooseTip : Strings.ToolsRunSelectorTip(selected.Name, type?.Name ?? selected.TypeId));
 
-        var name = selected is null ? "" : $" {selected.Name}";
-        Sync(run, CommandIds.Run, $"Run{name}");
-        Sync(debug, CommandIds.Debug, runCommands.WhyCannotDebug(selected) is { } reason ? $"Debug{name}: {reason}" : $"Debug{name}");
-        Sync(stop, CommandIds.Stop, "Stop");
-        Sync(build, CommandIds.Build, selected is null ? "Build" : $"Build{name}");
+        var reason = runCommands.WhyCannotDebug(selected);
+        Sync(run, CommandIds.Run, selected is null ? Strings.ToolsRunRun : Strings.ToolsRunTipRun(selected.Name));
+        Sync(debug, CommandIds.Debug, (selected, reason) switch
+        {
+            (null, null) => Strings.ToolsRunTipDebugNone,
+            (null, { } why) => Strings.ToolsRunTipDebugNoneReason(why),
+            ({ } some, null) => Strings.ToolsRunTipDebug(some.Name),
+            ({ } some, { } why) => Strings.ToolsRunTipDebugReason(some.Name, why),
+        });
+        Sync(stop, CommandIds.Stop, Strings.ToolsRunTipStop);
+        Sync(build, CommandIds.Build, selected is null ? Strings.ToolsRunTipBuildNone : Strings.ToolsRunTipBuild(selected.Name));
     }
 
     private void Sync(Button button, string commandId, string tip)
@@ -114,12 +120,12 @@ public sealed class RunWidget : StackPanel
         }
 
         if (all.Count == 0)
-            menu.Items.Add(new MenuItem { Header = configurations.IsDetecting ? "Finding configurations..." : "No configurations yet", IsEnabled = false });
+            menu.Items.Add(new MenuItem { Header = configurations.IsDetecting ? Strings.ToolsRunFinding : Strings.ToolsRunNoConfigurationsYet, IsEnabled = false });
 
         menu.Items.Add(new Separator());
         var edit = new CommandMenuItem
         {
-            Header = "Edit Configurations...",
+            Header = Strings.ToolsRunEditConfigurations,
             Icon = new SymbolIcon { Data = Icons.Settings, Size = 14 },
             GestureText = commands.GetKeyBinding(CommandIds.EditConfigurations),
         };

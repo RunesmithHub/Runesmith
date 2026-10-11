@@ -7,6 +7,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Documents;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Sdk.Workspace;
@@ -49,7 +50,7 @@ public sealed class RunToolWindow : IToolWindowProvider
         runs.StateChanged += (_, _) => UiThread.Run(UpdateBadge);
     }
 
-    public ToolWindowDefinition Definition { get; } = new(Id, "Run", "play", DockSide.Bottom) { Order = -1 };
+    public ToolWindowDefinition Definition => new(Id, Strings.ToolsWindowRun, "play", DockSide.Bottom) { Order = -1 };
 
     public Control CreateContent()
     {
@@ -63,12 +64,9 @@ public sealed class RunToolWindow : IToolWindowProvider
         if (runs.Sessions.Count > 0)
             tabs.SelectedIndex = runs.Sessions.Count - 1;
 
-        var empty = new EmptyState
-        {
-            Icon = Icons.Play,
-            Title = "Nothing has run yet",
-            Hint = "Choose a run configuration in the toolbar and press Run, or Shift+F10.",
-        };
+        var empty = new EmptyState { Icon = Icons.Play }
+            .Localize(EmptyState.TitleProperty, () => Strings.ToolsRunNothingYet)
+            .Localize(EmptyState.HintProperty, () => Strings.ToolsRunNothingYetHint);
         void Update() => empty.IsVisible = runs.Sessions.Count == 0;
         runs.Sessions.CollectionChanged += (_, e) =>
         {
@@ -109,7 +107,7 @@ public sealed class RunToolWindow : IToolWindowProvider
         var name = new TextBlock { Text = session.Configuration.Name, VerticalAlignment = VerticalAlignment.Center };
         var dot = new Border { Width = 6, Height = 6, CornerRadius = new CornerRadius(3), VerticalAlignment = VerticalAlignment.Center };
         var close = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.X, Size = 12 }, Padding = new Thickness(2), VerticalAlignment = VerticalAlignment.Center };
-        ToolTip.SetTip(close, "Close; stops the run when it still runs");
+        ToolTip.SetTip(close, Strings.ToolsRunCloseTip);
         close.Click += (_, e) =>
         {
             e.Handled = true;

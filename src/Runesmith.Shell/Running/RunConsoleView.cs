@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Editor;
 
 namespace Runesmith.Shell.Running;
@@ -55,8 +56,8 @@ internal sealed class RunConsoleView : DockPanel
         {
             Items =
             {
-                MenuItem("Copy Line", Icons.Copy, () => _ = CopyAsync(list.SelectedItem is ConsoleLine line ? line.Text : null)),
-                MenuItem("Copy All", null, () => _ = CopyAsync(session.Console.GetText())),
+                MenuItem(Strings.ToolsCopyLine, Icons.Copy, () => _ = CopyAsync(list.SelectedItem is ConsoleLine line ? line.Text : null)),
+                MenuItem(Strings.ToolsCopyAll, null, () => _ = CopyAsync(session.Console.GetText())),
                 new Separator(),
                 MenuItem("Clear", Icons.Trash, session.Console.Clear),
             },
@@ -75,7 +76,7 @@ internal sealed class RunConsoleView : DockPanel
         };
         DockPanel.SetDock(bar, Dock.Top);
 
-        input = new TextBox { PlaceholderText = "Type input for the program and press Enter", Classes = { "small" }, Margin = new Thickness(8, 4, 8, 6) };
+        input = new TextBox { Classes = { "small" }, Margin = new Thickness(8, 4, 8, 6) }.Localize(TextBox.PlaceholderTextProperty, () => Strings.ToolsRunInput);
         input.KeyDown += (_, e) =>
         {
             if (e.Key == Key.Enter)
@@ -148,16 +149,16 @@ internal sealed class RunConsoleView : DockPanel
         stop.IsEnabled = running;
         input.IsVisible = session.ReadsInput;
         input.IsEnabled = session.State == RunState.Running;
-        var time = session.Elapsed.TotalSeconds.ToString(session.Elapsed.TotalSeconds < 60 ? "0.0" : "0", CultureInfo.CurrentCulture) + " s";
+        var time = session.Elapsed.TotalSeconds < 60 ? Strings.ToolsRunTime(session.Elapsed.TotalSeconds) : Strings.ToolsRunTimeWhole(session.Elapsed.TotalSeconds);
         string brush;
         if (session.State == RunState.Preparing)
         {
-            (statusIcon.Data, brush, status.Text) = (Icons.RotateCw, "TextMutedBrush", $"Preparing  {time}");
+            (statusIcon.Data, brush, status.Text) = (Icons.RotateCw, "TextMutedBrush", Strings.ToolsRunStatusPreparing(time));
             statusIcon.Classes.Set("spin", true);
         }
         else if (session.State == RunState.Running)
         {
-            (statusIcon.Data, brush, status.Text) = (Icons.Play, "SuccessBrush", $"Running  {time}");
+            (statusIcon.Data, brush, status.Text) = (Icons.Play, "SuccessBrush", Strings.ToolsRunStatusRunning(time));
             statusIcon.Classes.Set("spin", false);
         }
         else
@@ -165,10 +166,10 @@ internal sealed class RunConsoleView : DockPanel
             statusIcon.Classes.Set("spin", false);
             (statusIcon.Data, brush, status.Text) = session switch
             {
-                { WasStopped: true } => (Icons.Stop, "TextMutedBrush", $"Stopped after {time}"),
-                { ExitCode: null } => (Icons.AlertCircle, "DangerBrush", "Did not start"),
-                { ExitCode: 0 } => (Icons.CheckCircle, "SuccessBrush", $"Exit code 0  {time}"),
-                _ => (Icons.AlertCircle, "DangerBrush", string.Create(CultureInfo.CurrentCulture, $"Exit code {session.ExitCode}  {time}")),
+                { WasStopped: true } => (Icons.Stop, "TextMutedBrush", Strings.ToolsRunStatusStopped(time)),
+                { ExitCode: null } => (Icons.AlertCircle, "DangerBrush", Strings.ToolsRunStatusNotStarted),
+                { ExitCode: 0 } => (Icons.CheckCircle, "SuccessBrush", Strings.ToolsRunStatusExitCode(0, time)),
+                _ => (Icons.AlertCircle, "DangerBrush", Strings.ToolsRunStatusExitCode(session.ExitCode ?? 0, time)),
             };
             timer.Interval = TimeSpan.FromMilliseconds(250);
         }

@@ -38,7 +38,7 @@ public sealed class HierarchyToolWindow(EditorService editors, INavigationFeatur
         return true;
     });
 
-    public ToolWindowDefinition Definition { get; } = new(Id, "Hierarchy", IconRegistered.Value ? Icon : "list-tree", DockSide.Bottom) { Order = 4 };
+    public ToolWindowDefinition Definition => new(Id, Strings.ToolsWindowHierarchy, IconRegistered.Value ? Icon : "list-tree", DockSide.Bottom) { Order = 4 };
 
     /// <summary>Gets the tree the panel shows.</summary>
     public HierarchyModel Model { get; } = new(features);

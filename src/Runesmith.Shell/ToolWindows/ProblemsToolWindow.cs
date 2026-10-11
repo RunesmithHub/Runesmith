@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Build;
 using Runesmith.Sdk.Shell;
 using Runesmith.Sdk.ToolWindows;
@@ -25,12 +26,14 @@ public sealed class ProblemsToolWindow(IDiagnosticService diagnostics, IWorkspac
 {
     public const string Id = "problems";
 
-    public ToolWindowDefinition Definition { get; } = new(Id, "Problems", "alert-triangle", DockSide.Bottom) { IsVisibleByDefault = true, KeyBinding = "Ctrl+Shift+M" };
+    public ToolWindowDefinition Definition => new(Id, Strings.ToolsWindowProblems, "alert-triangle", DockSide.Bottom) { IsVisibleByDefault = true, KeyBinding = "Ctrl+Shift+M" };
 
     public Control CreateContent()
     {
         var tree = new TreeView { ItemTemplate = new FuncTreeDataTemplate<object?>((item, _) => item is null ? new Panel() : Row(item), item => item is FileGroup group ? group.Problems : []) };
-        var empty = new EmptyState { Icon = Icons.CheckCircle, Title = "No problems", Hint = "Errors and warnings from the language analyzers and builds show here." };
+        var empty = new EmptyState { Icon = Icons.CheckCircle }
+            .Localize(EmptyState.TitleProperty, () => Strings.ToolsProblemsNone)
+            .Localize(EmptyState.HintProperty, () => Strings.ToolsProblemsNoneHint);
         tree.SelectionChanged += (_, _) =>
         {
             if (tree.SelectedItem is Diagnostic problem)
@@ -138,7 +141,7 @@ public sealed class ProblemsToolWindow(IDiagnosticService diagnostics, IWorkspac
         var source = problem.Code is null ? problem.Source : $"{problem.Source} {problem.Code}";
         var where = new TextBlock
         {
-            Text = $"{source}  [Ln {problem.Start.Line + 1}, Col {problem.Start.Column + 1}]",
+            Text = Strings.ToolsProblemsWhere(source ?? "", problem.Start.Line + 1, problem.Start.Column + 1),
             Classes = { "caption", "muted" },
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(8, 0, 0, 0),

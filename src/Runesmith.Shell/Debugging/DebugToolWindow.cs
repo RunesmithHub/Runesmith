@@ -1,5 +1,6 @@
 using System.Composition;
 using Avalonia.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Dap.Protocol;
 using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.Shell;
@@ -56,7 +57,7 @@ public sealed class DebugToolWindow : IToolWindowProvider
         };
     }
 
-    public ToolWindowDefinition Definition { get; } = new(Id, "Debug", "bug", DockSide.Bottom) { Order = 0, KeyBinding = "Ctrl+Shift+D" };
+    public ToolWindowDefinition Definition => new(Id, Strings.ToolsWindowDebug, "bug", DockSide.Bottom) { Order = 0, KeyBinding = "Ctrl+Shift+D" };
 
     public Control CreateContent()
     {
@@ -127,11 +128,11 @@ public sealed class DebugToolWindow : IToolWindowProvider
 
     internal static string Reason(string reason) => reason switch
     {
-        "breakpoint" => "at a breakpoint",
-        "step" => "after a step",
-        "exception" => "on an exception",
-        "pause" => "on request",
-        "entry" => "at the start",
+        "breakpoint" => Strings.ToolsDebugReasonBreakpoint,
+        "step" => Strings.ToolsDebugReasonStep,
+        "exception" => Strings.ToolsDebugReasonException,
+        "pause" => Strings.ToolsDebugReasonPause,
+        "entry" => Strings.ToolsDebugReasonEntry,
         _ => reason,
     };
 }

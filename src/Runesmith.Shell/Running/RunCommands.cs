@@ -30,15 +30,15 @@ public sealed class RunCommands(
     {
         ArgumentNullException.ThrowIfNull(registry);
         registry.Add(
-            new CommandDefinition(CommandIds.Run, "Run", "Run") { Icon = "play", KeyBinding = "Shift+F10", Description = "Run the selected run configuration." },
+            new CommandDefinition(CommandIds.Run, Strings.ToolsRunRun, Strings.ToolsCategoryRun) { Icon = "play", KeyBinding = "Shift+F10", Description = Strings.ToolsRunRunDescription },
             _ => RunSelectedAsync(),
             _ => workspace.RootPath is not null);
         registry.Add(
-            new CommandDefinition(CommandIds.Debug, "Debug", "Run") { Icon = "bug", KeyBinding = "Shift+F9", Description = "Debug the selected run configuration." },
+            new CommandDefinition(CommandIds.Debug, Strings.ToolsRunDebug, Strings.ToolsCategoryRun) { Icon = "bug", KeyBinding = "Shift+F9", Description = Strings.ToolsRunDebugDescription },
             _ => DebugSelectedAsync(),
             _ => WhyCannotDebug(configurations.Selected) is null);
         registry.Add(
-            new CommandDefinition(CommandIds.Stop, "Stop", "Run") { Icon = "stop", KeyBinding = "Ctrl+F2", Description = "Stop the selected configuration's run, or the last one that runs." },
+            new CommandDefinition(CommandIds.Stop, Strings.ToolsRunStop, Strings.ToolsCategoryRun) { Icon = "stop", KeyBinding = "Ctrl+F2", Description = Strings.ToolsRunStopDescription },
             _ =>
             {
                 StopSelected();
@@ -46,7 +46,7 @@ public sealed class RunCommands(
             },
             _ => runs.IsRunning);
         registry.Add(
-            new CommandDefinition(CommandIds.EditConfigurations, "Edit Configurations...", "Run") { Icon = "settings", Description = "Add, change and remove run configurations." },
+            new CommandDefinition(CommandIds.EditConfigurations, Strings.ToolsRunEditConfigurations, Strings.ToolsCategoryRun) { Icon = "settings", Description = Strings.ToolsRunEditConfigurationsDescription },
             _ => EditConfigurationsAsync(),
             _ => workspace.RootPath is not null);
 
@@ -60,12 +60,12 @@ public sealed class RunCommands(
     public string? WhyCannotDebug(RunConfiguration? configuration)
     {
         if (configuration is null)
-            return "Choose a run configuration first.";
+            return Strings.ToolsRunChooseFirst;
 
         if (configurations.FindType(configuration.TypeId) is { CanDebug: false } type)
-            return $"{type.Name} configurations cannot be debugged.";
+            return Strings.ToolsRunCannotDebugType(type.Name);
 
-        return debugger is null ? "No installed plugin provides a debugger." : debugger.Value.WhyCannotDebug;
+        return debugger is null ? Strings.ToolsRunNoDebugger : debugger.Value.WhyCannotDebug;
     }
 
     /// <summary>Debugs the selected configuration, or opens the configurations dialog when there is none.</summary>
@@ -111,7 +111,7 @@ public sealed class RunCommands(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            notifications.Notify(NotificationKind.Error, "The run configurations could not be saved", exception.Message);
+            notifications.Notify(NotificationKind.Error, Strings.ToolsRunSaveFailed, exception.Message);
         }
     }
 }
