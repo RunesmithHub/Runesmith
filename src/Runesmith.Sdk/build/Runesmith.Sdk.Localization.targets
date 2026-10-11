@@ -1,0 +1,50 @@
+<Project>
+  <!-- Localization: the Fluent files in locales/ are embedded as resources named locales/<language>/<file>.ftl, or, in a language pack,
+       locales/<language>/<target>/<file>.ftl; the English ones generate the Strings class; and CheckTranslations checks them all before
+       the code compiles. Plugins, language packs and Runesmith's own projects share these targets. -->
+  <PropertyGroup>
+    <RunesmithLocalesDir Condition="'$(RunesmithLocalesDir)' == ''">$(MSBuildProjectDirectory)/locales/</RunesmithLocalesDir>
+    <RunesmithLocalesDir>$([MSBuild]::EnsureTrailingSlash('$(RunesmithLocalesDir)'))</RunesmithLocalesDir>
+    <RunesmithStringsNamespace Condition="'$(RunesmithStringsNamespace)' == ''">$(RootNamespace)</RunesmithStringsNamespace>
+    <RunesmithManifest Condition="'$(RunesmithManifest)' == '' and '$(RunesmithPluginRoot)' != ''">$(RunesmithPluginRoot)plugin.json</RunesmithManifest>
+    <RunesmithSdkTasksAssembly Condition="'$(RunesmithSdkTasksAssembly)' == ''">$(MSBuildThisFileDirectory)../tasks/netstandard2.0/Runesmith.Sdk.Tasks.dll</RunesmithSdkTasksAssembly>
+    <AssignTargetPathsDependsOn>RunesmithEmbedLocales;$(AssignTargetPathsDependsOn)</AssignTargetPathsDependsOn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The English source, which the Strings class is generated from. -->
+    <AdditionalFiles Include="$(RunesmithLocalesDir)en/*.ftl" RunesmithStrings="true" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="RunesmithStrings" />
+    <CompilerVisibleProperty Include="RunesmithStringsNamespace" />
+    <!-- RunesmithLocalize set to true flags text users see that is written in the code. -->
+    <CompilerVisibleProperty Include="RunesmithLocalize" />
+    <!-- Runesmith's own English messages, of the Runesmith this SDK belongs to, which language packs translate. Add a RunesmithEnglishSource
+         with a TranslationTarget, its plugin id, for each plugin a language pack translates. -->
+    <RunesmithEnglishSource Include="$(MSBuildThisFileDirectory)../locales/en/runesmith/*.ftl" TranslationTarget="runesmith" />
+  </ItemGroup>
+
+  <Target Name="RunesmithEmbedLocales">
+    <ItemGroup>
+      <_RunesmithLocale Include="$(RunesmithLocalesDir)**/*.ftl" />
+    </ItemGroup>
+    <ItemGroup Condition="'@(_RunesmithLocale)' != ''">
+      <EmbeddedResource Include="@(_RunesmithLocale)" WithCulture="false" Type="Non-Resx"
+                        LogicalName="locales/$([MSBuild]::MakeRelative('$(RunesmithLocalesDir)', '%(_RunesmithLocale.FullPath)').Replace('\', '/'))" />
+    </ItemGroup>
+  </Target>
+
+  <UsingTask TaskName="Runesmith.Sdk.Tasks.CheckTranslations" AssemblyFile="$(RunesmithSdkTasksAssembly)" Condition="'$(RunesmithSdkTasksOutOfProcess)' != 'true'" />
+  <UsingTask TaskName="Runesmith.Sdk.Tasks.CheckTranslations" AssemblyFile="$(RunesmithSdkTasksAssembly)" TaskFactory="TaskHostFactory"
+             Condition="'$(RunesmithSdkTasksOutOfProcess)' == 'true'" />
+
+  <!-- Syntax errors and problems in the English source are errors; missing and unused messages, and variables that differ from the English
+       source, are warnings. RunesmithCheckTranslations set to false turns the check off. -->
+  <Target Name="CheckTranslations" BeforeTargets="CoreCompile" Condition="'$(RunesmithCheckTranslations)' != 'false' and '$(DesignTimeBuild)' != 'true'">
+    <ItemGroup>
+      <_RunesmithLocaleToCheck Include="$(RunesmithLocalesDir)**/*.ftl" />
+    </ItemGroup>
+    <CheckTranslations Condition="'@(_RunesmithLocaleToCheck)' != '' or ('$(RunesmithManifest)' != '' and Exists('$(RunesmithManifest)'))"
+                       LocalesDirectory="$(RunesmithLocalesDir)" Files="@(_RunesmithLocaleToCheck)" EnglishSources="@(RunesmithEnglishSource)"
+                       Manifest="$(RunesmithManifest)" Project="$(MSBuildProjectFullPath)" />
+  </Target>
+</Project>

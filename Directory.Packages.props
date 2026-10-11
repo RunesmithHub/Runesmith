@@ -7,6 +7,8 @@
     <AvaloniaVersion>12.1.4</AvaloniaVersion>
     <!-- The TextMate engine and its bundled grammars and themes must match. -->
     <TextMateSharpVersion>2.0.4</TextMateSharpVersion>
+    <!-- The SDK's compiler extensions build against the compiler of the oldest .NET SDK plugins build with, .NET 10's first. -->
+    <RoslynComponentVersion>5.0.0</RoslynComponentVersion>
   </PropertyGroup>
   <ItemGroup Label="User interface">
     <PackageVersion Include="Avalonia" Version="$(AvaloniaVersion)" />
@@ -32,7 +34,10 @@
     <PackageVersion Include="MessagePack.Annotations" Version="3.1.11" />
   </ItemGroup>
   <ItemGroup Label="Plugin hub">
-    <PackageVersion Include="RunesmithHub.Protocol" Version="0.1.5" />
+    <PackageVersion Include="RunesmithHub.Protocol" Version="0.1.7" />
+  </ItemGroup>
+  <ItemGroup Label="Localization">
+    <PackageVersion Include="Linguini.Bundle" Version="0.11.0" />
   </ItemGroup>
   <ItemGroup Label="Languages">
     <PackageVersion Include="TextMateSharp" Version="$(TextMateSharpVersion)" />
@@ -40,11 +45,14 @@
   </ItemGroup>
   <ItemGroup Label="Analyzers">
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
+    <!-- The SDK's build task, which runs in MSBuild on .NET and on .NET Framework. -->
+    <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="17.14.28" />
   </ItemGroup>
   <ItemGroup Label="Testing and measurement">
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <!-- The composition tests compile their test plugins with the C# compiler. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.9.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="2.5.1" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />

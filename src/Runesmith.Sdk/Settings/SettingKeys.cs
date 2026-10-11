@@ -6,6 +6,11 @@ public static class SettingKeys
     public const string Theme = "appearance.theme";
     public const string Accent = "appearance.accent";
     public const string FileIconTheme = "appearance.fileIconTheme";
+
+    /// <summary>The language Runesmith shows: <c>system</c> to follow the system's language when an installed language pack covers it, or a
+    /// BCP 47 tag such as <c>en</c> or <c>nl</c>.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public const string Language = "appearance.language";
     public const string ColorScheme = "editor.colorScheme";
 
     public const string FontFamily = "editor.fontFamily";
@@ -43,4 +48,19 @@ public static class SettingKeys
     public const string Exclude = "files.exclude";
 
     public const string RestoreSession = "window.restoreSession";
+
+    /// <summary>How a plugin shows whose translation is incomplete: <c>mix</c> shows each translated message translated and the rest in
+    /// English; <c>english</c> shows a plugin below <see cref="MinimumCoverage"/> entirely in English.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public const string UntranslatedPlugins = "localization.untranslatedPlugins";
+
+    /// <summary>The percentage of a plugin's messages its translation must cover to show translated while
+    /// <see cref="UntranslatedPlugins"/> is <c>english</c>.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public const string MinimumCoverage = "localization.minimumCoverage";
+
+    /// <summary>Whether every message shows pseudo-localized: accented, longer and in brackets, so text that is not localized and layouts
+    /// that cut text off stand out.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public const string PseudoLocalization = "localization.pseudo";
 }

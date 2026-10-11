@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Compilers in every IDE load it, some on .NET Framework. -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <!-- Shipped in the SDK package, so versioned with it. -->
+    <Version>$(RunesmithSdkVersion)</Version>
+    <Description>The SDK's compiler extensions: the Strings class generated from a project's English Fluent files, and the check for text users see that is not localized.</Description>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>true</IsRoslynComponent>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The oldest compiler plugins build with: the one of the .NET 10 SDK. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynComponentVersion)" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md;AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Runesmith.Sdk\Localization\LanguageTag.cs" Link="Shared\LanguageTag.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Runesmith.Sdk.Analyzers.CodeFixes" />
+    <InternalsVisibleTo Include="Runesmith.Sdk.Tasks" />
+    <InternalsVisibleTo Include="Runesmith.Sdk.Analyzers.Tests" />
+  </ItemGroup>
+</Project>

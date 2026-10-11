@@ -5,6 +5,8 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <PackageTags>runesmith;plugin;ide;sdk</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- The build task and the checks it loads are in tasks/ for MSBuild, not in lib/ for plugins to reference. -->
+    <NoWarn>$(NoWarn);NU5100</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" />
@@ -15,12 +17,42 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />
-    <!-- Gives plugins the RunesmithPluginLayout and InstallPlugin targets. -->
-    <None Include="build\Runesmith.Sdk.targets" Pack="true" PackagePath="build/" />
+    <!-- Gives plugins the RunesmithPluginLayout and InstallPlugin targets, and builds their Fluent files: embedded, checked and turned into
+         the Strings class. -->
+    <None Include="build\Runesmith.Sdk.targets;build\Runesmith.Sdk.Localization.targets" Pack="true" PackagePath="build/" />
+    <!-- Runesmith's own English messages, which language packs are checked against. -->
+    <None Include="..\Runesmith.*\locales\en\*.ftl" Pack="true" PackagePath="locales/en/runesmith/%(Filename)%(Extension)" Visible="false" />
   </ItemGroup>
+  <!-- The compiler extensions and the build task, built before the SDK and packed with it. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Sdk.Analyzers\Runesmith.Sdk.Analyzers.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <ProjectReference Include="..\Runesmith.Sdk.Analyzers.CodeFixes\Runesmith.Sdk.Analyzers.CodeFixes.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <ProjectReference Include="..\Runesmith.Sdk.Tasks\Runesmith.Sdk.Tasks.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackRunesmithBuildTools</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+  <Target Name="PackRunesmithBuildTools">
+    <!-- The build tools have a target framework of their own, not this project's. -->
+    <MSBuild Projects="..\Runesmith.Sdk.Analyzers\Runesmith.Sdk.Analyzers.csproj;..\Runesmith.Sdk.Analyzers.CodeFixes\Runesmith.Sdk.Analyzers.CodeFixes.csproj" Targets="GetTargetPath"
+             RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_RunesmithCompilerExtension" />
+    </MSBuild>
+    <MSBuild Projects="..\Runesmith.Sdk.Tasks\Runesmith.Sdk.Tasks.csproj" Targets="GetTargetPath" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_RunesmithBuildTask" />
+    </MSBuild>
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="@(_RunesmithCompilerExtension)" PackagePath="analyzers/dotnet/cs/" />
+      <!-- The task loads the Fluent parser and the checks from the analyzers' assembly beside it. -->
+      <TfmSpecificPackageFile Include="@(_RunesmithBuildTask);@(_RunesmithBuildTask->'%(RootDir)%(Directory)Runesmith.Sdk.Analyzers.dll')" PackagePath="tasks/netstandard2.0/" />
+    </ItemGroup>
+  </Target>
   <ItemGroup>
     <InternalsVisibleTo Include="Runesmith.Sdk.Tests" />
     <InternalsVisibleTo Include="Runesmith.Editor" />
     <InternalsVisibleTo Include="Runesmith.Editor.Tests" />
+    <InternalsVisibleTo Include="Runesmith.Composition" />
+    <InternalsVisibleTo Include="Runesmith.Localization" />
+    <InternalsVisibleTo Include="Runesmith.Localization.Tests" />
   </ItemGroup>
 </Project>

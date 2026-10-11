@@ -199,4 +199,6 @@ public sealed class WriteRunesmithPluginManifest : Microsoft.Build.Utilities.Tas
     <Copy SourceFiles="@(_RunesmithPluginLayoutFile)" DestinationFiles="@(_RunesmithPluginLayoutFile->'$(_RunesmithPluginInstallDir)%(RelativePath)')" />
     <Message Importance="high" Text="Installed $(RunesmithPluginId) in $(_RunesmithPluginInstallDir). Restart Runesmith to load it." />
   </Target>
+
+  <Import Project="$(MSBuildThisFileDirectory)Runesmith.Sdk.Localization.targets" />
 </Project>

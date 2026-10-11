@@ -33,6 +33,11 @@ public sealed record SettingDefinition(string Key, string Title, string Category
     /// <summary>Gets the allowed values, for text settings with a fixed set of choices.</summary>
     public IReadOnlyList<string>? Choices { get; init; }
 
+    /// <summary>Gets the names the settings page shows for <see cref="Choices"/>, in the same order; without them it shows the values as
+    /// words, such as "After delay" for <c>afterDelay</c>.</summary>
+    /// <remarks>Added in plugin API 0.1.2.</remarks>
+    public IReadOnlyList<string>? ChoiceTitles { get; init; }
+
     /// <summary>Gets the type of the setting's values.</summary>
     public Type ValueType => DefaultValue.GetType();
 }
@@ -40,5 +45,7 @@ public sealed record SettingDefinition(string Key, string Title, string Category
 /// <summary>Adds settings. Export it with <c>[Export(typeof(ISettingContributor))]</c>.</summary>
 public interface ISettingContributor
 {
+    /// <summary>Gets the settings. Runesmith reads it again after the language changes, so titles and descriptions taken from the generated
+    /// <c>Strings</c> class each time it is read follow the language; the keys, types and default values stay the same.</summary>
     IEnumerable<SettingDefinition> Settings { get; }
 }

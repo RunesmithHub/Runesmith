@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- IDEs load it with the analyzers, some on .NET Framework. -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <!-- Shipped in the SDK package, so versioned with it. -->
+    <Version>$(RunesmithSdkVersion)</Version>
+    <Description>The SDK's code fix that moves text users see into the English Fluent file and uses the generated Strings member instead.</Description>
+    <IsRoslynComponent>true</IsRoslynComponent>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The same compiler as the analyzers; code fixes run in the IDE, which carries the workspaces. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynComponentVersion)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(RoslynComponentVersion)" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runesmith.Sdk.Analyzers\Runesmith.Sdk.Analyzers.csproj" />
+  </ItemGroup>
+</Project>

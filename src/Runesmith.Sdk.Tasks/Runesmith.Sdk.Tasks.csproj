@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- MSBuild loads it on .NET and, in some IDEs, on .NET Framework. -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <!-- Shipped in the SDK package, so versioned with it. -->
+    <Version>$(RunesmithSdkVersion)</Version>
+    <Description>The SDK's build task that checks a project's Fluent files: their syntax, the English source, and each translation against it.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Utilities.Core" PrivateAssets="all" ExcludeAssets="runtime" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The Fluent parser and the checks; MSBuild loads it from beside this assembly. -->
+    <ProjectReference Include="..\Runesmith.Sdk.Analyzers\Runesmith.Sdk.Analyzers.csproj" />
+  </ItemGroup>
+</Project>
