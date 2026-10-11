@@ -13,14 +13,14 @@ public sealed class MyPluginCommands(INotificationService notifications) : IComm
 
     public void Contribute(ICommandRegistry registry)
     {
-        var sayHello = new CommandDefinition(SayHelloId, "Say Hello", "MyPlugin")
+        var sayHello = new CommandDefinition(SayHelloId, Strings.SayHelloTitle, "MyPlugin")
         {
             Icon = "sparkles",
-            Description = "Shows a greeting from MyPlugin.",
+            Description = Strings.SayHelloDescription,
         };
         registry.Add(sayHello, _ =>
         {
-            notifications.Notify(NotificationKind.Success, "Hello from MyPlugin", "Your plugin is loaded and running.");
+            notifications.Notify(NotificationKind.Success, Strings.HelloTitle, Strings.HelloMessage);
             return Task.CompletedTask;
         });
         registry.AddMenuItem(new MenuItemDefinition(Menus.Help, SayHelloId, Group: "plugins"));

@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Runesmith",
+  "classifications": ["Runesmith", "Plugin", "Localization"],
+  "identity": "Runesmith.LanguagePack",
+  "name": "Runesmith language pack",
+  "description": "A Runesmith language pack: translations of Runesmith, and of plugins, into one language, with a plugin.json manifest and an icon.",
+  "shortName": "runesmith-language-pack",
+  "sourceName": "MyLanguagePack",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "symbols": {
+    "id": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "The language pack's id, publisher.name, in lowercase letters, digits and hyphens. Defaults to publisher.<name in lowercase>.",
+      "defaultValue": ""
+    },
+    "languageTag": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "The BCP 47 tag of the language, such as nl, pt-BR or zh-Hans.",
+      "isRequired": true,
+      "replaces": "LANGUAGE_TAG",
+      "fileRename": "LANGUAGE_TAG"
+    },
+    "languageName": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "The language's name in itself, such as Nederlands.",
+      "isRequired": true,
+      "replaces": "LANGUAGE_NAME"
+    },
+    "englishName": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "The language's name in English, such as Dutch.",
+      "isRequired": true,
+      "replaces": "LANGUAGE_ENGLISH_NAME"
+    },
+    "sdkVersion": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "The version of the Runesmith.Sdk package to build against.",
+      "defaultValue": "0.1.2",
+      "replaces": "RUNESMITH_SDK_VERSION"
+    },
+    "nameLower": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "lowerCase"
+    },
+    "defaultId": {
+      "type": "generated",
+      "generator": "join",
+      "parameters": {
+        "symbols": [
+          { "type": "const", "value": "publisher." },
+          { "type": "ref", "value": "nameLower" }
+        ]
+      }
+    },
+    "pluginId": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "id",
+        "fallbackVariableName": "defaultId"
+      },
+      "replaces": "PLUGIN_ID"
+    }
+  },
+  "forms": {
+    "lowerCase": {
+      "identifier": "lowerCase"
+    }
+  },
+  "primaryOutputs": [
+    { "path": "MyLanguagePack.Contracts/MyLanguagePack.Contracts.csproj" },
+    { "path": "MyLanguagePack/MyLanguagePack.csproj" }
+  ],
+  "postActions": []
+}

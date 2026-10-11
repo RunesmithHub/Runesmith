@@ -4,6 +4,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- Flags text users see that is written in the code instead of locales/en. -->
+    <RunesmithLocalize>true</RunesmithLocalize>
   </PropertyGroup>
 
   <ItemGroup>

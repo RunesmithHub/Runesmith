@@ -48,7 +48,8 @@
         "sourceVariableName": "id",
         "fallbackVariableName": "defaultId"
       },
-      "replaces": "PLUGIN_ID"
+      "replaces": "PLUGIN_ID",
+      "fileRename": "PLUGIN_ID"
     }
   },
   "forms": {

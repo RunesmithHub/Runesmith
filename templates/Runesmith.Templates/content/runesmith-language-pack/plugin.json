@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "PLUGIN_ID",
+  "name": "LANGUAGE_ENGLISH_NAME Language Pack",
+  "version": "0.1.0",
+  "summary": "Runesmith in LANGUAGE_ENGLISH_NAME.",
+  "authors": ["You"],
+  "license": "MIT",
+  "repository": "https://github.com/OWNER/MyLanguagePack",
+  "runesmithApi": "^0.1.2",
+  "projects": {
+    "contracts": "MyLanguagePack.Contracts/MyLanguagePack.Contracts.csproj",
+    "implementation": "MyLanguagePack/MyLanguagePack.csproj"
+  },
+  "dependencies": [],
+  "capabilities": [],
+  "languagePack": {
+    "language": "LANGUAGE_TAG",
+    "name": "LANGUAGE_NAME",
+    "englishName": "LANGUAGE_ENGLISH_NAME"
+  },
+  "icon": "icon.png",
+  "categories": ["Other"]
+}

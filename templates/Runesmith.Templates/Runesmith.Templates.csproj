@@ -4,7 +4,7 @@
     <PackageId>Runesmith.Templates</PackageId>
     <Version>$(RunesmithSdkVersion)</Version>
     <Title>Runesmith templates</Title>
-    <Description>Templates for Runesmith plugins: dotnet new runesmith-plugin.</Description>
+    <Description>Templates for Runesmith plugins and language packs: dotnet new runesmith-plugin and dotnet new runesmith-language-pack.</Description>
     <PackageTags>runesmith;plugin;template;dotnet-new</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IsPackable>true</IsPackable>

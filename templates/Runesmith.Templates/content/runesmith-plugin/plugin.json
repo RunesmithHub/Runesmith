@@ -14,6 +14,7 @@
   },
   "dependencies": [],
   "capabilities": [],
+  "languages": ["en"],
   "icon": "icon.png",
   "categories": ["Other"]
 }

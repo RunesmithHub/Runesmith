@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MyLanguagePack.Contracts/MyLanguagePack.Contracts.csproj" />
+  <Project Path="MyLanguagePack/MyLanguagePack.csproj" />
+</Solution>

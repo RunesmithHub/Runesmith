@@ -56,6 +56,21 @@ Runesmith loads each plugin apart from the others, so plugins can use different 
 and the other libraries Runesmith shares always come from Runesmith. To use another NuGet package, add it and set
 `<EnableDynamicLoading>true</EnableDynamicLoading>` in `MyPlugin.csproj`, so the build copies the package next to the plugin.
 
+## Text and translations
+
+The text users see lives in `MyPlugin/locales/en/PLUGIN_ID.ftl`, in [Fluent](https://projectfluent.org). The build turns each message
+into a member of the `Strings` class, so `say-hello-title = Say Hello` becomes `Strings.SayHelloTitle`, and a message with variables, such
+as `files-found = Found { $count } files`, becomes a method, `Strings.FilesFound(count: 3)`. A message you remove or rename breaks the
+build where it is still used. Write a comment above a message when its meaning is not obvious; translators see it.
+
+The build warns about text written in the code instead of the `.ftl` file, and a quick fix moves it there. In unit tests, where
+Runesmith is not running, `Strings` gives the English text.
+
+To translate the plugin, add the language's files beside the English ones, such as `MyPlugin/locales/nl/PLUGIN_ID.ftl`, and the language
+to `languages` in `plugin.json`, such as `["en", "nl"]`. The build reports messages a translation is missing, messages it has that English
+no longer has, and variables that differ from the English source. Runesmith shows English for any message a language does not have.
+Language packs on the plugin hub can translate your plugin too, without changes to it.
+
 ## Release
 
 1. Put the plugin in a public GitHub repository with a `LICENSE` that matches `license` in `plugin.json`, and set `repository` to its
