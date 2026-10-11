@@ -174,7 +174,7 @@ public sealed class CheckTranslationsTests : IDisposable
 
     private string Write(string relative, string text)
     {
-        var path = Path.Combine(root, relative);
+        var path = Path.GetFullPath(Path.Combine(root, relative));
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, text);
         return path;
