@@ -36,7 +36,7 @@ internal sealed class RenameController : IDisposable
             if (popup?.IsOpen == true && !IsBusy)
                 Cancel();
         };
-        hint = new TextBlock { Text = "Enter to rename, Escape to cancel", FontSize = 11, Opacity = 0.7, Margin = new Thickness(2, 3, 2, 0) };
+        hint = new TextBlock { Text = Strings.EditorRenameHint, FontSize = 11, Opacity = 0.7, Margin = new Thickness(2, 3, 2, 0) };
         popup = new Popup
         {
             PlacementTarget = area,
@@ -153,7 +153,7 @@ internal sealed class RenameController : IDisposable
         }
 
         IsBusy = true;
-        hint.Text = "Renaming...";
+        hint.Text = Strings.EditorRenameBusy;
         var token = Cancellation.Renew(ref request);
         try
         {
@@ -178,7 +178,7 @@ internal sealed class RenameController : IDisposable
         finally
         {
             IsBusy = false;
-            hint.Text = "Enter to rename, Escape to cancel";
+            hint.Text = Strings.EditorRenameHint;
         }
     }
 

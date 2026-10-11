@@ -358,7 +358,7 @@ public sealed class LanguageServerManager : IDisposable
         }
         catch (LanguageFeatureException exception)
         {
-            notifications.Notify(NotificationKind.Warning, "The language server's edit was not applied", exception.Message);
+            notifications.Notify(NotificationKind.Warning, Strings.LanguagesServerEditFailed, exception.Message);
             return false;
         }
     }

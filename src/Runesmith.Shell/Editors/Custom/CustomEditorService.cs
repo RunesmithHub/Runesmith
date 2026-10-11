@@ -121,7 +121,7 @@ public sealed class CustomEditorService : ICustomEditorService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or NotSupportedException)
         {
-            notifications.Notify(NotificationKind.Error, $"{panel.Title} could not be saved", exception.Message);
+            notifications.Notify(NotificationKind.Error, Strings.EditorsSaveFailed(panel.Title), exception.Message);
             return false;
         }
     }
@@ -134,7 +134,7 @@ public sealed class CustomEditorService : ICustomEditorService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or NotSupportedException)
         {
-            notifications.Notify(NotificationKind.Error, $"{panel.Title} could not be read again", exception.Message);
+            notifications.Notify(NotificationKind.Error, Strings.EditorsReloadFailed(panel.Title), exception.Message);
         }
     }
 
@@ -233,12 +233,12 @@ public sealed class CustomEditorService : ICustomEditorService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or NotSupportedException)
         {
-            notifications.Notify(NotificationKind.Error, $"{name} could not be opened", exception.Message);
+            notifications.Notify(NotificationKind.Error, Strings.EditorsOpenFailed(name), exception.Message);
         }
         catch (Exception exception) when (!entry.IsBuiltIn)
         {
             log($"{entry.Definition.Name} failed to open {name}: {exception}");
-            notifications.Notify(NotificationKind.Error, $"{name} could not be opened", $"{entry.Definition.Name} failed: {exception.Message}");
+            notifications.Notify(NotificationKind.Error, Strings.EditorsOpenFailed(name), Strings.EditorsEditorFailed(entry.Definition.Name, exception.Message));
         }
 
         return null;
@@ -339,8 +339,8 @@ public sealed class CustomEditorService : ICustomEditorService
 
         notifications.Notify(
             NotificationKind.Warning,
-            exists ? $"{panel.Title} changed on disk" : $"{panel.Title} was deleted",
-            exists ? "Your unsaved changes are kept. Reload to take the version on disk instead." : "Its editor stays open; save it to create the file again.",
+            exists ? Strings.EditorsChangedOnDisk(panel.Title) : Strings.EditorsDeletedOnDisk(panel.Title),
+            exists ? Strings.EditorsChangedOnDiskDetail : Strings.EditorsDeletedEditorDetail,
             exists ? "Reload" : null,
             exists ? () => _ = RevertAsync(panel) : null);
     }

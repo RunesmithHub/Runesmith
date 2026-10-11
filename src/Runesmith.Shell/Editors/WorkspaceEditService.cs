@@ -224,7 +224,7 @@ public sealed class WorkspaceEditService : IWorkspaceEditService, IFileActionHos
         {
             text.Live = await LiveDocumentAsync(text);
             if (text.Live is { } document && !Reapply(text))
-                notifications.Notify(NotificationKind.Warning, "Part of the edit was not redone", $"{document.Name} changed since the edit was undone.");
+                notifications.Notify(NotificationKind.Warning, Strings.EditorsRedoPartial, Strings.EditorsRedoPartialDetail(document.Name));
         }
 
         redo.Pop();

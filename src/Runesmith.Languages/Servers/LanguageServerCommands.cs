@@ -22,21 +22,21 @@ public sealed class LanguageServerCommands(Lazy<LanguageServerManager> manager) 
     {
         ArgumentNullException.ThrowIfNull(registry);
         registry.Add(
-            new CommandDefinition(ShowServerOutput, "Show Language Server Output", "Languages") { Icon = "terminal" },
+            new CommandDefinition(ShowServerOutput, Strings.LanguagesShowServerOutput, Strings.LanguagesCategory) { Icon = "terminal" },
             argument =>
             {
                 manager.Value.ShowOutput(argument as string);
                 return Task.CompletedTask;
             });
         registry.Add(
-            new CommandDefinition(RestartServers, "Restart Language Servers", "Languages")
+            new CommandDefinition(RestartServers, Strings.LanguagesRestartServers, Strings.LanguagesCategory)
             {
                 Icon = "refresh",
-                Description = "Stops every language server and starts them again, including ones that were not installed or kept stopping.",
+                Description = Strings.LanguagesRestartServersDescription,
             },
             _ => manager.Value.RestartAsync());
         registry.Add(
-            new CommandDefinition(RunServerCommand, "Run Language Server Command", "Languages") { ShowInPalette = false },
+            new CommandDefinition(RunServerCommand, Strings.LanguagesRunServerCommand, Strings.LanguagesCategory) { ShowInPalette = false },
             argument => argument is ServerCommandInvocation invocation ? invocation.Client.ExecuteCommandAsync(invocation.Command, CancellationToken.None) : Task.CompletedTask,
             argument => argument is ServerCommandInvocation { Client.State: Lsp.LanguageServerState.Running });
     }

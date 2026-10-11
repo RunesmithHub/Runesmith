@@ -73,7 +73,7 @@ internal sealed class ChangePopup : Popup
         caption.Text = change.IsAddition ? Lines(count, "added")
             : change.IsDeletion ? Lines(count, "deleted")
             : Lines(count, "changed");
-        ToolTip.SetTip(rollback, change.IsAddition ? "Delete the added lines" : "Put the lines back as they were");
+        ToolTip.SetTip(rollback, change.IsAddition ? Strings.EditorChangeDeleteAdded : Strings.EditorChangeRestore);
 
         var lines = area.GetBaseLines(change);
         oldText.IsVisible = lines.Count > 0;

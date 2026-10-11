@@ -19,11 +19,11 @@ public sealed class OpenWithCommands(CustomEditorService customEditors, EditorSe
 
     public void Contribute(ICommandRegistry registry)
     {
-        registry.Add(new CommandDefinition(OpenWith, "Open With...", "File") { Description = "Open the file in another editor, such as the text editor or an image viewer." },
+        registry.Add(new CommandDefinition(OpenWith, Strings.EditorsOpenWith, Strings.EditorsCategoryFile) { Description = Strings.EditorsOpenWithDescription },
             argument => FileOf(argument) is { } path ? OpenWithAsync(path) : Task.CompletedTask, argument => FileOf(argument) is not null);
-        registry.Add(new CommandDefinition(SetDefaultEditor, "Set Default Editor...", "File") { Description = "Choose the editor files of this kind open in." },
+        registry.Add(new CommandDefinition(SetDefaultEditor, Strings.EditorsSetDefault, Strings.EditorsCategoryFile) { Description = Strings.EditorsSetDefaultDescription },
             argument => FileOf(argument) is { } path ? SetDefaultAsync(path) : Task.CompletedTask, argument => FileOf(argument) is not null);
-        registry.Add(new CommandDefinition(Revert, "Revert File", "File") { Icon = "undo", Description = "Read the file from disk again, dropping unsaved changes." },
+        registry.Add(new CommandDefinition(Revert, Strings.EditorsRevert, Strings.EditorsCategoryFile) { Icon = "undo", Description = Strings.EditorsRevertDescription },
             _ => RevertAsync(), _ => customEditors.Active is not null || editors.Active?.Document.FilePath is not null);
         registry.AddMenuItem(new MenuItemDefinition(Menus.File, OpenWith, "1-new", 100));
         registry.AddMenuItem(new MenuItemDefinition(Menus.File, Revert, "2-save", 100));

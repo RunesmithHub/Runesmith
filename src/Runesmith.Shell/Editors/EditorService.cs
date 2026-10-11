@@ -142,7 +142,7 @@ public sealed class EditorService : IEditorService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            notifications.Notify(NotificationKind.Error, $"{Path.GetFileName(filePath)} could not be opened", exception.Message);
+            notifications.Notify(NotificationKind.Error, Strings.EditorsOpenFailed(Path.GetFileName(filePath)), exception.Message);
             return null;
         }
 
@@ -279,7 +279,7 @@ public sealed class EditorService : IEditorService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            notifications.Notify(NotificationKind.Error, $"{Path.GetFileName(filePath)} could not be opened", exception.Message);
+            notifications.Notify(NotificationKind.Error, Strings.EditorsOpenFailed(Path.GetFileName(filePath)), exception.Message);
             return null;
         }
 
@@ -368,7 +368,7 @@ public sealed class EditorService : IEditorService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            notifications.Notify(NotificationKind.Error, $"{document.Name} could not be saved", exception.Message);
+            notifications.Notify(NotificationKind.Error, Strings.EditorsSaveFailed(document.Name), exception.Message);
             return false;
         }
     }
@@ -385,7 +385,7 @@ public sealed class EditorService : IEditorService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            notifications.Notify(NotificationKind.Error, $"{Path.GetFileName(target)} could not be saved", exception.Message);
+            notifications.Notify(NotificationKind.Error, Strings.EditorsSaveFailed(Path.GetFileName(target)), exception.Message);
             return false;
         }
 
@@ -463,7 +463,7 @@ public sealed class EditorService : IEditorService
     {
         if (locations.Count == 0)
         {
-            notifications.Notify(NotificationKind.Info, "No definition found", "The language does not know where this is defined.");
+            notifications.Notify(NotificationKind.Info, Strings.EditorsNoDefinition, Strings.EditorsNoDefinitionDetail);
             return;
         }
 
@@ -617,8 +617,8 @@ public sealed class EditorService : IEditorService
 
         notifications.Notify(
             NotificationKind.Warning,
-            exists ? $"{e.Document.Name} changed on disk" : $"{e.Document.Name} was deleted",
-            exists ? "Your unsaved changes are kept. Reload to take the version on disk instead." : "Its text stays open; save it to create the file again.",
+            exists ? Strings.EditorsChangedOnDisk(e.Document.Name) : Strings.EditorsDeletedOnDisk(e.Document.Name),
+            exists ? Strings.EditorsChangedOnDiskDetail : Strings.EditorsDeletedTextDetail,
             exists ? "Reload" : null,
             exists ? () => _ = documents.ReloadAsync(e.Document) : null);
     }

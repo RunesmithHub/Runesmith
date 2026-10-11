@@ -144,7 +144,7 @@ internal sealed class SignatureHelpController : IDisposable
         var panel = new StackPanel { Spacing = 6 };
         if (info.Signatures.Count > 1)
         {
-            var counter = new TextBlock { Text = $"{selectedSignature + 1} of {info.Signatures.Count}  (Up and Down to switch)", FontSize = 11 };
+            var counter = new TextBlock { Text = Strings.EditorSignatureCounter(selectedSignature + 1, info.Signatures.Count), FontSize = 11 };
             counter[!TextBlock.ForegroundProperty] = new DynamicResourceExtension("TextMutedBrush");
             panel.Children.Add(counter);
         }

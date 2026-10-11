@@ -9,6 +9,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Text;
 using TextSearch = Runesmith.Text.TextSearch;
 
@@ -20,8 +21,8 @@ internal sealed class FindBar : Border
     private const int MaximumMatches = 10_000;
 
     private readonly TextArea area;
-    private readonly TextBox query = new() { PlaceholderText = "Find", Width = 220, Classes = { "small" } };
-    private readonly TextBox replacement = new() { PlaceholderText = "Replace", Width = 220, Classes = { "small" } };
+    private readonly TextBox query = new TextBox { Width = 220, Classes = { "small" } }.Localize(TextBox.PlaceholderTextProperty, () => Strings.EditorFindPlaceholder);
+    private readonly TextBox replacement = new TextBox { Width = 220, Classes = { "small" } }.Localize(TextBox.PlaceholderTextProperty, () => Strings.EditorReplacePlaceholder);
     private readonly ToggleButton matchCase = Option("Aa", "Match case (Alt+C)");
     private readonly ToggleButton wholeWord = Option("ab", "Match whole word (Alt+W)");
     private readonly ToggleButton regex = Option(".*", "Use regular expression (Alt+R)");
@@ -43,7 +44,7 @@ internal sealed class FindBar : Border
         count[!TextBlock.ForegroundProperty] = new DynamicResourceExtension("TextMutedBrush");
 
         expand = new ToggleButton { Classes = { "icon", "small" }, Focusable = false, Content = new SymbolIcon { Data = Icons.ChevronRight, Size = 14 } };
-        ToolTip.SetTip(expand, "Toggle replace");
+        expand.Localize(ToolTip.TipProperty, () => Strings.EditorFindToggleReplace);
         expand.IsCheckedChanged += (_, _) =>
         {
             replaceRow!.IsVisible = expand.IsChecked == true;
@@ -158,7 +159,7 @@ internal sealed class FindBar : Border
             query.Classes.Set("error", true);
             ToolTip.SetTip(query, error);
             SetMatches([]);
-            count.Text = "Invalid pattern";
+            count.Text = Strings.EditorFindInvalidPattern;
             return;
         }
 
@@ -171,7 +172,7 @@ internal sealed class FindBar : Border
         catch (RegexMatchTimeoutException)
         {
             found = [];
-            count.Text = "Too slow";
+            count.Text = Strings.EditorFindTooSlow;
         }
 
         SetMatches(found.Count > MaximumMatches ? found.Take(MaximumMatches).ToList() : found);
@@ -203,8 +204,12 @@ internal sealed class FindBar : Border
         }
 
         area.CurrentSearchMatch = index >= 0 ? matches[index] : null;
-        var total = matches.Count >= MaximumMatches ? $"{MaximumMatches:N0}+" : matches.Count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture);
-        count.Text = string.IsNullOrEmpty(query.Text) ? "" : matches.Count == 0 ? "No results" : index >= 0 ? $"{index + 1:N0} of {total}" : $"{total} found";
+        var more = matches.Count >= MaximumMatches;
+        var total = more ? MaximumMatches : matches.Count;
+        count.Text = string.IsNullOrEmpty(query.Text) ? ""
+            : matches.Count == 0 ? Strings.EditorFindNoResults
+            : index >= 0 ? (more ? Strings.EditorFindPositionMore(index + 1, total) : Strings.EditorFindPosition(index + 1, total))
+            : more ? Strings.EditorFindFoundMore(total) : Strings.EditorFindFound(total);
     }
 
     private void SelectMatch(TextSpan match)
@@ -239,7 +244,7 @@ internal sealed class FindBar : Border
         var changes = matches.Select(m => new TextChange(m, Replacement(snapshot.GetText(m)))).ToList();
         var caret = OffsetMapping.Map(changes, area.Selection.Caret);
         area.ApplyChanges(changes, EditorSelection.At(caret));
-        count.Text = $"Replaced {changes.Count:N0}";
+        count.Text = Strings.EditorFindReplaced(changes.Count);
     }
 
     // With a regular expression the replacement can refer to groups of the match, such as $1.

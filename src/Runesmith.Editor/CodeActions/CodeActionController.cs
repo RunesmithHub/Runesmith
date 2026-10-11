@@ -158,7 +158,7 @@ internal sealed class CodeActionController : IDisposable
                     Icon = new SymbolIcon { Data = Icon(action.Kind), Size = 15 },
                 };
                 if (action.Source is { } source)
-                    ToolTip.SetTip(item, $"From {source}");
+                    ToolTip.SetTip(item, Strings.EditorCodeActionSource(source));
                 var chosen = action;
                 item.Click += (_, _) => _ = ApplyAsync(chosen);
                 items.Add(item);
