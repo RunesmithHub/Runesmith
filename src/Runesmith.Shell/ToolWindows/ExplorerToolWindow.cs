@@ -204,7 +204,7 @@ public sealed class ExplorerToolWindow(
                 default:
                     if (WorkspaceUndoCommand(e) is not { } command)
                         return;
-                    _ = commands.ExecuteAsync(command);
+                    _ = RunAndKeepFocusAsync(command);
                     break;
             }
 
@@ -218,6 +218,12 @@ public sealed class ExplorerToolWindow(
             CommandIds.Redo => CommandIds.RedoWorkspaceEdit,
             _ => null,
         };
+
+        private async Task RunAndKeepFocusAsync(string command)
+        {
+            await commands.ExecuteAsync(command);
+            KeepFocus();
+        }
 
         private void OpenSelected(bool focus)
         {
@@ -296,11 +302,25 @@ public sealed class ExplorerToolWindow(
             var extension = node.IsDirectory ? 0 : Path.GetExtension(node.Name).Length;
             var name = await Prompt.AskAsync(notifications.Dialogs, "Rename", $"New name for {node.Name}", node.Name,
                 n => Prompt.ValidateFileName(n, folder, except: node.Name), (0, node.Name.Length - extension));
-            if (name is not null && name != node.Name)
-                await files.RenameAsync(node.FullPath, name);
+            if (name is null || name == node.Name)
+                return;
+
+            await files.RenameAsync(node.FullPath, name);
+            KeepFocus();
         }
 
-        private Task DeleteAsync(FileTreeNode node) => files.DeleteAsync(node.FullPath, node.IsDirectory);
+        private async Task DeleteAsync(FileTreeNode node)
+        {
+            await files.DeleteAsync(node.FullPath, node.IsDirectory);
+            KeepFocus();
+        }
+
+        // When the focused row goes away with its file, the tree takes the focus so Undo and Redo still reach the Explorer.
+        private void KeepFocus()
+        {
+            if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is not Visual focused || !view.IsVisualAncestorOf(focused))
+                view.Focus();
+        }
 
         private static MenuItem MenuItem(string header, Geometry? icon, Action action, string? gesture = null)
         {
