@@ -82,6 +82,7 @@ You write `plugin.json` at the root of the plugin, next to the two projects:
   "dependencies": [{ "id": "runesmith.git", "range": "^0.1.0" }],
   "capabilities": [{ "id": "network", "reason": "Links to-dos to the issues on your issue tracker." }],
   "networkHosts": ["*"],
+  "languages": ["en", "nl"],
   "icon": "icon.png",
   "categories": ["Productivity"]
 }
@@ -104,6 +105,8 @@ You write `plugin.json` at the root of the plugin, next to the two projects:
 | `capabilities` | No | What it does beyond working inside Runesmith, each with a reason. See [Capabilities](#capabilities). |
 | `networkHosts` | With `network` | The hosts it talks to, or `*` for hosts the user chooses. |
 | `platforms` | No | `windows`, `linux` and `macos`; all of them when left out. |
+| `languages` | No | The languages of the plugin's own translations, English included, such as `["en", "nl"]`. See [Text and translations](./localization.mdx). |
+| `languagePack` | For a language pack | The `language` a [language pack](./language-packs.mdx) adds, its `name` in itself and its `englishName`. A language pack has no `languages`, `capabilities` or `dependencies`. |
 | `icon` | Yes | A PNG or WebP icon, 256 to 1024 pixels square. |
 | `categories` | Yes | One to three of: Languages, Version control, Themes, Formatters and linters, Debugging, Testing, Build and run, Snippets and templates, Navigation, Productivity, Visualization, Cloud and remote, Data and databases, Documentation, Education, Other. |
 | `keywords` | No | Up to ten lowercase words for search. |

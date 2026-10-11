@@ -1,0 +1,128 @@
+---
+title: Language packs
+description: Translate Runesmith and its plugins into one language with a language pack, check the translation as you go, and publish it on the plugin hub.
+---
+
+A language pack is a plugin that carries translations and no code: Runesmith's text, and the text of plugins, in one language. Installing
+one adds its language to the language picker, and the change shows without a restart. This page is for translators: how to start a pack,
+translate in Fluent, check the work and publish it. Language packs were added in plugin API 0.1.2.
+
+## Start a pack
+
+<Steps>
+
+1. Install the templates and create the pack, with the language's tag, its name in itself and its name in English:
+
+   ```bash
+   dotnet new install Runesmith.Templates
+   dotnet new runesmith-language-pack --name RunesmithDutch --id publisher.dutch --languageTag nl --languageName Nederlands --englishName Dutch
+   ```
+
+2. Copy Runesmith's English files into `RunesmithDutch/locales/nl/runesmith/`. They come with the `Runesmith.Sdk` package, in its
+   `locales/en/runesmith/` folder; after the first build they are in `~/.nuget/packages/runesmith.sdk/<version>/locales/en/runesmith/`.
+3. Translate them, and build to see what is left.
+
+</Steps>
+
+The pack's manifest names the language:
+
+```json title="plugin.json"
+"languagePack": {
+  "language": "nl",
+  "name": "Nederlands",
+  "englishName": "Dutch"
+}
+```
+
+The tag is a [BCP 47](https://www.rfc-editor.org/info/bcp47) language tag in its canonical case: `nl`, `nl-BE`, `pt-BR`, `zh-Hans`. A pack
+carries one language, declares no `capabilities`, no `dependencies` and no `languages`.
+
+## Where the files go
+
+Each file translates the English file of the same name, in a folder named after what it translates:
+
+| Path | What it translates |
+| --- | --- |
+| `locales/nl/runesmith/runesmith-shell.ftl` | Runesmith's `runesmith-shell.ftl` |
+| `locales/nl/runesmith.git/runesmith.git.ftl` | The Git plugin's `runesmith.git.ftl` |
+| `locales/nl/acme.todo/acme.todo.ftl` | A plugin with the id `acme.todo` |
+
+Keeping the English file names means a translation tool can show each file beside its source.
+
+## Translate in Fluent
+
+Translate the text after `=`, and keep everything else:
+
+```text title="English"
+# Shown under the list.
+# Variables:
+#   $count (Number) - how many to-dos the folder has
+#   $folder - the folder's name
+todo-count =
+    { $count ->
+        [one] One to-do in { $folder }
+       *[other] { $count } to-dos in { $folder }
+    }
+```
+
+```text title="Dutch"
+todo-count =
+    { $count ->
+        [one] Eén taak in { $folder }
+       *[other] { $count } taken in { $folder }
+    }
+```
+
+- Keep the message id, `todo-count`, and the variables, `{ $count }` and `{ $folder }`. You may move a variable, or leave it out when the
+  sentence does not need it.
+- The comment above the English message says where the text shows and what each variable is.
+- Plural forms follow the language's own rules. Use the categories your language has, such as `[one]`, `[few]`, `[many]` and `*[other]`;
+  the one marked with `*` is used when no other fits.
+- A number in brackets, such as `[0]`, matches that exact number in any language.
+- `NUMBER()` and `DATETIME()` write numbers and dates the way the language does; keep them as they are.
+- Keep a message on one line unless the English has line breaks in its text.
+- Attributes, the lines starting with `.`, such as `.tooltip`, are translated like messages.
+
+## Check the translation
+
+Every build compares the translation with the English source and lists the problems in the build output and the editor:
+
+| Code | Problem |
+| --- | --- |
+| RSL1003 | Messages still missing, which show in English |
+| RSL1004 | Messages the English source no longer has |
+| RSL1005 | Variables that differ from the English message |
+| RSL1001 | A Fluent syntax error |
+
+Runesmith's English source comes with the SDK. To check a plugin's translation, put the plugin's English files in the repository and add
+them to the pack's project with the plugin's id:
+
+```xml title="RunesmithDutch/RunesmithDutch.csproj"
+<ItemGroup>
+  <RunesmithEnglishSource Include="english/runesmith.git/*.ftl" TranslationTarget="runesmith.git" />
+</ItemGroup>
+```
+
+## Try it in Runesmith
+
+```bash
+dotnet build RunesmithDutch -t:InstallPlugin
+```
+
+Start Runesmith and choose the language in Settings, under **Appearance** › **Language**. The picker shows how much of Runesmith the
+language covers, and the plugin manager shows each plugin's share, such as **Nederlands, 62%**. Turn on **Pseudo-localization** under
+**Language** to see which text cannot be translated yet: it is the text without brackets.
+
+## Publish it
+
+Publish a pack as any plugin: a public repository with a license, a tag such as `v0.1.0`, a GitHub release, and a registration at the plugin
+hub. See [Create a plugin](./create-a-plugin.mdx#release). The hub checks that every file sits under the pack's language and parses, and its
+page lists the language and what the pack translates.
+
+When several packs cover the same language, a message comes from the official pack first, then from the most recently updated one. A
+plugin's own translation comes before any pack.
+
+## Related
+
+- [Text and translations](./localization.mdx) is how plugins keep their text in Fluent.
+- [Language](/guide/language) is how users choose the language.

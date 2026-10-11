@@ -54,6 +54,7 @@ Runesmith creates a part the first time something needs it. Services can be impo
 | `IQuickInputService` | Asks the user to pick from a list or type a value in the quick input box, also in steps. |
 | `ITreeViewService` | Gives the plugin its tree views, to refresh them, reveal items and read the selection. |
 | `IClipboard` | Reads and writes the clipboard's text. |
+| `ILocalizationService` | The language the window shows, the languages it can show, and the plugin's own localizer. See [Text and translations](./localization.mdx). |
 | `IDialogService`, `IToastService` | HammerUI's dialogs and toasts, shown in the main window. |
 
 ## Startup work
@@ -377,6 +378,10 @@ settings: the ones it contributes, and the ones whose keys start with its id and
 new SettingDefinition("todo.keywords", "To-do keywords", "To-do", "TODO;FIXME") { Description = "The words that mark a to-do, separated by semicolons." };
 ```
 
+Give a setting with `Choices` the names its choices show by in `ChoiceTitles`, in the same order; without them, the settings page writes each
+value as words. Runesmith reads `Settings` again after the language changes, so titles taken from the [`Strings` class](./localization.mdx)
+follow the language.
+
 `SettingKeys` has the keys of Runesmith's own settings.
 
 To show more than settings in a category, such as an account, export an `ISettingsSectionProvider`. Its `Category` names the category,
@@ -392,6 +397,18 @@ public sealed class TodoSection : ISettingsSectionProvider
 
     public Control CreateSection() => new Border { Classes = { "card" }, Child = new TextBlock { Text = "3 to-dos in this folder." } };
 }
+```
+
+## Text and translations
+
+Keep the text users see in `locales/en/<plugin id>.ftl`. The build generates a `Strings` class with a member for each message, embeds the
+files and checks every translation against the English. Bind a control's text with `Localize` so it follows a change of language, or use
+`{l:Text message-id}` in XAML. [Text and translations](./localization.mdx) has the details, and [Language packs](./language-packs.mdx)
+shows how to translate Runesmith and plugins into one language.
+
+```csharp
+var title = new TextBlock().Localize(TextBlock.TextProperty, () => Strings.PanelTitle);
+notifications.Notify(NotificationKind.Success, Strings.TodosSaved(count: todos.Count));
 ```
 
 ## Themes, syntax colors and icons

@@ -1,0 +1,159 @@
+---
+title: Text and translations
+description: Keep a plugin's text in Fluent files, use it through the generated Strings class, translate it, and let language packs translate it too.
+---
+
+A plugin keeps the text users see in [Fluent](https://projectfluent.org) files instead of its code. The build turns the English file into a
+`Strings` class with a member for each message, checks every translation against the English, and embeds the files in the plugin. Runesmith
+shows each message in the language the user chose, from the plugin's own translations or from a [language pack](./language-packs.mdx), and
+in English when no translation has it. Everything on this page was added in plugin API 0.1.2.
+
+## Write the English text
+
+Put the English messages in `locales/en/` beside the implementation project's `.csproj`, in a file named after the plugin's id. The
+[plugin template](./create-a-plugin.mdx) creates it:
+
+```text title="AcmeTodo/locales/en/acme.todo.ftl"
+### The to-do plugin's text in English.
+
+# The title of the To-dos panel.
+panel-title = To-dos
+
+# Shown under the list.
+# Variables:
+#   $count (Number) - how many to-dos the folder has
+#   $folder - the folder's name
+todo-count =
+    { $count ->
+        [0] No to-dos in { $folder }
+        [one] One to-do in { $folder }
+       *[other] { $count } to-dos in { $folder }
+    }
+
+save-button = Save
+    .tooltip = Save the to-dos of { $folder }
+```
+
+Message ids are lowercase words joined by hyphens, grouped by feature: `panel-title`, `todo-count`. Write a comment above a message when its
+meaning is not obvious from the text: where it shows, and what its variables are. Translators see these comments.
+
+Keep each message on one line unless it needs a line break: Fluent keeps the breaks of a value written over several lines, and the text
+shows them. A select expression, as in `todo-count`, is the exception; its variants go on their own lines.
+
+## Use the text in code
+
+Each message becomes a member of the `Strings` class, in the project's root namespace:
+
+| Message | Member |
+| --- | --- |
+| `panel-title = To-dos` | `Strings.PanelTitle` |
+| `todo-count = ...{ $count }...{ $folder }` | `Strings.TodoCount(double count, string folder)` |
+| `save-button = Save` with `.tooltip` | `Strings.SaveButton(folder)`, `Strings.SaveButton(folder).Tooltip` |
+
+A variable is a `double` when the message uses it as a number, such as in a select expression or `NUMBER()`, a `DateTimeOffset` when it
+uses `DATETIME()`, and a `string` otherwise. A `(Number)` or `(Date)` after the variable in the comment sets the type too. Renaming or
+removing a message breaks the build where it is still used.
+
+Each member looks its message up when it is read, so read it again after the language changes. For a control built in code, `Localize` binds a
+property to text that follows the language:
+
+```csharp
+var title = new TextBlock().Localize(TextBlock.TextProperty, () => Strings.PanelTitle);
+var count = new TextBlock().Localize(TextBlock.TextProperty, () => Strings.TodoCount(todos.Count, folderName));
+```
+
+In unit tests, where Runesmith is not running, `Strings` gives the English text.
+
+## Use the text in XAML
+
+`{l:Text}` shows a message of the plugin and follows the language:
+
+```xml
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:l="https://github.com/runesmithhub/runesmith/localization">
+  <StackPanel>
+    <TextBlock Text="{l:Text panel-title}" />
+    <TextBlock Text="{l:Text todo-count, Args={Binding CountArgs}}" />
+  </StackPanel>
+</UserControl>
+```
+
+`Args` takes a `LocalizationArgs`, or a binding that gives one, such as
+`new LocalizationArgs { { "count", 3 }, { "folder", "src" } }`.
+
+## Format text yourself
+
+Import `ILocalizationService` for code that formats text without the `Strings` class:
+
+| Member | What it does |
+| --- | --- |
+| `CurrentLanguage` | The language the window shows, such as `nl-BE`, as a `CultureInfo`. Format numbers and dates with it. |
+| `AvailableLanguages` | English and the languages of the installed language packs, each as a `LanguageInfo` with how much of Runesmith it translates. |
+| `Changed` | Raised on the UI thread after the language changed. Fetch text you showed before again. |
+| `GetLocalizer()` | The plugin's `ILocalizer`: `Get(id, args)` and `TryGet(id, args, out text)` for a message or `message.attribute`. |
+
+## Translate the plugin
+
+<Steps>
+
+1. Add the language's file beside the English one, with the same name: `locales/nl/acme.todo.ftl`.
+2. Translate the messages. Keep the ids, the variables and the variant names; add the plural variants the language needs.
+3. Add the language to `languages` in `plugin.json`, English included:
+
+   ```json title="plugin.json"
+   "languages": ["en", "nl"]
+   ```
+
+4. Build. The build reports what the translation still lacks.
+
+</Steps>
+
+A message the translation lacks shows in English. A language may also be translated by a language pack, without a change to the plugin; the
+plugin's own translation comes first.
+
+## What the build checks
+
+Every build checks the English file and each translation before the code compiles:
+
+| Code | Problem | Severity |
+| --- | --- | --- |
+| RSL1001 | A Fluent syntax error | Error |
+| RSL1002 | A message defined twice in one language | Error |
+| RSL1003 | Messages a translation is missing | Warning |
+| RSL1004 | Messages a translation has that English no longer has | Warning |
+| RSL1005 | Variables that differ from the English message | Warning |
+| RSL1006 | A reference to a message or term that does not exist | Error in English, warning in a translation |
+| RSL1007 | A translation of a file that has no English source | Error |
+| RSL1008 | A folder in `locales/` that is not a language tag, or not in its canonical case | Error, or warning for the case |
+| RSL1009 | A Fluent file outside `locales/<language>/` | Error |
+| RSL1010 | A language `languages` in `plugin.json` lists without files, or files of a language it does not list | Error, or warning for an unlisted language |
+
+The compiler adds:
+
+| Code | Problem |
+| --- | --- |
+| RSL0001, RSL0002, RSL0003 | A syntax error, a duplicate message or two messages with the same member name in the English file |
+| RSL0100 | Text users see written in the code, such as `Text = "Save"`. A quick fix moves it into the English file and uses the new member |
+
+RSL0100 runs when the project sets `<RunesmithLocalize>true</RunesmithLocalize>`, as the template does.
+
+## How Runesmith picks the text
+
+For each message, Runesmith walks the user's language, then its base language, such as `nl-BE` then `nl`. For each it looks in the plugin's
+own translation, then in the language packs, the official pack first, then the most recently updated. When no language has the message, the
+English text shows. A message never shows as its id.
+
+The setting **Partly translated plugins** (`localization.untranslatedPlugins`) decides what a plugin with an incomplete translation shows:
+each translated message translated and the rest in English (`mix`, the default), or the whole plugin in English while its translation covers
+less than **Minimum translation** (`localization.minimumCoverage`, 80 percent).
+
+## Check the layout
+
+Turn on **Pseudo-localization** (`localization.pseudo`) in Settings, under Language. Every message then shows accented, about a third longer
+and in brackets. Text without brackets is still written in the code, and text that is cut off needs more room in some
+languages.
+
+## Related
+
+- [Language packs](./language-packs.mdx) translate Runesmith and plugins into one language.
+- [Language](/guide/language) is how users choose the language.

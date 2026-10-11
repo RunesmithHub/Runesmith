@@ -8,6 +8,7 @@ const sidebars: SidebarsConfig = {
     'new-projects',
     'window',
     'appearance',
+    'language',
     'editor',
     'open-with',
     'navigation',

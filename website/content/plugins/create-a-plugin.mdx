@@ -57,14 +57,16 @@ Before the first release, build the packages from a Runesmith checkout instead a
 | `TodoHighlighter.Contracts/` | The contracts project, the plugin's public API for plugins that depend on it. It starts empty. |
 | `TodoHighlighter/` | The implementation project. |
 | `TodoHighlighter/TodoHighlighterCommands.cs` | An `ICommandContributor` that adds the **Say Hello** command to the command palette and the **Help** menu. |
+| `TodoHighlighter/locales/en/<plugin id>.ftl` | The plugin's text in English, which the build turns into the `Strings` class. See [Text and translations](./localization.mdx). |
 | `icon.png` | A placeholder icon. Replace it with your own, 256 to 1024 pixels square. |
-| `nuget.config` | Restores from nuget.org and the plugin hub's feed, and always takes `Runesmith.*` and `RunesmithHub.*` packages from the hub's feed. |
+| `nuget.config` | Restores from nuget.org and the plugin hub's feed, and always takes `Runesmith.*`, `RunesmithHub.*` and `HammerUI` packages from the hub's feed. |
 | `TodoHighlighter.slnx` | The solution with both projects. |
 | `README.md` | These steps, for the people who work on the plugin. |
 
 Both projects turn on NuGet lock files, so restores use exactly the packages you built with; commit the `packages.lock.json` files.
 
-The command shows how a plugin gets Runesmith's services: the constructor takes an `INotificationService`, and Runesmith passes it in.
+The command shows how a plugin gets Runesmith's services: the constructor takes an `INotificationService`, and Runesmith passes it in. Its
+text comes from `locales/en`, through the generated `Strings` class.
 
 ```csharp title="TodoHighlighterCommands.cs"
 [Export(typeof(ICommandContributor))]
@@ -75,10 +77,14 @@ public sealed class TodoHighlighterCommands(INotificationService notifications) 
 
     public void Contribute(ICommandRegistry registry)
     {
-        var sayHello = new CommandDefinition(SayHelloId, "Say Hello", "TodoHighlighter") { Icon = "sparkles" };
+        var sayHello = new CommandDefinition(SayHelloId, Strings.SayHelloTitle, "TodoHighlighter")
+        {
+            Icon = "sparkles",
+            Description = Strings.SayHelloDescription,
+        };
         registry.Add(sayHello, _ =>
         {
-            notifications.Notify(NotificationKind.Success, "Hello from TodoHighlighter");
+            notifications.Notify(NotificationKind.Success, Strings.HelloTitle, Strings.HelloMessage);
             return Task.CompletedTask;
         });
         registry.AddMenuItem(new MenuItemDefinition(Menus.Help, SayHelloId, Group: "plugins"));

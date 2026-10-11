@@ -1,0 +1,56 @@
+---
+title: Language
+description: Show Runesmith in another language with a language pack, choose what partly translated plugins show, and see how much of each plugin is translated.
+---
+
+Runesmith shows English, and any language a language pack from the [plugin hub](./plugins.mdx) adds. Plugins are translated by their
+authors or by language packs; text that no translation has shows in English. A change of language shows at once, without a restart.
+
+## Choose a language
+
+<Steps>
+
+1. Install the language pack of your language: open **Plugins**, choose **Browse** and look for it, or follow the suggestion Runesmith
+   shows when your system's language has an official pack.
+2. Open **Settings** (<Keys>Ctrl+,</Keys>) at **Appearance**.
+3. Pick the language under **Language**. Each language shows how much of Runesmith it translates, such as **Nederlands (Dutch), 94%**.
+
+</Steps>
+
+**Follow the system** shows your system's language when an installed pack covers it, and English otherwise. It is the default, so after
+installing the pack of your system's language you need not choose anything. A regional language uses the pack of its base language: Dutch
+for Belgian Dutch (`nl-BE`), for example. Dates and numbers follow the language too.
+
+Runesmith suggests the official pack of your system's language once, when it is not installed. **Don't suggest again** stops the
+suggestion for good.
+
+## Plugins in your language
+
+The plugin manager shows how much of each plugin your language translates, beside its name: **Nederlands, 62%** for a partly translated
+plugin, **English only** for one without a translation. A language pack's entry lists what it translates, such as
+**Nederlands (Dutch): Runesmith 94%, Git 100%**.
+
+A plugin whose translation is incomplete shows its translated text in your language and the rest in English. To show such a plugin entirely
+in English instead, set **Partly translated plugins** to **Show in English** in Settings, under **Language**. **Minimum translation** sets how
+much a plugin must translate to show in your language then; the default is 80 percent.
+
+## Languages written from right to left
+
+In a language written from right to left, such as Arabic or Hebrew, the window's layout runs from right to left too: the side panels,
+menus and lists swap sides. The editor keeps code left to right.
+
+## Settings
+
+| Setting | Key | Default |
+| --- | --- | --- |
+| **Language** | `appearance.language` | `system`, or a language tag such as `en` or `nl` |
+| **Partly translated plugins** | `localization.untranslatedPlugins` | `mix`; `english` shows a plugin below the minimum in English |
+| **Minimum translation** | `localization.minimumCoverage` | `80` percent |
+| **Pseudo-localization** | `localization.pseudo` | Off. For developers: shows every translatable text accented, longer and in brackets |
+
+These settings apply to you, not to a folder: a folder's settings file cannot change them.
+
+## Related
+
+- [Language packs](/plugins/language-packs) is how to translate Runesmith into your language.
+- [Settings](./settings.mdx) has every setting.

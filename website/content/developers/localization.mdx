@@ -1,0 +1,68 @@
+---
+title: Localization
+description: How Runesmith's own text is kept in Fluent files, how the projects opt in, how text is bound so it follows the language, and how translations are resolved.
+---
+
+Runesmith's own text lives in Fluent files, the same way a plugin's does (see [Text and translations](/plugins/localization)). This page is
+for contributors: where the files are, how a project opts in, how to write text that follows a change of language, and how the parts fit
+together.
+
+## Where the text lives
+
+Each project with text users see has its English messages in `locales/en/runesmith-<area>.ftl`, beside its `.csproj`, such as
+`src/Runesmith.Shell/locales/en/runesmith-localization.ftl`. All of them together form the target `runesmith`, so a message id must be
+unique across Runesmith; prefix ids with the area, such as `settings-` or `plugins-`. The SDK package carries these files in
+`locales/en/runesmith/`, so language packs check their translations against them.
+
+A project opts in with one property:
+
+```xml title="Runesmith.Shell.csproj"
+<PropertyGroup>
+  <RunesmithLocalizable>true</RunesmithLocalizable>
+</PropertyGroup>
+```
+
+`Directory.Build.targets` then adds what the SDK package gives plugins: it embeds `locales/**/*.ftl`, generates the `Strings` class from the
+English files, checks them on every build, and runs the RSL0100 analyzer that flags text written in the code. The analyzer is a suggestion
+in `.editorconfig` while text is being moved, and an error once a project has none left.
+
+## Write text that follows the language
+
+The language changes while the window is open, so text must be read again when it does:
+
+| Where | How |
+| --- | --- |
+| A control built in code | `new TextBlock().Localize(TextBlock.TextProperty, () => Strings.SettingsTitle)` |
+| XAML | `Text="{l:Text settings-title}"` with `xmlns:l="https://github.com/runesmithhub/runesmith/localization"` |
+| A setting's title and description | Read `Strings` in `ISettingContributor.Settings`; `SettingsService` reads the definitions again after a change of language. `ChoiceTitles` names a setting's choices. |
+| Text built once, such as a notification | Read `Strings` when it is built; it shows in the language of that moment. |
+| A key that must not change, such as a settings category | Keep the key in English and map it to its title when it shows, as `SettingsPage.CategoryTitle` does. |
+
+Read `Strings` on the UI thread or any other; it is safe from every thread. `Localized.Changed` is raised on the UI thread after a change of
+language, after every bound property has its new text.
+
+Messages with variables take them as arguments: `Strings.PluginsInstalled(names: "Git, GitHub")`. Do not build sentences from pieces; a
+whole sentence with variables lets each language order its words.
+
+## How a message is resolved
+
+`ShellLocalization` is the `ILocalizationService` of the window. At start it reads:
+
+- the English and other files embedded in Runesmith's own assemblies, as the target `runesmith`;
+- each running plugin's own files, as the target named by its id;
+- each installed language pack's files, from `locales/<language>/<target>/`, without loading the pack's code.
+
+`LocalizationService` in `Runesmith.Localization` resolves a message through the language chain (`nl-BE`, then `nl`), the target's own
+translation, then the language packs (official first, then the most recently updated), and finally English. Each language's state is
+immutable and replaced as a whole when the settings or the installed packs change, so reads never lock. When a language pack is installed,
+removed, turned on or off, `ShellLocalization.Reload` reads the packs again and the text changes without a restart.
+
+The generated `Strings` class asks `Localized.For(assembly, fallback)` for the localizer of its assembly. Inside Runesmith that is the
+service above; in unit tests, where no service is attached, it is the English the class was generated from.
+
+## Check a change
+
+- Build with `-warnaserror`: missing or unused messages and variables that differ from English show as warnings, syntax errors as errors.
+- Turn on **Pseudo-localization** in Settings, under Language. Text without brackets is still written in the code; text that is cut off
+  needs more room.
+- A right-to-left language turns the window around. The editor and the terminal stay left to right.
