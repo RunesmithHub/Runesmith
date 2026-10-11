@@ -23,10 +23,12 @@
   <Folder Name="/tests/">
     <Project Path="tests/Runesmith.Text.Tests/Runesmith.Text.Tests.csproj" />
     <Project Path="tests/Runesmith.Sdk.Tests/Runesmith.Sdk.Tests.csproj" />
+    <Project Path="tests/Runesmith.Sdk.Analyzers.Tests/Runesmith.Sdk.Analyzers.Tests.csproj" />
     <Project Path="tests/Runesmith.Lsp.Tests/Runesmith.Lsp.Tests.csproj" />
     <Project Path="tests/Runesmith.Dap.Tests/Runesmith.Dap.Tests.csproj" />
     <Project Path="tests/Runesmith.LanguageServices.Tests/Runesmith.LanguageServices.Tests.csproj" />
     <Project Path="tests/Runesmith.Composition.Tests/Runesmith.Composition.Tests.csproj" />
+    <Project Path="tests/Runesmith.Localization.Tests/Runesmith.Localization.Tests.csproj" />
     <Project Path="tests/Runesmith.Hub.Tests/Runesmith.Hub.Tests.csproj" />
     <Project Path="tests/Runesmith.Workspace.Tests/Runesmith.Workspace.Tests.csproj" />
     <Project Path="tests/Runesmith.Languages.Tests/Runesmith.Languages.Tests.csproj" />

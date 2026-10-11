@@ -26,6 +26,10 @@ internal sealed record TestPlugin(string Id, string Root)
     public IReadOnlyList<string> Capabilities { get; init; } = [];
 
     public IReadOnlyList<string> NetworkHosts { get; init; } = [];
+
+    public IReadOnlyList<string>? Languages { get; init; }
+
+    public (string Language, string Name, string EnglishName)? LanguagePack { get; init; }
 }
 
 /// <summary>A temporary plugins folder that test plugins are built into.</summary>
@@ -82,6 +86,11 @@ internal sealed class TestPluginFolder : IDisposable
             },
             ["build"] = new JsonObject { ["commit"] = "0000000000000000000000000000000000000000", ["run"] = "local", ["sdk"] = "10.0.100" },
         };
+        if (plugin.Languages is { } languages)
+            manifest["languages"] = new JsonArray([.. languages.Select(l => (JsonNode)l)]);
+        if (plugin.LanguagePack is { } pack)
+            manifest["languagePack"] = new JsonObject { ["language"] = pack.Language, ["name"] = pack.Name, ["englishName"] = pack.EnglishName };
+
         File.WriteAllText(Path.Combine(PluginsPath, folder, "plugin.json"), manifest.ToJsonString());
         return Path.Combine(PluginsPath, folder);
     }
