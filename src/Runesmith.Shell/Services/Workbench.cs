@@ -30,7 +30,7 @@ public sealed class Workbench(
         if (!Directory.Exists(folder))
         {
             recent.Remove(folder);
-            notifications.Notify(NotificationKind.Error, "The folder does not exist", folder);
+            notifications.Notify(NotificationKind.Error, Strings.ShellFolderMissing, folder);
             return false;
         }
 
@@ -86,7 +86,7 @@ public sealed class Workbench(
             }
             else
             {
-                notifications.Notify(NotificationKind.Warning, "Nothing to open", $"{path} does not exist.");
+                notifications.Notify(NotificationKind.Warning, Strings.ShellNothingToOpen, Strings.ShellPathMissing(path));
             }
         }
     }

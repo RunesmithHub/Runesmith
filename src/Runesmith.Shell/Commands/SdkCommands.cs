@@ -13,7 +13,7 @@ public sealed class SdkCommands(PageService pages) : ICommandContributor
     {
         ArgumentNullException.ThrowIfNull(registry);
         registry.Add(
-            new CommandDefinition(CommandIds.Sdks, "SDKs...", "File") { Icon = "package", Description = "Show, download, update and remove .NET SDKs and JDKs." },
+            new CommandDefinition(CommandIds.Sdks, Strings.ShellSdks, Strings.ShellCategoryFile) { Icon = "package", Description = Strings.ShellSdksDescription },
             _ =>
             {
                 pages.ShowSettings(SdksSection.Category);

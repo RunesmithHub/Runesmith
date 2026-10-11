@@ -51,8 +51,7 @@ public sealed class ReferencesModel
 
         Title = title;
         Count = locations.Count;
-        var places = Count == 1 ? $"1 {noun}" : $"{Count:N0} {noun}s";
-        Summary = groups.Count == 1 ? $"{places} in 1 file" : $"{places} in {groups.Count:N0} files";
+        Summary = Strings.ShellReferencesSummary(kind: noun, count: Count, files: groups.Count);
         Groups.Clear();
         foreach (var group in groups)
             Groups.Add(group);

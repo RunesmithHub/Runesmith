@@ -39,30 +39,30 @@ public sealed class NavigationCommands(
 
         bool HasEditor() => Editor is not null;
 
-        Add(CommandIds.GoToImplementation, "Go to Implementation", "Go", null, "Ctrl+F12", GoToImplementationAsync, HasEditor, Menus.Go, "2-symbol",
-            "Go to the implementations of the interface, abstract member or virtual member at the caret.");
-        Add(CommandIds.FindReferences, "Find References", "Go", "link", "Shift+F12", FindReferencesAsync, HasEditor, Menus.Go, "2-symbol",
-            "List every use of the symbol at the caret in the References panel.");
-        Add(CommandIds.GoToSymbolInFile, "Go to Symbol in File...", "Go", "list-tree", "Ctrl+R", () => shell.ShowQuickPickAsync("@"), HasEditor, Menus.Go, "2-symbol",
-            "Find a class, function or other symbol of the active file by name.");
-        Add(CommandIds.GoToSymbolInWorkspace, "Go to Symbol in Workspace...", "Go", null, "Ctrl+Shift+R", () => shell.ShowQuickPickAsync("#"), null, Menus.Go, "2-symbol",
-            "Find a class, function or other symbol anywhere in the open folder by name.");
-        Add(CommandIds.ShowCallHierarchy, "Show Call Hierarchy", "Go", HierarchyToolWindow.Icon, "Ctrl+Alt+H", ShowCallHierarchyAsync, HasEditor, Menus.Go, "2-symbol",
-            "Show the functions that call the function at the caret, and what they call, in the Hierarchy panel.");
-        Add(CommandIds.ShowTypeHierarchy, "Show Type Hierarchy", "Go", null, "Ctrl+Alt+Shift+H", ShowTypeHierarchyAsync, HasEditor, Menus.Go, "2-symbol",
-            "Show the base types and derived types of the type at the caret in the Hierarchy panel.");
+        Add(CommandIds.GoToImplementation, Strings.ShellGoToImplementation, Strings.ShellCategoryGo, null, "Ctrl+F12", GoToImplementationAsync, HasEditor, Menus.Go, "2-symbol",
+            Strings.ShellGoToImplementationDescription);
+        Add(CommandIds.FindReferences, Strings.ShellFindReferences, Strings.ShellCategoryGo, "link", "Shift+F12", FindReferencesAsync, HasEditor, Menus.Go, "2-symbol",
+            Strings.ShellFindReferencesDescription);
+        Add(CommandIds.GoToSymbolInFile, Strings.ShellGoToSymbolInFile, Strings.ShellCategoryGo, "list-tree", "Ctrl+R", () => shell.ShowQuickPickAsync("@"), HasEditor, Menus.Go, "2-symbol",
+            Strings.ShellGoToSymbolInFileDescription);
+        Add(CommandIds.GoToSymbolInWorkspace, Strings.ShellGoToSymbolInWorkspace, Strings.ShellCategoryGo, null, "Ctrl+Shift+R", () => shell.ShowQuickPickAsync("#"), null, Menus.Go, "2-symbol",
+            Strings.ShellGoToSymbolInWorkspaceDescription);
+        Add(CommandIds.ShowCallHierarchy, Strings.ShellShowCallHierarchy, Strings.ShellCategoryGo, HierarchyToolWindow.Icon, "Ctrl+Alt+H", ShowCallHierarchyAsync, HasEditor, Menus.Go, "2-symbol",
+            Strings.ShellShowCallHierarchyDescription);
+        Add(CommandIds.ShowTypeHierarchy, Strings.ShellShowTypeHierarchy, Strings.ShellCategoryGo, null, "Ctrl+Alt+Shift+H", ShowTypeHierarchyAsync, HasEditor, Menus.Go, "2-symbol",
+            Strings.ShellShowTypeHierarchyDescription);
 
-        Add(CommandIds.ExpandSelection, "Expand Selection", "Selection", null, "Shift+Alt+Right", () => Editor!.ExpandSelectionAsync(), HasEditor, Menus.Selection, "1-select",
-            "Grow the selection to the next larger element around it, such as a word, its expression or its block.");
-        Sync(CommandIds.ShrinkSelection, "Shrink Selection", "Selection", null, "Shift+Alt+Left", () => Editor!.ShrinkSelection(), HasEditor, Menus.Selection, "1-select",
-            "Shrink the selection back to what it was before the last expand.");
+        Add(CommandIds.ExpandSelection, Strings.ShellExpandSelection, Strings.ShellCategorySelection, null, "Shift+Alt+Right", () => Editor!.ExpandSelectionAsync(), HasEditor, Menus.Selection, "1-select",
+            Strings.ShellExpandSelectionDescription);
+        Sync(CommandIds.ShrinkSelection, Strings.ShellShrinkSelection, Strings.ShellCategorySelection, null, "Shift+Alt+Left", () => Editor!.ShrinkSelection(), HasEditor, Menus.Selection, "1-select",
+            Strings.ShellShrinkSelectionDescription);
 
-        Sync(CommandIds.Fold, "Fold", "View", "chevron-right", "Ctrl+Shift+[", () => Editor!.Fold(), HasEditor, Menus.View, "5-folding",
-            "Fold the innermost block around the caret.");
-        Sync(CommandIds.Unfold, "Unfold", "View", "chevron-down", "Ctrl+Shift+]", () => Editor!.Unfold(), HasEditor, Menus.View, "5-folding",
-            "Unfold the folded block on the caret's line.");
-        Sync(CommandIds.FoldAll, "Fold All", "View", null, "Ctrl+Alt+[", () => Editor!.FoldAll(), HasEditor, Menus.View, "5-folding");
-        Sync(CommandIds.UnfoldAll, "Unfold All", "View", null, "Ctrl+Alt+]", () => Editor!.UnfoldAll(), HasEditor, Menus.View, "5-folding");
+        Sync(CommandIds.Fold, Strings.ShellFold, Strings.ShellCategoryView, "chevron-right", "Ctrl+Shift+[", () => Editor!.Fold(), HasEditor, Menus.View, "5-folding",
+            Strings.ShellFoldDescription);
+        Sync(CommandIds.Unfold, Strings.ShellUnfold, Strings.ShellCategoryView, "chevron-down", "Ctrl+Shift+]", () => Editor!.Unfold(), HasEditor, Menus.View, "5-folding",
+            Strings.ShellUnfoldDescription);
+        Sync(CommandIds.FoldAll, Strings.ShellFoldAll, Strings.ShellCategoryView, null, "Ctrl+Alt+[", () => Editor!.FoldAll(), HasEditor, Menus.View, "5-folding");
+        Sync(CommandIds.UnfoldAll, Strings.ShellUnfoldAll, Strings.ShellCategoryView, null, "Ctrl+Alt+]", () => Editor!.UnfoldAll(), HasEditor, Menus.View, "5-folding");
     }
 
     private async Task FindReferencesAsync()
@@ -74,7 +74,7 @@ public sealed class NavigationCommands(
         if (await editor.FindReferencesAsync() is not { } found)
             return;
 
-        await ShowAsync(editor, found, $"References to {name}", "reference", "No references found.");
+        await ShowAsync(editor, found, Strings.ShellReferencesTo(name ?? ""), "reference", Strings.ShellNoReferencesFound);
     }
 
     private async Task GoToImplementationAsync()
@@ -86,7 +86,7 @@ public sealed class NavigationCommands(
         if (await editor.FindImplementationsAsync() is not { } found)
             return;
 
-        await ShowAsync(editor, found, $"Implementations of {name}", "implementation", "No implementations found.");
+        await ShowAsync(editor, found, Strings.ShellImplementationsOf(name ?? ""), "implementation", Strings.ShellNoImplementationsFound);
     }
 
     // One place is opened at once; several are listed in the References panel.
@@ -110,7 +110,7 @@ public sealed class NavigationCommands(
     {
         var items = await PrepareAsync(features.PrepareCallHierarchyAsync);
         if (items is null)
-            Editor?.ShowMessage("No function to show the calls of here.");
+            Editor?.ShowMessage(Strings.ShellNoCallTarget);
         else if (items.Count > 0)
             hierarchy.Value.ShowCalls(items);
     }
@@ -119,7 +119,7 @@ public sealed class NavigationCommands(
     {
         var items = await PrepareAsync(features.PrepareTypeHierarchyAsync);
         if (items is null)
-            Editor?.ShowMessage("No type to show the hierarchy of here.");
+            Editor?.ShowMessage(Strings.ShellNoTypeTarget);
         else if (items.Count > 0)
             hierarchy.Value.ShowTypes(items);
     }

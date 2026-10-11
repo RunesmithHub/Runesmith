@@ -108,8 +108,8 @@ public static class ShellStartup
         foreach (var error in runtime.CompositionErrors)
             channel.AppendLine(error);
 
-        var title = failed.Count == 1 ? $"The plugin {failed[0].Manifest.Name} could not load" : failed.Count > 1 ? $"{failed.Count} plugins could not load" : "Some extensions could not load";
-        notifications.Notify(NotificationKind.Warning, title, "The Plugins output says why.", "Show output", channel.Show);
+        var title = failed.Count == 1 ? Strings.ShellPluginNotLoaded(failed[0].Manifest.Name) : failed.Count > 1 ? Strings.ShellPluginsNotLoaded(failed.Count) : Strings.ShellExtensionsNotLoaded;
+        notifications.Notify(NotificationKind.Warning, title, Strings.ShellSeePluginsOutput, Strings.ShellShowOutput, channel.Show);
     }
 
     private static async Task InitializePluginsAsync(ExportProvider exports, INotificationService notifications, IOutputService output)
@@ -135,7 +135,7 @@ public static class ShellStartup
             {
                 var channel = output.GetChannel("Plugins");
                 channel.AppendLine($"A plugin failed to start: {exception}");
-                notifications.Notify(NotificationKind.Error, "A plugin failed to start", exception.Message, "Show output", channel.Show);
+                notifications.Notify(NotificationKind.Error, Strings.ShellPluginStartFailed, exception.Message, Strings.ShellShowOutput, channel.Show);
             }
         }
     }

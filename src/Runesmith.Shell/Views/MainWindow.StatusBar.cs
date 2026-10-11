@@ -10,6 +10,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Editor;
 using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.Shell;
@@ -51,7 +52,7 @@ public partial class MainWindow
         });
         taskFlyout.Opening += (_, _) => taskFlyout.Content = TaskList();
         TaskIndicator.Flyout = taskFlyout;
-        ToolTip.SetTip(TaskIndicator, "Show the tasks that run");
+        TaskIndicator.Localize(ToolTip.TipProperty, () => Strings.ShellTasksTip);
 
         var history = new Flyout { Placement = PlacementMode.TopEdgeAlignedRight, ShowMode = FlyoutShowMode.Standard };
         history.Opening += (_, _) =>
@@ -136,9 +137,9 @@ public partial class MainWindow
 
         var document = watched.Document;
         var options = watched.Options;
-        IndentText.Text = options.InsertSpaces ? $"{options.TabSize} spaces" : $"Tab size {options.TabSize}";
+        IndentText.Text = options.InsertSpaces ? Strings.ShellIndentSpaces(options.TabSize) : Strings.ShellIndentTab(options.TabSize);
         var encoding = document.Encoding;
-        EncodingText.Text = encoding.WebName.ToUpperInvariant() + (encoding.GetPreamble().Length > 0 && encoding is System.Text.UTF8Encoding ? " with BOM" : "");
+        EncodingText.Text = encoding.WebName.ToUpperInvariant() + (encoding.GetPreamble().Length > 0 && encoding is System.Text.UTF8Encoding ? " " + Strings.ShellWithBom : "");
         LineEndingText.Text = document.LineEnding switch
         {
             LineEnding.CrLf => "CRLF",
@@ -157,7 +158,7 @@ public partial class MainWindow
         var snapshot = watched.Area.Snapshot;
         var position = snapshot.GetPosition(watched.CaretOffset);
         var selected = watched.Selection.Length;
-        CaretText.Text = $"{position.Line + 1}:{position.Column + 1}" + (selected > 0 ? $" ({selected} selected)" : "");
+        CaretText.Text = $"{position.Line + 1}:{position.Column + 1}" + (selected > 0 ? " " + Strings.ShellSelected(selected) : "");
     }
 
     private void UpdateTasks()
@@ -188,10 +189,10 @@ public partial class MainWindow
     private StackPanel TaskList()
     {
         var list = new StackPanel { Spacing = 8, Width = 320 };
-        list.Children.Add(new TextBlock { Text = "Running tasks", FontWeight = FontWeight.SemiBold });
+        list.Children.Add(new TextBlock { Text = Strings.ShellRunningTasks, FontWeight = FontWeight.SemiBold });
         var running = tasks!.Running.OfType<BackgroundTaskService.BackgroundTask>().Reverse().ToList();
         if (running.Count == 0)
-            list.Children.Add(new TextBlock { Text = "Nothing runs now.", Classes = { "muted" } });
+            list.Children.Add(new TextBlock { Text = Strings.ShellNothingRuns, Classes = { "muted" } });
 
         foreach (var task in running)
         {
@@ -204,7 +205,7 @@ public partial class MainWindow
             if (task.CanCancel)
             {
                 var cancel = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.X, Size = 16 }, IsEnabled = !task.IsCancelling, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8, 0, 0, 0) };
-                ToolTip.SetTip(cancel, "Cancel");
+                ToolTip.SetTip(cancel, Strings.ShellCancel);
                 cancel.Click += (_, _) =>
                 {
                     task.Cancel();
@@ -223,7 +224,7 @@ public partial class MainWindow
 
     private StackPanel NotificationList(Flyout flyout)
     {
-        var clear = new Button { Classes = { "subtle", "small" }, Content = "Clear all", IsEnabled = notifications!.History.Count > 0 };
+        var clear = new Button { Classes = { "subtle", "small" }, Content = Strings.ShellClearAll, IsEnabled = notifications!.History.Count > 0 };
         clear.Click += (_, _) =>
         {
             notifications.ClearHistory();
@@ -231,11 +232,11 @@ public partial class MainWindow
         };
         var header = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
         DockPanel.SetDock(clear, Dock.Right);
-        header.Children.AddRange([clear, new TextBlock { Text = "Notifications", FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center }]);
+        header.Children.AddRange([clear, new TextBlock { Text = Strings.ShellNotifications, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center }]);
 
         var rows = new StackPanel { Spacing = 4 };
         if (notifications.History.Count == 0)
-            rows.Children.Add(new TextBlock { Text = "No notifications yet.", Classes = { "muted" }, Margin = new Thickness(0, 4) });
+            rows.Children.Add(new TextBlock { Text = Strings.ShellNoNotifications, Classes = { "muted" }, Margin = new Thickness(0, 4) });
 
         foreach (var entry in notifications.History)
         {
@@ -274,7 +275,7 @@ public partial class MainWindow
         if (watched?.Document is not { } document)
             return;
 
-        if (await notifications!.ChooseAsync("Line endings", $"Which line endings should {document.Name} be saved with?", ["LF (Linux, macOS)", "CRLF (Windows)"]) is { } choice)
+        if (await notifications!.ChooseAsync(Strings.ShellLineEndings, Strings.ShellLineEndingsQuestion(document.Name), [Strings.ShellLineEndingsLf, Strings.ShellLineEndingsCrlf]) is { } choice)
             document.LineEnding = choice == 0 ? LineEnding.Lf : LineEnding.CrLf;
     }
 

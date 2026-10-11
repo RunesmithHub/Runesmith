@@ -13,9 +13,9 @@ public sealed class SettingSource(ISettingsService settings, Lazy<PageService> p
 {
     public string Prefix => "";
 
-    public string Name => "Settings";
+    public string Name => Strings.ShellSourceSettings;
 
-    public string Placeholder => "Search settings";
+    public string Placeholder => Strings.ShellSourceSettingsPlaceholder;
 
     public Task<IReadOnlyList<QuickPickItem>> SearchAsync(string query, CancellationToken cancellationToken)
     {
@@ -32,7 +32,7 @@ public sealed class SettingSource(ISettingsService settings, Lazy<PageService> p
             rows.Add((new QuickPickItem(definition.Title, definition.Category)
             {
                 Subtitle = definition.Description,
-                Detail = $"Setting: {definition.Category}",
+                Detail = Strings.ShellSourceSetting(Pages.SettingsPage.CategoryTitle(definition.Category)),
                 Icon = Icons.Settings,
                 Matches = matches,
             }, score));

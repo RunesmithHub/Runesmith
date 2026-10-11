@@ -53,3 +53,37 @@ editor-change-restore = Put the lines back as they were
 #   $position (Number) - the overload shown, counted from 1
 #   $count (Number) - how many overloads there are
 editor-signature-counter = { $position } of { $count }  (Up and Down to switch)
+
+# The kind of a symbol, as the outline, Go to Symbol and the breadcrumbs name it.
+# Variables:
+#   $kind - the kind's id
+editor-symbol-kind =
+    { $kind ->
+        [file] file
+        [module] module
+        [namespace] namespace
+        [package] package
+        [class] class
+        [method] method
+        [property] property
+        [field] field
+        [constructor] constructor
+        [enum] enum
+        [interface] interface
+        [function] function
+        [variable] variable
+        [constant] constant
+        [string] string
+        [number] number
+        [boolean] boolean
+        [array] array
+        [object] object
+        [key] key
+        [null] null
+        [enummember] enum member
+        [struct] struct
+        [event] event
+        [operator] operator
+        [typeparameter] type parameter
+       *[other] symbol
+    }

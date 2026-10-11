@@ -303,3 +303,5 @@ settings-form-no-sdk = No SDK found
 settings-form-choose-sdk = Choose an SDK
 # The badge of the SDK builds use by default.
 settings-form-default = default
+# The size of a download that is not known.
+settings-sdks-size-unknown = Unknown

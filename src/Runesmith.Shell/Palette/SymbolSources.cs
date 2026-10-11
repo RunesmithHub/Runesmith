@@ -15,9 +15,9 @@ public sealed class DocumentSymbolSource(EditorService editors, DocumentSymbols 
 {
     public string Prefix => "@";
 
-    public string Name => "Symbols";
+    public string Name => Strings.ShellSourceSymbols;
 
-    public string Placeholder => editors.Active is null ? "Open a file first to go to its symbols" : "Type the name of a symbol in this file";
+    public string Placeholder => editors.Active is null ? Strings.ShellSourceSymbolsNoFile : Strings.ShellSourceSymbolsPlaceholder;
 
     public async Task<IReadOnlyList<QuickPickItem>> SearchAsync(string query, CancellationToken cancellationToken)
     {
@@ -28,7 +28,7 @@ public sealed class DocumentSymbolSource(EditorService editors, DocumentSymbols 
         if (tracker.Symbols is null)
             await tracker.RefreshAsync();
         if (tracker.Symbols is not { } tree)
-            return [new QuickPickItem($"Nothing lists the symbols of {editor.Document.Name}", null) { IsEnabled = false, Icon = HammerUI.Icons.Info }];
+            return [new QuickPickItem(Strings.ShellSourceSymbolsNone(editor.Document.Name), null) { IsEnabled = false, Icon = HammerUI.Icons.Info }];
 
         var rows = new List<(QuickPickItem Item, double Score, int Start)>();
         foreach (var (symbol, container) in Flatten(tree, null))
@@ -86,9 +86,9 @@ public sealed class WorkspaceSymbolSource(INavigationFeatures features, EditorSe
 
     public string Prefix => "#";
 
-    public string Name => "Workspace";
+    public string Name => Strings.ShellSourceWorkspace;
 
-    public string Placeholder => "Type the name of a symbol";
+    public string Placeholder => Strings.ShellSourceWorkspacePlaceholder;
 
     public async Task<IReadOnlyList<QuickPickItem>> SearchAsync(string query, CancellationToken cancellationToken)
     {

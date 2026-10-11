@@ -96,7 +96,11 @@ public partial class MainWindow : Window
         languagePacks = exports.GetExportedValue<Localization.LanguagePackSuggestions>();
         hub.ShowRequested += (_, _) => ShowPlugins();
         hub.Client.Changed += (_, _) => UiThread.Run(SuggestLanguagePack);
-        localization.Changed += (_, _) => ApplyFlowDirection();
+        localization.Changed += (_, _) =>
+        {
+            ApplyFlowDirection();
+            OnLanguageChanged();
+        };
         ApplyFlowDirection();
 
         notifications.Host.Attach(this, Dialogs, Toasts);

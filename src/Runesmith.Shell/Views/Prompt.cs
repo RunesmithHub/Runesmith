@@ -16,8 +16,8 @@ internal static class Prompt
         var input = new TextBox { Text = initial, MinWidth = 360 };
         var error = new TextBlock { Classes = { "caption" }, IsVisible = false, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         error.Bind(TextBlock.ForegroundProperty, error.GetResourceObservable("DangerBrush"));
-        var ok = new Button { Content = "OK", Classes = { "accent" }, IsDefault = true, MinWidth = 84 };
-        var cancel = new Button { Content = "Cancel", IsCancel = true, MinWidth = 84 };
+        var ok = new Button { Content = Strings.ShellOk, Classes = { "accent" }, IsDefault = true, MinWidth = 84 };
+        var cancel = new Button { Content = Strings.ShellCancel, IsCancel = true, MinWidth = 84 };
         var dialog = new Dialog
         {
             Header = title,

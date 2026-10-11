@@ -63,7 +63,7 @@ internal static class AboutDialog
                                 VerticalAlignment = VerticalAlignment.Center,
                                 Children =
                                 {
-                                    new TextBlock { Text = "Runesmith", FontSize = 20, FontWeight = FontWeight.SemiBold },
+                                    new TextBlock { Text = Strings.ShellProduct, FontSize = 20, FontWeight = FontWeight.SemiBold },
                                     new TextBlock { Text = Strings.SettingsAboutTagline, Classes = { "muted" } },
                                 },
                             },

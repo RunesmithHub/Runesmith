@@ -99,15 +99,15 @@ public sealed class BuildService(
     {
         running?.Dispose();
         running = null;
-        var seconds = result.Duration.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.CurrentCulture);
+
         task?.Dispose();
         task = null;
 
         if (!canceled)
         {
             var kind = result.Succeeded ? (result.Warnings > 0 ? NotificationKind.Warning : NotificationKind.Success) : NotificationKind.Error;
-            var detail = result.Succeeded && result.Warnings == 0 ? $"Finished in {seconds} s." : $"{Count(result.Errors, "error")} and {Count(result.Warnings, "warning")}.";
-            notifications.Notify(kind, result.Succeeded ? "Build succeeded" : "Build failed", detail);
+            var detail = result.Succeeded && result.Warnings == 0 ? Strings.ShellBuildFinished(result.Duration.TotalSeconds) : Strings.ShellBuildProblems(result.Errors, result.Warnings);
+            notifications.Notify(kind, result.Succeeded ? Strings.ShellBuildSucceeded : Strings.ShellBuildFailed, detail);
         }
 
         StateChanged?.Invoke(this, EventArgs.Empty);

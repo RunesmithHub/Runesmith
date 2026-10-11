@@ -12,9 +12,9 @@ public sealed class CommandSource(CommandService commands) : IQuickPickSource
 {
     public string Prefix => ">";
 
-    public string Name => "Commands";
+    public string Name => Strings.ShellSourceCommands;
 
-    public string Placeholder => "Search commands";
+    public string Placeholder => Strings.ShellSourceCommandsPlaceholder;
 
     public Task<IReadOnlyList<QuickPickItem>> SearchAsync(string query, CancellationToken cancellationToken)
     {

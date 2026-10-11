@@ -84,7 +84,7 @@ internal sealed class WelcomePage : Grid
                     VerticalAlignment = VerticalAlignment.Center,
                     Children =
                     {
-                        new TextBlock { Text = "Runesmith", FontWeight = FontWeight.SemiBold, FontSize = 15 },
+                        new TextBlock { Text = Strings.ShellProduct, FontWeight = FontWeight.SemiBold, FontSize = 15 },
                         new TextBlock { Text = version is null ? "" : $"{version.Major}.{version.Minor}.{version.Build}", Classes = { "caption" } },
                     },
                 },

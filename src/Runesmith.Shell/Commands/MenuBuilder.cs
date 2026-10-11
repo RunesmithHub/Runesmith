@@ -31,13 +31,28 @@ internal static class MenuBuilder
         foreach (var name in MenuNames(placed, commands.Menus))
         {
             var items = placed.Where(i => i.Menu == name || i.Menu.StartsWith(name + "/", StringComparison.Ordinal)).ToList();
-            var menu = new MenuItem { Header = "_" + (definitions.GetValueOrDefault(name)?.Title ?? name) };
+            var menu = new MenuItem { Header = "_" + (definitions.GetValueOrDefault(name)?.Title ?? Title(name)) };
             Fill(menu, name, items, commands);
             menus.Add(menu);
         }
 
         return menus;
     }
+
+    // Runesmith's own menus are named by their ids, which stay the same in every language.
+    private static string Title(string menu) => menu switch
+    {
+        Menus.File => Strings.ShellMenuFile,
+        Menus.Edit => Strings.ShellMenuEdit,
+        Menus.Selection => Strings.ShellMenuSelection,
+        Menus.View => Strings.ShellMenuView,
+        Menus.Go => Strings.ShellMenuGo,
+        Menus.Run => Strings.ShellMenuRun,
+        Menus.Build => Strings.ShellMenuBuild,
+        Menus.Tools => Strings.ShellMenuTools,
+        Menus.Help => Strings.ShellMenuHelp,
+        _ => menu,
+    };
 
     private static Dictionary<string, MenuDefinition> Definitions(IEnumerable<MenuDefinition>? menus)
     {

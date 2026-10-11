@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Commands;
 using Runesmith.Sdk.Shell;
 using Runesmith.Shell.Commands;
@@ -30,12 +31,12 @@ public partial class MainWindow
     private void WireToolbar()
     {
         MainMenuButton.Flyout = mainMenu;
-        ToolTip.SetTip(MainMenuButton, "Main menu (Alt)");
+        MainMenuButton.Localize(ToolTip.TipProperty, () => Strings.ShellMainMenu);
 
         ProjectButton.Flyout = MenuFlyouts.Dynamic(FillProjectMenu, PlacementMode.BottomEdgeAlignedLeft);
 
         SettingsButton.Flyout = MenuFlyouts.Dynamic(FillSettingsMenu, PlacementMode.BottomEdgeAlignedRight);
-        ToolTip.SetTip(SettingsButton, "Settings, plugins and themes");
+        SettingsButton.Localize(ToolTip.TipProperty, () => Strings.ShellSettingsMenu);
 
         SearchButton.Click += (_, _) => _ = commands!.ExecuteAsync(CommandIds.SearchEverywhere);
         SearchButton.SizeChanged += (_, e) => SearchKeys.IsVisible = e.NewSize.Width >= 280;
@@ -70,17 +71,17 @@ public partial class MainWindow
     private void UpdateSearchKeys()
     {
         var gesture = commands!.GetKeyBinding(CommandIds.SearchEverywhere)?.Split(" | ")[0];
-        SearchKeys.Text = "Shift Shift";
-        ToolTip.SetTip(SearchButton, gesture is null ? "Search files, commands and settings (Shift Shift)" : $"Search files, commands and settings (Shift Shift or {gesture})");
+        SearchKeys.Text = Strings.ShellSearchShiftShift;
+        ToolTip.SetTip(SearchButton, gesture is null ? Strings.ShellSearchTip : Strings.ShellSearchTipKeys(gesture));
     }
 
-    private string Tip(string text, string commandId) => commands!.GetKeyBinding(commandId) is { } gesture ? $"{text} ({gesture.Split(" | ")[0]})" : text;
+    private string Tip(string text, string commandId) => commands!.GetKeyBinding(commandId) is { } gesture ? Strings.ShellWithKeys(text, gesture.Split(" | ")[0]) : text;
 
     private void UpdateProject()
     {
         var name = workspace!.Name;
-        ProjectName.Text = name ?? "No folder";
-        ProjectInitial.Text = string.IsNullOrEmpty(name) ? "R" : name[..1].ToUpperInvariant();
+        ProjectName.Text = name ?? Strings.ShellNoFolder;
+        ProjectInitial.Text = string.IsNullOrEmpty(name) ? Strings.ShellProduct[..1] : name[..1].ToUpperInvariant();
         ToolTip.SetTip(ProjectButton, workspace.RootPath);
         ProjectButton.IsVisible = workspace.RootPath is not null;
         RunWidgetHost.IsVisible = workspace.RootPath is not null;
@@ -93,7 +94,7 @@ public partial class MainWindow
         var folders = recent!.Items.Where(f => current is null || !string.Equals(f, current, StringComparison.Ordinal)).Take(8).ToList();
         if (folders.Count > 0)
         {
-            menu.Items.Add(new MenuItem { Header = "Recent folders", IsEnabled = false, Classes = { "header" } });
+            menu.Items.Add(new MenuItem { Header = Strings.ShellRecentFolders, IsEnabled = false, Classes = { "header" } });
             foreach (var folder in folders)
             {
                 var item = new MenuItem
@@ -126,8 +127,8 @@ public partial class MainWindow
 
     private void FillSettingsMenu(MenuFlyout menu)
     {
-        menu.Items.Add(CommandItem(CommandIds.Settings, "Settings", Icons.Settings));
-        var plugins = new MenuItem { Header = "Plugins", Icon = new SymbolIcon { Data = Icons.Puzzle, Size = 16 } };
+        menu.Items.Add(CommandItem(CommandIds.Settings, Strings.ShellSettings, Icons.Settings));
+        var plugins = new MenuItem { Header = Strings.ShellPlugins, Icon = new SymbolIcon { Data = Icons.Puzzle, Size = 16 } };
         plugins.Click += (_, _) => pages!.ShowSettings(PluginsCategory);
         menu.Items.Add(plugins);
         if (commands!.Find(CommandIds.Sdks) is not null)
@@ -220,11 +221,21 @@ public partial class MainWindow
         UpdateWindowButtons();
     }
 
+    // Text set once from code is set again in the language that shows.
+    private void OnLanguageChanged()
+    {
+        EmptyEditorHints.Children.Clear();
+        UpdateEmptyEditorHints();
+        UpdateProject();
+        UpdateWindowButtons();
+        UpdateEditorInfo();
+    }
+
     private void UpdateWindowButtons()
     {
         WindowButtons.IsVisible = IsExtendedIntoWindowDecorations;
         MaximizeIcon.Data = WindowState == WindowState.Maximized ? Icons.WindowRestore : Icons.WindowMaximize;
-        ToolTip.SetTip(MaximizeButton, WindowState == WindowState.Maximized ? "Restore" : "Maximize");
+        ToolTip.SetTip(MaximizeButton, WindowState == WindowState.Maximized ? Strings.ShellRestore : Strings.ShellMaximize);
         TitleBar.Padding = new Thickness(4, 0, 0, 0);
     }
 
@@ -264,11 +275,11 @@ public partial class MainWindow
 
         foreach (var (text, commandId) in new[]
         {
-            ("Search everywhere", CommandIds.SearchEverywhere),
-            ("Go to file", CommandIds.QuickOpen),
-            ("Find in files", CommandIds.FindInFiles),
-            ("Show the Explorer", "view.explorer"),
-            ("Command palette", CommandIds.CommandPalette),
+            (Strings.ShellHintSearchEverywhere, CommandIds.SearchEverywhere),
+            (Strings.ShellHintGoToFile, CommandIds.QuickOpen),
+            (Strings.ShellHintFindInFiles, CommandIds.FindInFiles),
+            (Strings.ShellHintExplorer, "view.explorer"),
+            (Strings.ShellHintCommandPalette, CommandIds.CommandPalette),
         })
         {
             var keys = commandId == CommandIds.SearchEverywhere ? "Shift Shift" : commands!.GetKeyBinding(commandId)?.Split(" | ")[0];

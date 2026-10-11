@@ -13,9 +13,9 @@ public sealed class FileSource(QuickOpenSearch search, IWorkspace workspace, Edi
 {
     public string Prefix => "";
 
-    public string Name => "Files";
+    public string Name => Strings.ShellSourceFiles;
 
-    public string Placeholder => workspace.RootPath is null ? "Open a folder to search its files, or type > for commands" : "Search files by name";
+    public string Placeholder => workspace.RootPath is null ? Strings.ShellSourceFilesNoFolder : Strings.ShellSourceFilesPlaceholder;
 
     public async Task<IReadOnlyList<QuickPickItem>> SearchAsync(string query, CancellationToken cancellationToken)
     {

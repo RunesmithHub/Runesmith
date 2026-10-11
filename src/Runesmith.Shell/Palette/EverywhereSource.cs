@@ -5,9 +5,9 @@ internal sealed class EverywhereSource(IReadOnlyList<(IQuickPickSource Source, i
 {
     public string Prefix => "";
 
-    public string Name => "Everywhere";
+    public string Name => Strings.ShellSourceEverywhere;
 
-    public string Placeholder => "Search files, symbols, commands and settings";
+    public string Placeholder => Strings.ShellSourceEverywherePlaceholder;
 
     public async Task<IReadOnlyList<QuickPickItem>> SearchAsync(string query, CancellationToken cancellationToken)
     {

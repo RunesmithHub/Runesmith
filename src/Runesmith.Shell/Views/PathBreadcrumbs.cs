@@ -76,7 +76,7 @@ internal sealed class PathBreadcrumbs : StackPanel
 
             var button = new Button { Classes = { "crumb" }, Content = content, Focusable = false };
             button.Classes.Set("current", isFile);
-            ToolTip.SetTip(button, $"Reveal {path} in the Explorer");
+            ToolTip.SetTip(button, Strings.ShellRevealPath(path));
             button.Click += (_, _) => reveal(path);
             Children.Add(button);
         }

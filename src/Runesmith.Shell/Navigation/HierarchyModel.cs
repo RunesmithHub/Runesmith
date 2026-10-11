@@ -37,7 +37,7 @@ public sealed class HierarchyNode : INotifyPropertyChanged
         Message = message;
         Depth = depth;
         if (item is not null && model is not null)
-            Children.Add(new HierarchyNode(null, null, [], "Loading..."));
+            Children.Add(new HierarchyNode(null, null, [], Strings.ShellHierarchyLoading));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -96,13 +96,13 @@ public sealed class HierarchyModel(INavigationFeatures features)
     public HierarchyDirection Direction { get; private set; }
 
     /// <summary>Gets what the tree is about, such as "Callers of Main".</summary>
-    public string Title => roots.Count == 0 ? "" : $"{Direction switch
+    public string Title => roots.Count == 0 ? "" : Direction switch
     {
-        HierarchyDirection.Callers => "Callers of",
-        HierarchyDirection.Callees => "Calls from",
-        HierarchyDirection.Supertypes => "Supertypes of",
-        _ => "Subtypes of",
-    }} {roots[0].Name}";
+        HierarchyDirection.Callers => Strings.ShellHierarchyCallersOf(roots[0].Name),
+        HierarchyDirection.Callees => Strings.ShellHierarchyCallsFrom(roots[0].Name),
+        HierarchyDirection.Supertypes => Strings.ShellHierarchySupertypesOf(roots[0].Name),
+        _ => Strings.ShellHierarchySubtypesOf(roots[0].Name),
+    };
 
     /// <summary>Raised when the tree starts over, such as for another root or direction.</summary>
     public event EventHandler? Changed;
@@ -127,7 +127,7 @@ public sealed class HierarchyModel(INavigationFeatures features)
         try
         {
             children = node.Depth >= MaxDepth
-                ? [new HierarchyNode(null, null, [], "The hierarchy is too deep to show more.")]
+                ? [new HierarchyNode(null, null, [], Strings.ShellHierarchyTooDeep)]
                 : await ChildrenAsync(item, node.Depth + 1);
         }
         catch (LanguageFeatureException exception)
@@ -179,9 +179,9 @@ public sealed class HierarchyModel(INavigationFeatures features)
 
     private string Empty() => Direction switch
     {
-        HierarchyDirection.Callers => "No callers",
-        HierarchyDirection.Callees => "No calls",
-        HierarchyDirection.Supertypes => "No supertypes",
-        _ => "No subtypes",
+        HierarchyDirection.Callers => Strings.ShellHierarchyNoCallers,
+        HierarchyDirection.Callees => Strings.ShellHierarchyNoCalls,
+        HierarchyDirection.Supertypes => Strings.ShellHierarchyNoSupertypes,
+        _ => Strings.ShellHierarchyNoSubtypes,
     };
 }

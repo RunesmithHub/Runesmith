@@ -38,12 +38,7 @@ public static class SymbolKinds
     };
 
     /// <summary>Gets the kind's name for people, such as "enum member".</summary>
-    public static string Name(SymbolKind kind) => kind switch
-    {
-        SymbolKind.EnumMember => "enum member",
-        SymbolKind.TypeParameter => "type parameter",
-        _ => kind.ToString().ToLowerInvariant(),
-    };
+    public static string Name(SymbolKind kind) => Strings.EditorSymbolKind(kind.ToString().ToLowerInvariant());
 
     /// <summary>Gets the chain of symbols that contain an offset, outermost first.</summary>
     public static IReadOnlyList<DocumentSymbol> PathAt(IReadOnlyList<DocumentSymbol> symbols, int offset)

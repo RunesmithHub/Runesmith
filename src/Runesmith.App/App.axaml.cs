@@ -93,6 +93,6 @@ public sealed class App : Application
     private sealed class ShellHandle(NotificationService notifications)
     {
         public void Notify(Exception exception, string? log) =>
-            notifications.Notify(Sdk.Shell.NotificationKind.Error, "Something went wrong", exception.Message + (log is null ? "" : $" Details are in {log}."));
+            notifications.Notify(Sdk.Shell.NotificationKind.Error, Strings.AppSomethingWentWrong, exception.Message + (log is null ? "" : " " + Strings.AppDetailsInLog(log)));
     }
 }

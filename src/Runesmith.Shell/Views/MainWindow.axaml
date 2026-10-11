@@ -4,6 +4,7 @@
         xmlns:dock="using:HammerUI.Docking"
         xmlns:services="using:Runesmith.Shell.Services"
         xmlns:views="using:Runesmith.Shell.Views"
+        xmlns:l="https://github.com/runesmithhub/runesmith/localization"
         x:Class="Runesmith.Shell.Views.MainWindow"
         Title="Runesmith"
         Width="1440" Height="900"
@@ -129,7 +130,7 @@
             <Button x:Name="SearchButton" Classes="search-field" MaxWidth="360" ClipToBounds="True" VerticalAlignment="Center">
               <Grid ColumnDefinitions="Auto,*,Auto">
                 <ui:SymbolIcon Data="{x:Static ui:Icons.Search}" Size="16" Margin="0,0,8,0" />
-                <TextBlock x:Name="SearchLabel" Grid.Column="1" Text="Search everywhere" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="SearchLabel" Grid.Column="1" Text="{l:Text shell-search-label}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                 <ui:ShortcutBadge x:Name="SearchKeys" Grid.Column="2" Text="Shift Shift" VerticalAlignment="Center" />
               </Grid>
             </Button>
@@ -140,13 +141,13 @@
                 <ui:SymbolIcon Data="{x:Static ui:Icons.Settings}" Size="16" />
               </Button>
               <StackPanel x:Name="WindowButtons" Orientation="Horizontal" IsVisible="False">
-                <Button x:Name="MinimizeButton" Classes="window-control" ToolTip.Tip="Minimize">
+                <Button x:Name="MinimizeButton" Classes="window-control" ToolTip.Tip="{l:Text shell-minimize}">
                   <ui:SymbolIcon Data="{x:Static ui:Icons.Minus}" Size="16" />
                 </Button>
-                <Button x:Name="MaximizeButton" Classes="window-control" ToolTip.Tip="Maximize">
+                <Button x:Name="MaximizeButton" Classes="window-control" ToolTip.Tip="{l:Text shell-maximize}">
                   <ui:SymbolIcon x:Name="MaximizeIcon" Data="{x:Static ui:Icons.WindowMaximize}" Size="16" />
                 </Button>
-                <Button x:Name="CloseButton" Classes="window-control close" ToolTip.Tip="Close">
+                <Button x:Name="CloseButton" Classes="window-control close" ToolTip.Tip="{l:Text shell-close}">
                   <ui:SymbolIcon Data="{x:Static ui:Icons.X}" Size="16" />
                 </Button>
               </StackPanel>
@@ -241,21 +242,21 @@
                 <Button x:Name="CaretButton" Classes="status-item" Focusable="False">
                   <TextBlock x:Name="CaretText" Classes="status" />
                 </Button>
-                <Button x:Name="LineEndingButton" Classes="status-item" Focusable="False" ToolTip.Tip="Line endings; click to change them">
+                <Button x:Name="LineEndingButton" Classes="status-item" Focusable="False" ToolTip.Tip="{l:Text shell-line-endings-tip}">
                   <TextBlock x:Name="LineEndingText" Classes="status" />
                 </Button>
-                <Button x:Name="EncodingButton" Classes="status-item" Focusable="False" ToolTip.Tip="The file's encoding">
+                <Button x:Name="EncodingButton" Classes="status-item" Focusable="False" ToolTip.Tip="{l:Text shell-encoding-tip}">
                   <TextBlock x:Name="EncodingText" Classes="status" />
                 </Button>
-                <Button x:Name="IndentButton" Classes="status-item" Focusable="False" ToolTip.Tip="Indentation; click to change it in the settings">
+                <Button x:Name="IndentButton" Classes="status-item" Focusable="False" ToolTip.Tip="{l:Text shell-indent-tip}">
                   <TextBlock x:Name="IndentText" Classes="status" />
                 </Button>
-                <Button x:Name="LanguageButton" Classes="status-item" Focusable="False" ToolTip.Tip="The file's language; click to change it">
+                <Button x:Name="LanguageButton" Classes="status-item" Focusable="False" ToolTip.Tip="{l:Text shell-language-tip}">
                   <TextBlock x:Name="LanguageText" Classes="status" />
                 </Button>
               </StackPanel>
 
-              <Button x:Name="BellButton" Classes="status-item" Focusable="False" ToolTip.Tip="Notifications" Margin="4,0,0,0">
+              <Button x:Name="BellButton" Classes="status-item" Focusable="False" ToolTip.Tip="{l:Text shell-notifications}" Margin="4,0,0,0">
                 <Panel>
                   <ui:SymbolIcon Data="{x:Static ui:Icons.Bell}" Size="14" Foreground="{DynamicResource TextSecondaryBrush}" />
                   <Ellipse x:Name="UnreadDot" Classes="unread" IsVisible="False" />

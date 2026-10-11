@@ -13,11 +13,11 @@ public sealed class LineSource(EditorService editors) : IQuickPickSource
 {
     public string Prefix => ":";
 
-    public string Name => "Go to line";
+    public string Name => Strings.ShellSourceLine;
 
     public string Placeholder => editors.Active is { } editor
-        ? $"Type a line number between 1 and {editor.Area.Snapshot.LineCount}, and optionally :column"
-        : "Open a file first to go to a line in it";
+        ? Strings.ShellSourceLinePlaceholder(editor.Area.Snapshot.LineCount)
+        : Strings.ShellSourceLineNoFile;
 
     public Task<IReadOnlyList<QuickPickItem>> SearchAsync(string query, CancellationToken cancellationToken)
     {
@@ -30,13 +30,13 @@ public sealed class LineSource(EditorService editors) : IQuickPickSource
         {
             return Task.FromResult<IReadOnlyList<QuickPickItem>>(
             [
-                new QuickPickItem($"Current line {current.Line + 1}, column {current.Column + 1}", null) { Icon = Icons.Info, IsEnabled = false },
+                new QuickPickItem(Strings.ShellSourceLineCurrent(current.Line + 1, current.Column + 1), null) { Icon = Icons.Info, IsEnabled = false },
             ]);
         }
 
         var column = parts.Length > 1 && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.CurrentCulture, out var c) ? c : 1;
         line = Math.Clamp(line, 1, editor.Area.Snapshot.LineCount);
-        var title = column > 1 ? $"Go to line {line}, column {column}" : $"Go to line {line}";
+        var title = column > 1 ? Strings.ShellSourceLineGoColumn(line, column) : Strings.ShellSourceLineGo(line);
         return Task.FromResult<IReadOnlyList<QuickPickItem>>([new QuickPickItem(title, new TextPosition(line - 1, Math.Max(0, column - 1))) { Icon = Icons.ArrowRight }]);
     }
 

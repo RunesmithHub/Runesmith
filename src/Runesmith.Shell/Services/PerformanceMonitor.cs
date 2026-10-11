@@ -57,10 +57,10 @@ public sealed class PerformanceMonitor : ICommandContributor, IDisposable
 
     public void Contribute(ICommandRegistry registry) =>
         registry.Add(
-            new CommandDefinition(ReportCommand, "Performance Report", "Help")
+            new CommandDefinition(ReportCommand, Strings.ShellPerformanceReport, Strings.ShellCategoryHelp)
             {
                 Icon = "gauge",
-                Description = "Show how long typing, drawing, highlighting and language feature requests take, as percentiles.",
+                Description = Strings.ShellPerformanceReportDescription,
             },
             _ =>
             {

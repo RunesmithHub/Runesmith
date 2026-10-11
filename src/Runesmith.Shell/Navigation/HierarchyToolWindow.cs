@@ -72,8 +72,8 @@ internal sealed class HierarchyView : DockPanel
     private readonly EmptyState empty = new()
     {
         Icon = Icons.ListTree,
-        Title = "No hierarchy",
-        Hint = "Right-click a function and choose Show Call Hierarchy, or a type and choose Show Type Hierarchy.",
+        Title = Strings.ShellNoHierarchy,
+        Hint = Strings.ShellNoHierarchyHint,
     };
 
     public HierarchyView(HierarchyModel model, Func<DocumentLocation, bool, Task> reveal)
@@ -132,7 +132,7 @@ internal sealed class HierarchyView : DockPanel
     private void Update()
     {
         title.Text = model.Title;
-        (first.Content, second.Content) = model.IsCallHierarchy ? ("Callers", "Callees") : ("Supertypes", "Subtypes");
+        (first.Content, second.Content) = model.IsCallHierarchy ? (Strings.ShellHierarchyCallers, Strings.ShellHierarchyCallees) : (Strings.ShellHierarchySupertypes, Strings.ShellHierarchySubtypes);
         first.IsChecked = model.Direction is HierarchyDirection.Callers or HierarchyDirection.Supertypes;
         second.IsChecked = !first.IsChecked;
         var hasRows = model.Roots.Count > 0;
@@ -158,7 +158,7 @@ internal sealed class HierarchyView : DockPanel
         var where = $"{Path.GetFileName(item.Location.FilePath)}:{(item.SelectionLocation ?? item.Location).Start.Line + 1}";
         row.Children.Add(new TextBlock { Text = where, Classes = { "caption", "muted" }, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0) });
         if (node.CallSites.Count > 1)
-            row.Children.Add(new Badge { Content = $"{node.CallSites.Count} calls", VerticalAlignment = VerticalAlignment.Center });
+            row.Children.Add(new Badge { Content = Strings.ShellHierarchyCalls(node.CallSites.Count), VerticalAlignment = VerticalAlignment.Center });
         ToolTip.SetTip(row, item.Location.FilePath);
         return row;
     }

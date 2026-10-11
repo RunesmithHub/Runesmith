@@ -240,7 +240,7 @@ internal sealed class SdkDownloadDialog
 
         var bytes = await Sizes.GetOrAdd(release.Download, HeadAsync);
         if (Selected == release)
-            size.Text = bytes is { } length ? SdksSection.FormatSize(length) : "Unknown";
+            size.Text = bytes is { } length ? SdksSection.FormatSize(length) : Strings.SettingsSdksSizeUnknown;
     }
 
     private static async Task<long?> HeadAsync(Uri uri)

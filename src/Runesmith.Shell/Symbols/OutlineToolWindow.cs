@@ -13,6 +13,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Editor;
 using Runesmith.Sdk.ToolWindows;
 using Runesmith.Shell.Editors;
@@ -40,8 +41,8 @@ internal sealed class OutlineView : DockPanel
     private readonly EditorService editors;
     private readonly DocumentSymbols symbols;
     private readonly OutlineModel model = new();
-    private readonly TextBox filter = new() { PlaceholderText = "Filter symbols", Classes = { "small" } };
-    private readonly ToggleButton byName = Option("A-Z", "Sort by name");
+    private readonly TextBox filter = new TextBox { Classes = { "small" } }.Localize(TextBox.PlaceholderTextProperty, () => Strings.ShellOutlineFilter);
+    private readonly ToggleButton byName = Option("A-Z", () => Strings.ShellOutlineSort);
     private readonly ToggleButton follow = new() { Classes = { "option" }, MinWidth = 26, IsChecked = true, Content = new SymbolIcon { Data = Icons.Crosshair, Size = 13 } };
     private readonly TreeView tree;
     private readonly EmptyState empty = new() { Icon = Icons.ListTree };
@@ -54,7 +55,7 @@ internal sealed class OutlineView : DockPanel
     {
         this.editors = editors;
         this.symbols = symbols;
-        ToolTip.SetTip(follow, "Follow the caret");
+        follow.Localize(ToolTip.TipProperty, () => Strings.ShellOutlineFollow);
         var options = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(4, 0, 0, 0), Children = { byName, follow } };
         var header = new DockPanel { Margin = new Thickness(10, 8, 10, 6) };
         DockPanel.SetDock(options, Dock.Right);
@@ -194,12 +195,12 @@ internal sealed class OutlineView : DockPanel
             return;
 
         (empty.Title, empty.Hint) = editor is null
-            ? ("No file open", "The outline shows the symbols of the active file.")
+            ? (Strings.ShellOutlineNoFile, Strings.ShellOutlineNoFileHint)
             : tracked?.HasProvider != true
-                ? ("No outline", $"Nothing lists the symbols of {editor.Document.Name}. A language server or plugin for its language adds them.")
+                ? (Strings.ShellOutlineNone, Strings.ShellOutlineNoneHint(editor.Document.Name))
                 : model.SymbolCount == 0
-                    ? ("No symbols", $"{editor.Document.Name} declares nothing to list.")
-                    : ("Nothing matches", "No symbol matches the filter.");
+                    ? (Strings.ShellOutlineNoSymbols, Strings.ShellOutlineNoSymbolsHint(editor.Document.Name))
+                    : (Strings.ShellNothingMatches, Strings.ShellOutlineNoMatch);
     }
 
     private static StackPanel Row(OutlineNode node)
@@ -215,7 +216,7 @@ internal sealed class OutlineView : DockPanel
         return row;
     }
 
-    private static ToggleButton Option(string text, string tip)
+    private static ToggleButton Option(string text, Func<string> tip)
     {
         var button = new ToggleButton
         {
@@ -223,7 +224,7 @@ internal sealed class OutlineView : DockPanel
             MinWidth = 26,
             Content = new TextBlock { Text = text, FontFamily = new FontFamily(EditorOptions.BundledFontFamily), FontSize = 11 },
         };
-        ToolTip.SetTip(button, tip);
+        button.Localize(ToolTip.TipProperty, tip);
         return button;
     }
 }

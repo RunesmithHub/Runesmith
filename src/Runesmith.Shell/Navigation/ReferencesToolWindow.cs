@@ -69,8 +69,8 @@ internal sealed class ReferencesView : DockPanel
     private readonly EmptyState empty = new()
     {
         Icon = Icons.Link,
-        Title = "No references",
-        Hint = "Find References (Shift+F12) and Go to Implementation (Ctrl+F12) list what they find here.",
+        Title = Strings.ShellNoReferences,
+        Hint = Strings.ShellNoReferencesHint,
     };
 
     public ReferencesView(ReferencesModel model, Func<string, ThemedIcon> iconOf, Func<DocumentLocation, bool, Task> reveal)

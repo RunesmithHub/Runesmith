@@ -138,7 +138,7 @@ public sealed class CommandService : ICommandService, ICommandRegistry
         }
         catch (Exception exception)
         {
-            notifications.Value.Notify(NotificationKind.Error, $"{commands[commandId].Definition.Title} failed", exception.Message);
+            notifications.Value.Notify(NotificationKind.Error, Strings.ShellCommandFailed(commands[commandId].Definition.Title), exception.Message);
             return false;
         }
     }

@@ -13,6 +13,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using HammerUI;
 using HammerUI.Controls;
+using Runesmith.Sdk.Localization;
 using Runesmith.Shell.Appearance;
 using Runesmith.Shell.Palette;
 
@@ -74,15 +75,15 @@ internal sealed class QuickInputView : UserControl
 
         searchIcon = PaletteChrome.MutedIcon(Icons.Search, 18);
         all = new CheckBox { VerticalAlignment = VerticalAlignment.Center, IsVisible = false, Margin = new Thickness(2, 0, 0, 0), MinHeight = 0 };
-        AutomationProperties.SetName(all, "Check all");
-        ToolTip.SetTip(all, "Check all");
+        all.Localize(AutomationProperties.NameProperty, () => Strings.ShellCheckAll);
+        all.Localize(ToolTip.TipProperty, () => Strings.ShellCheckAll);
         all.IsCheckedChanged += (_, _) =>
         {
             if (!isSyncing)
                 pick?.SetAllChecked(all.IsChecked == true);
         };
 
-        var escape = new ShortcutBadge { Text = "Esc", VerticalAlignment = VerticalAlignment.Center };
+        var escape = new ShortcutBadge { Text = Strings.ShellKeyEsc, VerticalAlignment = VerticalAlignment.Center };
         busy = new ProgressBar { IsIndeterminate = true, Height = 2, MinHeight = 2, IsVisible = false, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0) };
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), Margin = new Thickness(16, 4, 12, 4) };
         var leading = new Panel { Children = { searchIcon, all }, VerticalAlignment = VerticalAlignment.Center };
@@ -91,8 +92,8 @@ internal sealed class QuickInputView : UserControl
         header.Children.AddRange([leading, query, escape]);
 
         back = new Button { Classes = { "icon", "small" }, Content = new SymbolIcon { Data = Icons.ArrowLeft, Size = 15 }, IsVisible = false, Margin = new Thickness(0, 0, 6, 0) };
-        ToolTip.SetTip(back, "Back (Alt+Left)");
-        AutomationProperties.SetName(back, "Back");
+        back.Localize(ToolTip.TipProperty, () => Strings.ShellBackTip);
+        back.Localize(AutomationProperties.NameProperty, () => Strings.ShellBack);
         back.Click += (_, _) => Finish(QuickInputOutcome.Back);
         title = new TextBlock { FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         stepText = new TextBlock { Classes = { "caption", "muted" }, VerticalAlignment = VerticalAlignment.Center };
@@ -131,7 +132,7 @@ internal sealed class QuickInputView : UserControl
         results.AddHandler(KeyDownEvent, OnListKeyDown, RoutingStrategies.Tunnel);
         results.AddHandler(TextInputEvent, OnListTextInput, RoutingStrategies.Tunnel);
 
-        nothingText = new TextBlock { Text = "Nothing matches", Classes = { "muted" }, HorizontalAlignment = HorizontalAlignment.Center, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center };
+        nothingText = new TextBlock { Text = Strings.ShellNothingMatches, Classes = { "muted" }, HorizontalAlignment = HorizontalAlignment.Center, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center };
         var nothingIcon = PaletteChrome.MutedIcon(Icons.Search, 22);
         nothingIcon.HorizontalAlignment = HorizontalAlignment.Center;
         nothing = new StackPanel { Margin = new Thickness(24), Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center, IsVisible = false, Children = { nothingIcon, nothingText } };
@@ -144,7 +145,7 @@ internal sealed class QuickInputView : UserControl
 
         hints = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
         asker = new TextBlock { Classes = { "caption", "muted" }, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(12, 0, 0, 0) };
-        ok = new Button { Content = "OK", Classes = { "accent", "small" }, IsVisible = false, Margin = new Thickness(10, 0, 0, 0), MinWidth = 56 };
+        ok = new Button { Content = Strings.ShellOk, Classes = { "accent", "small" }, IsVisible = false, Margin = new Thickness(10, 0, 0, 0), MinWidth = 56 };
         ok.Click += (_, _) => _ = AcceptAsync();
         var footer = new DockPanel { Margin = new Thickness(16, 8, 10, 8) };
         DockPanel.SetDock(ok, Dock.Right);
@@ -192,14 +193,14 @@ internal sealed class QuickInputView : UserControl
         all.IsVisible = model.CanPickMany;
         ok.IsVisible = model.CanPickMany;
         query.PasswordChar = default;
-        query.PlaceholderText = model.Options.Placeholder ?? (model.CanPickMany ? "Type to filter, check the rows to pick" : "Type to filter");
+        query.PlaceholderText = model.Options.Placeholder ?? (model.CanPickMany ? Strings.ShellFilterPickMany : Strings.ShellFilter);
         AutomationProperties.SetName(query, frame.Title ?? query.PlaceholderText);
         message.IsVisible = false;
         results.IsVisible = true;
-        nothingText.Text = model.Options.EmptyText ?? "Nothing matches";
+        nothingText.Text = model.Options.EmptyText ?? Strings.ShellNothingMatches;
         SetHints(model.CanPickMany
-            ? [("↑↓", "Navigate"), ("Space", "Check"), ("Enter", "OK")]
-            : [("↑↓", "Navigate"), ("Enter", "Pick")], frame.CanGoBack);
+            ? [("↑↓", Strings.ShellNavigate), ("Space", Strings.ShellCheck), (Strings.ShellKeyEnter, Strings.ShellOk)]
+            : [("↑↓", Strings.ShellNavigate), (Strings.ShellKeyEnter, Strings.ShellPick)], frame.CanGoBack);
         SetQueryText(model.Options.Value ?? "");
         _ = model.SetQueryAsync(query.Text ?? "");
         FocusQuery();
@@ -224,12 +225,12 @@ internal sealed class QuickInputView : UserControl
         busy.IsVisible = false;
         query.PasswordChar = model.Options.IsPassword ? '●' : default;
         query.PlaceholderText = model.Options.Placeholder;
-        AutomationProperties.SetName(query, frame.Title ?? model.Options.Prompt ?? model.Options.Placeholder ?? "Input");
+        AutomationProperties.SetName(query, frame.Title ?? model.Options.Prompt ?? model.Options.Placeholder ?? Strings.ShellInput);
         AutomationProperties.SetHelpText(query, model.Options.Prompt);
-        prompt.Text = model.Options.Prompt ?? "Press Enter to confirm or Esc to cancel.";
+        prompt.Text = model.Options.Prompt ?? Strings.ShellPressEnter;
         error.IsVisible = false;
         message.IsVisible = true;
-        SetHints([("Enter", "Confirm")], frame.CanGoBack);
+        SetHints([(Strings.ShellKeyEnter, Strings.ShellConfirm)], frame.CanGoBack);
         SetQueryText(model.Text);
         if (model.Options.ValueSelection is { } selection)
         {
@@ -289,10 +290,10 @@ internal sealed class QuickInputView : UserControl
         card.Opacity = 1;
         query.IsReadOnly = false;
         title.Text = frame.Title;
-        stepText.Text = frame.Step is { } step && frame.StepCount is { } count ? $"Step {step} of {count}" : null;
+        stepText.Text = frame.Step is { } step && frame.StepCount is { } count ? Strings.ShellStep(step, count) : null;
         back.IsVisible = frame.CanGoBack;
         titleBar.IsVisible = frame.Title is not null || frame.Step is not null;
-        asker.Text = frame.Asker is null ? null : $"Asked by {frame.Asker}";
+        asker.Text = frame.Asker is null ? null : Strings.ShellAskedBy(frame.Asker);
         asker.IsVisible = frame.Asker is not null;
     }
 
@@ -307,7 +308,7 @@ internal sealed class QuickInputView : UserControl
         }
 
         if (canGoBack)
-            hints.Children.AddRange([new ShortcutBadge { Text = "Alt+←" }, PaletteChrome.Caption("Back", 16)]);
+            hints.Children.AddRange([new ShortcutBadge { Text = Strings.ShellKeyAltLeft }, PaletteChrome.Caption(Strings.ShellBack, 16)]);
     }
 
     private void SetQueryText(string text)
@@ -488,9 +489,9 @@ internal sealed class QuickInputView : UserControl
         busy.IsVisible = model.IsBusy;
         var isEmpty = !model.Rows.Any(r => !r.IsSeparator);
         nothing.IsVisible = isEmpty;
-        nothingText.Text = model.Error is { } problem ? $"The list could not be loaded: {problem}"
-            : model.IsBusy ? "Searching…"
-            : model.Options.EmptyText ?? "Nothing matches";
+        nothingText.Text = model.Error is { } problem ? Strings.ShellListFailed(problem)
+            : model.IsBusy ? Strings.ShellSearching
+            : model.Options.EmptyText ?? Strings.ShellNothingMatches;
         SyncAll();
     }
 
@@ -522,7 +523,7 @@ internal sealed class QuickInputView : UserControl
         isSyncing = true;
         all.IsChecked = rows.Count > 0 && rows.All(r => r.IsChecked) ? true : rows.Any(r => r.IsChecked) ? null : false;
         isSyncing = false;
-        ok.Content = model.Picked.Count > 0 ? $"OK ({model.Picked.Count})" : "OK";
+        ok.Content = model.Picked.Count > 0 ? Strings.ShellOkCount(model.Picked.Count) : Strings.ShellOk;
     }
 
     private void OnInputChanged(object? sender, EventArgs e)
@@ -562,9 +563,9 @@ internal sealed class QuickInputView : UserControl
         if (!string.IsNullOrEmpty(row.Detail))
             parts.Add(row.Detail);
         if (row.IsSeparator)
-            parts[0] = $"Group {row.Label}";
+            parts[0] = Strings.ShellGroup(row.Label);
         else if (pick is { CanPickMany: true })
-            parts.Add(row.IsChecked ? "checked" : "not checked");
+            parts.Add(row.IsChecked ? Strings.ShellChecked : Strings.ShellNotChecked);
         AutomationProperties.SetName(item, string.Join(", ", parts));
     }
 

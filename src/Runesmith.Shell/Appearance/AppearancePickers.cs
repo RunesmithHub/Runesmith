@@ -87,7 +87,7 @@ internal static class AppearancePickers
             if (e.Property == ColorSwatchPicker.SelectedColorProperty && e.NewValue is Color picked && picked != (hasColor ? color : themeAccent))
                 set($"#{picked.R:X2}{picked.G:X2}{picked.B:X2}");
         };
-        var themeDefault = new Button { Classes = { "small" }, Content = "Theme default", IsEnabled = hasColor, VerticalAlignment = VerticalAlignment.Center };
+        var themeDefault = new Button { Classes = { "small" }, Content = Strings.ShellThemeDefault, IsEnabled = hasColor, VerticalAlignment = VerticalAlignment.Center };
         themeDefault.Click += (_, _) => set("");
         return new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { picker, themeDefault } };
     }

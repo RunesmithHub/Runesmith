@@ -82,7 +82,7 @@ internal sealed class InputModel(InputBoxOptions options, Func<TimeSpan, Cancell
         }
         catch (Exception exception)
         {
-            Error = "This value could not be checked.";
+            Error = Strings.ShellValueNotChecked;
             checkedText = text;
             Failed?.Invoke(this, exception);
         }
