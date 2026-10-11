@@ -64,6 +64,21 @@ var count = new TextBlock().Localize(TextBlock.TextProperty, () => Strings.TodoC
 
 In unit tests, where Runesmith is not running, `Strings` gives the English text.
 
+Some text is given to Runesmith once. Runesmith asks for it again after the language changes when the plugin carries translations:
+
+| Text | Where to read `Strings` |
+| --- | --- |
+| A command's title, category and description, and a menu's title | In `ICommandContributor.Contribute`. Runesmith calls it again and takes only these texts, so do no other work there. |
+| A setting's title, description and choice titles | In `ISettingContributor.Settings`, as a property that builds the definitions each time. |
+| A tool window's title | In `IToolWindowProvider.Definition`, as a property that builds the definition each time. |
+
+```csharp
+public IEnumerable<SettingDefinition> Settings =>
+[
+    new("todo.keywords", Strings.SettingKeywords, "To-do", "TODO;FIXME") { Description = Strings.SettingKeywordsDescription },
+];
+```
+
 ## Use the text in XAML
 
 `{l:Text}` shows a message of the plugin and follows the language:

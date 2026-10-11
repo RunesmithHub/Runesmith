@@ -23,8 +23,11 @@ A project opts in with one property:
 ```
 
 `Directory.Build.targets` then adds what the SDK package gives plugins: it embeds `locales/**/*.ftl`, generates the `Strings` class from the
-English files, checks them on every build, and runs the RSL0100 analyzer that flags text written in the code. The analyzer is a suggestion
-in `.editorconfig` while text is being moved, and an error once a project has none left.
+English files, checks them on every build, and runs the RSL0100 analyzer that flags text written in the code. `.editorconfig` makes it a
+warning, so a build with `-warnaserror`, as CI runs it, fails on text that is not in a Fluent file.
+
+The analyzer sees text assigned to a property users see, such as `Text`, `Content`, `Header` and tooltips. It does not see text passed to a
+method, such as a notification's title or a command's description. Move that text too, and check the result with pseudo-localization.
 
 ## Write text that follows the language
 
@@ -37,6 +40,9 @@ The language changes while the window is open, so text must be read again when i
 | A setting's title and description | Read `Strings` in `ISettingContributor.Settings`; `SettingsService` reads the definitions again after a change of language. `ChoiceTitles` names a setting's choices. |
 | Text built once, such as a notification | Read `Strings` when it is built; it shows in the language of that moment. |
 | A key that must not change, such as a settings category | Keep the key in English and map it to its title when it shows, as `SettingsPage.CategoryTitle` does. |
+| A command's title, category and description | Read `Strings` in `ICommandContributor.Contribute`. After a change of language, `CommandService` asks the contributors whose assembly carries translations again and takes only the titles, categories and descriptions they give. |
+| A tool window's title | Make `IToolWindowProvider.Definition` a property that builds the definition each time, with its title from `Strings`. |
+| Text written to the Output panel, a log or an exception | Leave it in English. It is for finding problems, and reports quote it. |
 
 Read `Strings` on the UI thread or any other; it is safe from every thread. `Localized.Changed` is raised on the UI thread after a change of
 language, after every bound property has its new text.
