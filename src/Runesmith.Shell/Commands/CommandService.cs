@@ -3,13 +3,15 @@ using System.Text.Json;
 using Avalonia.Input;
 using Runesmith.Sdk;
 using Runesmith.Sdk.Commands;
+using Runesmith.Sdk.Localization;
 using Runesmith.Sdk.Shell;
 
 namespace Runesmith.Shell.Commands;
 
 /// <summary>Keeps every command, its key bindings and its menu items, and runs commands.</summary>
 /// <remarks>The user's own bindings in <c>keybindings.json</c>, next to the settings, override the defaults: an object of command ids and
-/// gestures, where an empty gesture removes a binding.</remarks>
+/// gestures, where an empty gesture removes a binding. After the language changes, the contributors whose assembly carries
+/// translations are asked again, and their commands and menus take the titles, categories and descriptions they give then.</remarks>
 [Export(typeof(ICommandService))]
 [Export]
 [Shared]
@@ -65,6 +67,7 @@ public sealed class CommandService : ICommandService, ICommandRegistry
         }
 
         LoadUserBindings();
+        Localized.Changed += (_, _) => Retitle();
     }
 
     public void Add(CommandDefinition command, Func<object?, Task> execute, Func<object?, bool>? canExecute = null)
@@ -207,5 +210,55 @@ public sealed class CommandService : ICommandService, ICommandRegistry
         File.Move(temporary, UserBindingsPath, overwrite: true);
     }
 
+    private void Retitle()
+    {
+        var fresh = new TitleCollector();
+        foreach (var contributor in contributors)
+        {
+            try
+            {
+                if (IsLocalized(contributor.Value))
+                    contributor.Value.Contribute(fresh);
+            }
+            catch (Exception)
+            {
+                // A contributor that fails now keeps the titles it gave before.
+            }
+        }
+
+        foreach (var command in fresh.Commands)
+        {
+            if (commands.TryGetValue(command.Id, out var registered))
+                commands[command.Id] = registered with { Definition = registered.Definition with { Title = command.Title, Category = command.Category, Description = command.Description } };
+        }
+
+        for (var index = 0; index < menus.Count; index++)
+        {
+            if (fresh.Menus.Find(menu => menu.Id == menus[index].Id) is { } menu)
+                menus[index] = menus[index] with { Title = menu.Title };
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static bool IsLocalized(ICommandContributor contributor) =>
+        contributor.GetType().Assembly.GetManifestResourceNames().Any(name => name.StartsWith("locales/", StringComparison.Ordinal));
+
     private sealed record Registered(CommandDefinition Definition, Func<object?, Task> Execute, Func<object?, bool>? CanExecute);
+
+    /// <summary>Takes what a contributor gives without running or registering anything.</summary>
+    private sealed class TitleCollector : ICommandRegistry
+    {
+        public List<CommandDefinition> Commands { get; } = [];
+
+        public List<MenuDefinition> Menus { get; } = [];
+
+        public void Add(CommandDefinition command, Func<object?, Task> execute, Func<object?, bool>? canExecute = null) => Commands.Add(command);
+
+        public void AddMenuItem(MenuItemDefinition item)
+        {
+        }
+
+        public void AddMenu(MenuDefinition menu) => Menus.Add(menu);
+    }
 }

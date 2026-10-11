@@ -3,7 +3,10 @@ namespace Runesmith.Sdk.Commands;
 /// <summary>Adds commands and menu items. Export it with <c>[Export(typeof(ICommandContributor))]</c>.</summary>
 public interface ICommandContributor
 {
-    /// <summary>Registers the contributor's commands and menu items; called once, on the UI thread, while the main window is created.</summary>
+    /// <summary>Registers the contributor's commands and menu items; called on the UI thread while the main window is created.</summary>
+    /// <remarks>When the plugin carries translations, Runesmith calls it again after the language changes and takes only the titles,
+    /// categories and descriptions it gives then, so read them from the generated <c>Strings</c> class here and do no other work. Added
+    /// in plugin API 0.1.2.</remarks>
     void Contribute(ICommandRegistry registry);
 }
 
