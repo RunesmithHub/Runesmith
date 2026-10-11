@@ -110,3 +110,13 @@ hub-link-bad-version = "{ $value }" is not a plugin version, such as 1.2.0.
 #   $name - the plugin's name
 #   $version - the version
 hub-download-mismatch = The download of { $name } { $version } did not match what the hub published, so nothing was installed. Try again later.
+
+## What each capability lets a plugin do, as install plans and plugin pages list them
+
+hub-capability-network = Connects to the internet or other computers
+hub-capability-process = Starts other programs
+hub-capability-filesystem = Reads or writes files outside your project and its own storage
+hub-capability-environment = Reads environment variables, the registry or system settings
+hub-capability-credentials = Stores or reads passwords and tokens
+hub-capability-native = Runs native code
+hub-capability-dynamic-code = Loads or generates code while running

@@ -93,15 +93,30 @@ public sealed class HubClient
         }
     }
 
-    /// <summary>Gets the policy's description of each capability, or the defaults.</summary>
+    /// <summary>Gets what a capability lets a plugin do, in the language Runesmith shows; a capability Runesmith does not know yet is
+    /// described as the hub's policy describes it.</summary>
     public string CapabilityLabel(string capability)
     {
+        if (KnownCapabilityLabel(capability) is { } known)
+            return known;
+
         lock (gate)
         {
-            return view?.Policy.Capabilities.TryGetValue(capability, out var label) == true ? label.Label
-                : Capabilities.DefaultLabels.TryGetValue(capability, out var fallback) ? fallback : capability;
+            return view?.Policy.Capabilities.TryGetValue(capability, out var label) == true ? label.Label : capability;
         }
     }
+
+    internal static string? KnownCapabilityLabel(string capability) => capability switch
+    {
+        Capabilities.Network => Strings.HubCapabilityNetwork,
+        Capabilities.Process => Strings.HubCapabilityProcess,
+        Capabilities.FileSystem => Strings.HubCapabilityFilesystem,
+        Capabilities.Environment => Strings.HubCapabilityEnvironment,
+        Capabilities.Credentials => Strings.HubCapabilityCredentials,
+        Capabilities.Native => Strings.HubCapabilityNative,
+        Capabilities.DynamicCode => Strings.HubCapabilityDynamicCode,
+        _ => null,
+    };
 
     /// <summary>Gets the policy's categories.</summary>
     public IReadOnlyList<string> Categories
