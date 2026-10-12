@@ -44,7 +44,7 @@ public sealed class SyntaxFeaturesTests
         var inRange = await features.GetSemanticTokensAsync(Document, Snapshot, new TextSpan(10, 12), Token);
 
         Assert.True(features.HasSemanticTokens(Document));
-        Assert.False(features.HasSemanticTokens(new TestDocument("/work/B.cs", "B.cs", "", "csharp")));
+        Assert.False(features.HasSemanticTokens(new TestDocument("/work/B.src", "B.src", "", "sample")));
         Assert.Equal(2, all!.Count);
         Assert.Equal(SemanticTokenTypes.Property, Assert.Single(inRange!).Type);
     }

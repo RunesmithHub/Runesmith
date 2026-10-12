@@ -25,7 +25,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
 
     public DebugServiceTests()
     {
-        program = new ScriptedProgram(Path.Combine(root, "Program.cs"));
+        program = new ScriptedProgram(Path.Combine(root, "Program.src"));
         breakpoints = Breakpoints(root, state);
     }
 
@@ -50,9 +50,9 @@ public sealed class DebugServiceTests : IAsyncDisposable
         var engine = new FakeEngine();
         var service = Service(engine);
 
-        Assert.Same(engine, service.FindProvider("dotnet"));
-        Assert.Same(engine, service.FindProvider("DotNet"));
-        Assert.Null(service.FindProvider("jdwp"));
+        Assert.Same(engine, service.FindProvider("acme"));
+        Assert.Same(engine, service.FindProvider("Acme"));
+        Assert.Null(service.FindProvider("other"));
         Assert.Null(service.WhyCannotDebug);
         Assert.Equal("No installed plugin provides a debugger.", Service(null).WhyCannotDebug);
     }
@@ -70,10 +70,10 @@ public sealed class DebugServiceTests : IAsyncDisposable
     public async Task APlanForADebuggerNoPluginProvidesSaysSo()
     {
         var console = new ConsoleBuffer();
-        var plan = Plan(Path.Combine(root, "App.dll")) with { Debug = new DebugLaunch("jdwp", new Dictionary<string, string>()) };
+        var plan = Plan(Path.Combine(root, "app.bin")) with { Debug = new DebugLaunch("other", new Dictionary<string, string>()) };
 
         Assert.Null(await Service(new FakeEngine()).StartAsync("App", plan, console, null, Token));
-        Assert.Contains("No installed plugin provides the jdwp debugger", console.GetText(), StringComparison.Ordinal);
+        Assert.Contains("No installed plugin provides the other debugger", console.GetText(), StringComparison.Ordinal);
         Assert.Empty(started);
     }
 
@@ -83,7 +83,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
         var console = new ConsoleBuffer();
         var service = Service(new FakeEngine(), TestCallers.Plugin("acme.debugger", "network"));
 
-        Assert.Null(await service.StartAsync("App", Plan(Path.Combine(root, "App.dll")), console, null, Token));
+        Assert.Null(await service.StartAsync("App", Plan(Path.Combine(root, "app.bin")), console, null, Token));
 
         Assert.Empty(started);
         var refusal = Assert.Single(refusals);
@@ -98,7 +98,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
         var console = new ConsoleBuffer();
         var service = Service(new FakeEngine(new DebugAdapterServer("127.0.0.1", 4711)), TestCallers.Plugin("acme.debugger", "process"));
 
-        Assert.Null(await service.StartAsync("App", Plan(Path.Combine(root, "App.dll")), console, null, Token));
+        Assert.Null(await service.StartAsync("App", Plan(Path.Combine(root, "app.bin")), console, null, Token));
 
         Assert.Empty(started);
         Assert.Contains("network", Assert.Single(refusals), StringComparison.Ordinal);
@@ -113,7 +113,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
         DebugSession? announced = null;
         service.SessionStarted += (_, session) => announced = session;
 
-        var session = await service.StartAsync("App", Plan(Path.Combine(root, "App.dll")), console, null, Token);
+        var session = await service.StartAsync("App", Plan(Path.Combine(root, "app.bin")), console, null, Token);
 
         Assert.NotNull(session);
         Assert.Same(session, announced);
@@ -122,7 +122,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
         Assert.Empty(refusals);
         Assert.Equal("fake-adapter", Assert.IsType<DebugAdapterExecutable>(Assert.Single(started)).Command);
         Assert.Equal(root, Assert.Single(engine.Contexts).RootPath);
-        Assert.Equal(Path.Combine(root, "App.dll"), program.Adapter.Arguments("launch")!["program"]!.GetValue<string>());
+        Assert.Equal(Path.Combine(root, "app.bin"), program.Adapter.Arguments("launch")!["program"]!.GetValue<string>());
         Assert.Equal(["unhandled"], service.ExceptionFilters.Where(f => f.Default).Select(f => f.Filter));
         Assert.Contains("Debugging App with Fake debugger.", console.GetText(), StringComparison.Ordinal);
 
@@ -138,7 +138,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
     [Fact]
     public async Task DebuggingARunConfigurationRunsItUnderTheDebuggerAndReportsTheExitCode()
     {
-        var type = new DebuggableType(Plan(Path.Combine(root, "App.dll")));
+        var type = new DebuggableType(Plan(Path.Combine(root, "app.bin")));
         var service = Service(new FakeEngine());
         var configurations = new RunConfigurationService([new Lazy<IRunConfigurationType>(() => type)], new FakeWorkspace(null), null, state);
         var runs = new RunService(configurations, new FakeBuildService(), new FakeWorkspace(root), () => Task.CompletedTask, new FakeOutput(), new FakeDiagnostics(),
@@ -164,7 +164,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
     [Fact]
     public async Task StoppingTheRunStopsTheDebugSession()
     {
-        var type = new DebuggableType(Plan(Path.Combine(root, "App.dll")));
+        var type = new DebuggableType(Plan(Path.Combine(root, "app.bin")));
         var service = Service(new FakeEngine());
         var configurations = new RunConfigurationService([new Lazy<IRunConfigurationType>(() => type)], new FakeWorkspace(null), null, state);
         var runs = new RunService(configurations, new FakeBuildService(), new FakeWorkspace(root), () => Task.CompletedTask, new FakeOutput(), new FakeDiagnostics(),
@@ -193,7 +193,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
     {
         var service = Service(new FakeEngine());
         var provider = new FakeTestProvider { Items = Items.Calculator("Add", "Subtract", "Divide"), CanDebug = true };
-        provider.Run = (_, run, token) => run.DebugAsync(Plan(Path.Combine(root, "Calculator.Tests.dll")), token);
+        provider.Run = (_, run, token) => run.DebugAsync(Plan(Path.Combine(root, "calculator-tests.bin")), token);
         var tests = new TestService([new Lazy<ITestProvider>(() => provider)], new FakeWorkspace(root), new FakeDiagnostics(), () => false, _ => { }, null, () => service);
         await tests.DiscoverAllAsync();
 

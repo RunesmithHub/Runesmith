@@ -20,7 +20,7 @@ public sealed class PluginManifestTests : IDisposable
         Assert.Equal("1.0.0", manifest.Version);
         Assert.Equal("lib/Tests.Welcome.dll", manifest.Assembly);
         Assert.Equal("lib/Tests.Welcome.Contracts.dll", manifest.ContractsAssembly);
-        Assert.Equal(">=0.1.0 <0.2.0", manifest.RunesmithApi?.ToString());
+        Assert.Equal(">=0.2.0 <0.3.0", manifest.RunesmithApi?.ToString());
         var dependency = Assert.Single(manifest.Dependencies);
         Assert.Equal("tests.greeter", dependency.Id);
         Assert.True(manifest.Allows("network"));

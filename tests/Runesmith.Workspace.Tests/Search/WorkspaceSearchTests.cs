@@ -15,10 +15,10 @@ public sealed class WorkspaceSearchTests : IDisposable
     {
         engine = new FindInFiles(workspace.Workspace, documents);
         search = new WorkspaceSearch(engine, workspace.Workspace);
-        workspace.Write(Path.Combine("src", "Order.cs"), "class Order\n{\n    Order Next; // order of orders\n    int OrderId;\n}\n");
-        workspace.Write(Path.Combine("src", "Customer.cs"), "class Customer { Order Last; }\n");
+        workspace.Write(Path.Combine("src", "Order.src"), "class Order\n{\n    Order Next; // order of orders\n    int OrderId;\n}\n");
+        workspace.Write(Path.Combine("src", "Customer.src"), "class Customer { Order Last; }\n");
         workspace.Write(Path.Combine("docs", "orders.md"), "# Orders\nAn order has lines. ORDER BY date.\n");
-        workspace.Write(Path.Combine("bin", "Debug", "Order.cs"), "class Order {}\n");
+        workspace.Write(Path.Combine("out", "debug", "Order.src"), "class Order {}\n");
         workspace.Write("notes.txt", new string('x', 300) + " order " + new string('y', 300) + "\n");
     }
 
@@ -31,9 +31,9 @@ public sealed class WorkspaceSearchTests : IDisposable
     [InlineData("Order", TextSearchOptions.MatchCase, null, null)]
     [InlineData("order", TextSearchOptions.WholeWord, null, null)]
     [InlineData(@"Order\w*", TextSearchOptions.Regex | TextSearchOptions.MatchCase, null, null)]
-    [InlineData("order", TextSearchOptions.None, "*.cs", null)]
+    [InlineData("order", TextSearchOptions.None, "*.src", null)]
     [InlineData("order", TextSearchOptions.None, null, "docs")]
-    [InlineData("order", TextSearchOptions.None, "src/**;*.txt", "Customer.cs")]
+    [InlineData("order", TextSearchOptions.None, "src/**;*.txt", "Customer.src")]
     public async Task FindsWhatTheSearchPanelFinds(string text, TextSearchOptions options, string? include, string? exclude)
     {
         await workspace.Workspace.OpenAsync(workspace.Root);
@@ -61,14 +61,14 @@ public sealed class WorkspaceSearchTests : IDisposable
             Assert.All(result.Matches, m => Assert.Equal(lines[m.Line], m.LineText));
         }
 
-        Assert.DoesNotContain(plugin, r => r.FilePath.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
+        Assert.DoesNotContain(plugin, r => r.FilePath.Contains($"{Path.DirectorySeparatorChar}out{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
     }
 
     [Fact]
     public async Task SearchesOpenDocumentsAsTheyAreInTheEditor()
     {
         await workspace.Workspace.OpenAsync(workspace.Root);
-        documents.Add(Path.Combine(workspace.Root, "src", "Customer.cs"), "class Customer\n{\n    Invoice Last;\n}\n");
+        documents.Add(Path.Combine(workspace.Root, "src", "Customer.src"), "class Customer\n{\n    Invoice Last;\n}\n");
 
         var results = await Collect(new WorkspaceSearchQuery("Invoice"));
 
@@ -102,11 +102,11 @@ public sealed class WorkspaceSearchTests : IDisposable
         await workspace.Workspace.OpenAsync(workspace.Root);
 
         Assert.Equal(
-            [Path.Combine(workspace.Root, "src", "Customer.cs"), Path.Combine(workspace.Root, "src", "Order.cs")],
-            await search.FindFilesAsync("**/*.cs", cancellationToken: Token));
+            [Path.Combine(workspace.Root, "src", "Customer.src"), Path.Combine(workspace.Root, "src", "Order.src")],
+            await search.FindFilesAsync("**/*.src", cancellationToken: Token));
         Assert.Equal(2, (await search.FindFilesAsync("*.md;*.txt", cancellationToken: Token)).Count);
         Assert.Single(await search.FindFilesAsync("src/**", maxResults: 1, cancellationToken: Token));
-        Assert.Empty(await search.FindFilesAsync("bin/**", cancellationToken: Token));
+        Assert.Empty(await search.FindFilesAsync("out/**", cancellationToken: Token));
     }
 
     [Fact]

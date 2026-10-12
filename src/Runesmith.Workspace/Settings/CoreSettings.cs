@@ -25,8 +25,8 @@ public sealed class CoreSettings : ISettingContributor
         AllowLocalOverrides, SettingKeys.Language, SettingKeys.UntranslatedPlugins, SettingKeys.MinimumCoverage, SettingKeys.PseudoLocalization,
     };
 
-    /// <summary>The globs <see cref="SettingKeys.Exclude"/> starts with.</summary>
-    public const string DefaultExclude = "**/.git;**/bin;**/obj;**/node_modules;**/.vs;**/.idea";
+    /// <summary>The globs <see cref="SettingKeys.Exclude"/> starts with: none. Plugins leave out the folders of their own tools.</summary>
+    public const string DefaultExclude = "";
 
     public IEnumerable<SettingDefinition> Settings =>
     [

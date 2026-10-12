@@ -79,6 +79,19 @@ public interface ISdkProvider
     /// <summary>Gets the name shown for the kind, such as ".NET SDK" or "JDK".</summary>
     string Name { get; }
 
+    /// <summary>Gets whether SDKs of this kind come from several vendors. The download dialog then asks for the vendor, the package and the
+    /// processor, and an SDK is named by its vendor and version; otherwise by <see cref="Name"/> and its version.</summary>
+    /// <remarks>Added in plugin API 0.2.0.</remarks>
+    bool HasVendors => true;
+
+    /// <summary>Gets the vendor the download dialog starts on, or null for the first one.</summary>
+    /// <remarks>Added in plugin API 0.2.0.</remarks>
+    string? PreferredVendor => null;
+
+    /// <summary>Gets a sentence the download dialog shows under its title, such as where the releases come from, or null.</summary>
+    /// <remarks>Added in plugin API 0.2.0.</remarks>
+    string? DownloadDescription => null;
+
     /// <summary>Finds the SDKs on this machine, both the system's and Runesmith's.</summary>
     Task<IReadOnlyList<InstalledSdk>> FindInstalledAsync(CancellationToken cancellationToken);
 

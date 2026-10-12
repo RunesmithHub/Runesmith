@@ -41,11 +41,11 @@ public sealed class FileOperationsTests : IDisposable
     public Task CreatesRenamesAndDeletesFilesWithTheirTextAsOneStepThatUndoesAndRedoes() => Run(async () =>
     {
         var service = Create();
-        var other = Write("A.cs", "class A { Old o; }");
-        var old = Write("Old.cs", "class Old {}");
+        var other = Write("A.src", "class A { Old o; }");
+        var old = Write("Old.src", "class Old {}");
         var gone = Write("Gone.txt", "bye");
-        var created = Path.Combine(root, "New", "C.cs");
-        var renamed = Path.Combine(root, "Models", "Renamed.cs");
+        var created = Path.Combine(root, "New", "C.src");
+        var renamed = Path.Combine(root, "Models", "Renamed.src");
         var opened = await documents!.OpenAsync(old);
         var edit = new WorkspaceEdit(
         [
@@ -107,12 +107,12 @@ public sealed class FileOperationsTests : IDisposable
     public Task NothingChangesWhenAnyOperationOrTextChangeCannotBeMade() => Run(async () =>
     {
         var service = Create();
-        var existing = Write("Existing.cs", "x");
-        var created = Path.Combine(root, "Created.cs");
+        var existing = Write("Existing.src", "x");
+        var created = Path.Combine(root, "Created.src");
 
-        Assert.False(await service.ApplyAsync(Edit(new CreateFileOperation(created), new RenameFileOperation(Path.Combine(root, "Missing.cs"), Path.Combine(root, "B.cs")))));
+        Assert.False(await service.ApplyAsync(Edit(new CreateFileOperation(created), new RenameFileOperation(Path.Combine(root, "Missing.src"), Path.Combine(root, "B.src")))));
         Assert.False(await service.ApplyAsync(Edit(new CreateFileOperation(created), new CreateFileOperation(existing))));
-        Assert.False(await service.ApplyAsync(Edit(new DeleteFileOperation(Path.Combine(root, "Missing.cs")))));
+        Assert.False(await service.ApplyAsync(Edit(new DeleteFileOperation(Path.Combine(root, "Missing.src")))));
         var opened = await documents!.OpenAsync(existing);
         var stale = opened.Buffer.Current;
         opened.Buffer.Insert(0, "y");
@@ -131,14 +131,14 @@ public sealed class FileOperationsTests : IDisposable
     public Task TheOptionsSkipOrReplaceWhatExists() => Run(async () =>
     {
         var service = Create();
-        var existing = Write("Existing.cs", "old");
-        var target = Write("Target.cs", "target");
+        var existing = Write("Existing.src", "old");
+        var target = Write("Target.src", "target");
         var folder = Directory.CreateDirectory(Path.Combine(root, "Folder")).FullName;
-        Write(Path.Combine("Folder", "Inside.cs"), "inside");
+        Write(Path.Combine("Folder", "Inside.src"), "inside");
 
         Assert.True(await service.ApplyAsync(Edit(
             new CreateFileOperation(existing) { Content = "ignored", IgnoreIfExists = true },
-            new DeleteFileOperation(Path.Combine(root, "Missing.cs")) { IgnoreIfMissing = true })));
+            new DeleteFileOperation(Path.Combine(root, "Missing.src")) { IgnoreIfMissing = true })));
         Assert.Equal("old", File.ReadAllText(existing));
 
         Assert.False(await service.ApplyAsync(Edit(new DeleteFileOperation(folder))));
@@ -155,20 +155,20 @@ public sealed class FileOperationsTests : IDisposable
 
         Assert.Equal("old", File.ReadAllText(existing));
         Assert.Equal("target", File.ReadAllText(target));
-        Assert.Equal("inside", File.ReadAllText(Path.Combine(folder, "Inside.cs")));
+        Assert.Equal("inside", File.ReadAllText(Path.Combine(folder, "Inside.src")));
     });
 
     [Fact]
     public Task TakesBackTheOperationsMadeWhenTheDiskRefusesOneHalfway() => Run(async () =>
     {
         var service = Create();
-        var a = Write("A.cs", "a");
+        var a = Write("A.src", "a");
         var blocker = Write("blocker", "a file where a folder is needed");
 
-        Assert.False(await service.ApplyAsync(Edit(new RenameFileOperation(a, Path.Combine(root, "B.cs")), new CreateFileOperation(Path.Combine(blocker, "C.cs")))));
+        Assert.False(await service.ApplyAsync(Edit(new RenameFileOperation(a, Path.Combine(root, "B.src")), new CreateFileOperation(Path.Combine(blocker, "C.src")))));
 
         Assert.Equal("a", File.ReadAllText(a));
-        Assert.False(File.Exists(Path.Combine(root, "B.cs")));
+        Assert.False(File.Exists(Path.Combine(root, "B.src")));
         Assert.False(service.CanUndo);
     });
 
@@ -176,7 +176,7 @@ public sealed class FileOperationsTests : IDisposable
     public Task RefusesToDeleteOrReplaceAFileWithUnsavedChanges() => Run(async () =>
     {
         var service = Create();
-        var file = Write("A.cs", "a");
+        var file = Write("A.src", "a");
         var document = await documents!.OpenAsync(file);
         document.History.Push(document.Buffer.Apply([Insert(0, "unsaved ")]), null, null);
 
@@ -207,9 +207,9 @@ public sealed class FileOperationsTests : IDisposable
 
         Assert.True(await service.RedoAsync());
         Assert.True(Directory.Exists(folder));
-        File.WriteAllText(Path.Combine(folder, "Order.cs"), "class Order {}");
+        File.WriteAllText(Path.Combine(folder, "Order.src"), "class Order {}");
         Assert.False(await service.UndoAsync());
-        Assert.True(File.Exists(Path.Combine(folder, "Order.cs")));
+        Assert.True(File.Exists(Path.Combine(folder, "Order.src")));
         Assert.Contains("The edit was not undone", notifications.Notified);
     });
 
@@ -220,14 +220,14 @@ public sealed class FileOperationsTests : IDisposable
         participants.Add(participant);
         var service = Create();
         var folder = Path.Combine(root, "Old");
-        Write(Path.Combine("Old", "A.cs"), "a");
+        Write(Path.Combine("Old", "A.src"), "a");
 
         Assert.True(await service.ApplyAsync(Edit(new DeleteFileOperation(folder) { Recursive = true })));
         Assert.IsType<DeleteFileOperation>(Assert.Single(await participant.NextDidAsync()));
         Assert.True(await service.UndoAsync());
 
         Assert.Equal(new CreateFolderOperation(folder), Assert.Single(await participant.NextDidAsync()));
-        Assert.Equal("a", File.ReadAllText(Path.Combine(folder, "A.cs")));
+        Assert.Equal("a", File.ReadAllText(Path.Combine(folder, "A.src")));
     });
 
     [Fact]
@@ -235,7 +235,7 @@ public sealed class FileOperationsTests : IDisposable
     {
         var service = Create();
         var folder = Path.Combine(root, "Old");
-        var file = Write(Path.Combine("Old", "A.cs"), "a");
+        var file = Write(Path.Combine("Old", "A.src"), "a");
         var document = await documents!.OpenAsync(file);
 
         Assert.True(await service.ApplyAsync(Edit(new DeleteFileOperation(folder) { Recursive = true })));
@@ -251,7 +251,7 @@ public sealed class FileOperationsTests : IDisposable
         notifications.Confirm = false;
         var folder = Path.Combine(root, "Many");
         for (var i = 0; i < 3; i++)
-            Write(Path.Combine("Many", $"{i}.cs"), "x");
+            Write(Path.Combine("Many", $"{i}.src"), "x");
 
         Assert.False(await service.ApplyAsync(Edit(new RenameFileOperation(folder, Path.Combine(root, "Lots"))), new WorkspaceEditOptions { LargeEditThreshold = 2 }));
         Assert.True(Directory.Exists(folder));
@@ -261,7 +261,7 @@ public sealed class FileOperationsTests : IDisposable
         Assert.Equal(1, notifications.Confirmations);
 
         notifications.Confirm = true;
-        Assert.True(await service.ApplyAsync(Edit(new CreateFileOperation(Path.Combine(root, "One.cs"))), new WorkspaceEditOptions { Confirmation = WorkspaceEditConfirmation.Always }));
+        Assert.True(await service.ApplyAsync(Edit(new CreateFileOperation(Path.Combine(root, "One.src"))), new WorkspaceEditOptions { Confirmation = WorkspaceEditConfirmation.Always }));
         Assert.Equal(2, notifications.Confirmations);
     });
 
@@ -287,8 +287,8 @@ public sealed class FileOperationsTests : IDisposable
     [Fact]
     public Task ParticipantsAddTextChangesToTheStepAndHearOfWhatWasDoneAndUndone() => Run(async () =>
     {
-        var file = Write(Path.Combine("Models", "Order.cs"), "namespace App.Models;\nclass Order {}\n");
-        var moved = Path.Combine(root, "Billing", "Order.cs");
+        var file = Write(Path.Combine("Models", "Order.src"), "namespace App.Models;\nclass Order {}\n");
+        var moved = Path.Combine(root, "Billing", "Order.src");
         var namespaces = new RecordingParticipant
         {
             Will = operations => operations is [RenameFileOperation rename]
@@ -313,15 +313,15 @@ public sealed class FileOperationsTests : IDisposable
     public Task ParticipantsThatAreTooSlowOrFailAreSkippedAndReported() => Run(async () =>
     {
         participants.Add(new RecordingParticipant { Will = _ => throw new InvalidOperationException("Broken participant") });
-        participants.Add(new RecordingParticipant { Delay = TimeSpan.FromSeconds(30), Will = _ => new WorkspaceEdit([new DocumentEdit(Path.Combine(root, "A.cs"), [Insert(0, "late")])]) });
+        participants.Add(new RecordingParticipant { Delay = TimeSpan.FromSeconds(30), Will = _ => new WorkspaceEdit([new DocumentEdit(Path.Combine(root, "A.src"), [Insert(0, "late")])]) });
         var service = Create(budget: TimeSpan.FromMilliseconds(200));
-        var file = Write("A.cs", "a");
+        var file = Write("A.src", "a");
         var started = DateTime.UtcNow;
 
-        Assert.True(await service.ApplyAsync(Edit(new RenameFileOperation(file, Path.Combine(root, "B.cs")))));
+        Assert.True(await service.ApplyAsync(Edit(new RenameFileOperation(file, Path.Combine(root, "B.src")))));
 
         Assert.True(DateTime.UtcNow - started < TimeSpan.FromSeconds(10));
-        Assert.Equal("a", File.ReadAllText(Path.Combine(root, "B.cs")));
+        Assert.Equal("a", File.ReadAllText(Path.Combine(root, "B.src")));
         Assert.Contains(log, line => line.Contains("Broken participant", StringComparison.Ordinal));
         Assert.Contains(log, line => line.Contains("took longer than 0.2 seconds", StringComparison.Ordinal));
     });
@@ -329,9 +329,9 @@ public sealed class FileOperationsTests : IDisposable
     [Fact]
     public Task ParticipantChangesThatDoNotFitTheEditAreLeftOutAndTheEditIsMade() => Run(async () =>
     {
-        var file = Write("A.cs", "class A {}");
-        var gone = Write("Gone.cs", "class Gone {}");
-        var renamed = Path.Combine(root, "B.cs");
+        var file = Write("A.src", "class A {}");
+        var gone = Write("Gone.src", "class Gone {}");
+        var renamed = Path.Combine(root, "B.src");
         participants.Add(new RecordingParticipant
         {
             Will = _ => new WorkspaceEdit(
@@ -350,8 +350,8 @@ public sealed class FileOperationsTests : IDisposable
 
         Assert.Equal("// moved\nclass B {}", documents!.Find(renamed)!.Buffer.Current.GetText());
         Assert.False(File.Exists(gone));
-        Assert.Contains(log, line => line.Contains("changes to B.cs that were left out: B.cs has overlapping changes", StringComparison.Ordinal));
-        Assert.Contains(log, line => line.Contains("left out: Gone.cs is deleted by the same edit.", StringComparison.Ordinal));
+        Assert.Contains(log, line => line.Contains("changes to B.src that were left out: B.src has overlapping changes", StringComparison.Ordinal));
+        Assert.Contains(log, line => line.Contains("left out: Gone.src is deleted by the same edit.", StringComparison.Ordinal));
 
         Assert.True(await service.UndoAsync());
 
@@ -363,9 +363,9 @@ public sealed class FileOperationsTests : IDisposable
     public Task UndoingInTheEditorTakesBackTheWholeEditWhenItWasTheLastChange() => Run(async () =>
     {
         var service = Create();
-        var file = Write("A.cs", "class A {}");
+        var file = Write("A.src", "class A {}");
         var document = await documents!.OpenAsync(file);
-        var renamed = Path.Combine(root, "B.cs");
+        var renamed = Path.Combine(root, "B.src");
 
         Assert.True(await service.ApplyAsync(new WorkspaceEdit([new DocumentEdit(file, [Replace(6, 1, "B")])])
         {
@@ -388,8 +388,8 @@ public sealed class FileOperationsTests : IDisposable
     public Task UndoIsRefusedWhenAFileChangedSince() => Run(async () =>
     {
         var service = Create();
-        var file = Write("A.cs", "a");
-        var renamed = Path.Combine(root, "B.cs");
+        var file = Write("A.src", "a");
+        var renamed = Path.Combine(root, "B.src");
         Assert.True(await service.ApplyAsync(Edit(new RenameFileOperation(file, renamed))));
         File.WriteAllText(file, "a new file where the old one was");
 
@@ -403,9 +403,9 @@ public sealed class FileOperationsTests : IDisposable
     public Task FilesKeptForUndoAreDeletedForGoodWhenTheHistoryIsDisposed() => Run(async () =>
     {
         var service = Create();
-        Write("A.cs", "a");
+        Write("A.src", "a");
 
-        Assert.True(await service.ApplyAsync(Edit(new DeleteFileOperation(Path.Combine(root, "A.cs")) { UseTrash = false })));
+        Assert.True(await service.ApplyAsync(Edit(new DeleteFileOperation(Path.Combine(root, "A.src")) { UseTrash = false })));
         Assert.Single(Directory.EnumerateFiles(Stash, "*", SearchOption.AllDirectories));
 
         service.Dispose();

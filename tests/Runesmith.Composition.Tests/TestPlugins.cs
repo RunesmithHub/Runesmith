@@ -11,7 +11,7 @@ internal sealed record TestPlugin(string Id, string Root)
 {
     public string Version { get; init; } = "1.0.0";
 
-    public string RunesmithApi { get; init; } = "^0.1.0";
+    public string RunesmithApi { get; init; } = "^0.2.0";
 
     public string Contracts { get; init; } = "";
 
@@ -96,7 +96,7 @@ internal sealed class TestPluginFolder : IDisposable
     }
 
     /// <summary>Builds a plugin with a manifest in the older format, without a <c>schemaVersion</c>.</summary>
-    public string AddLegacy(string id, string assemblyName, string source, string apiVersion = "0.1")
+    public string AddLegacy(string id, string assemblyName, string source, string apiVersion = "0.2")
     {
         var folder = Directory.CreateDirectory(Path.Combine(PluginsPath, id)).FullName;
         Compile(assemblyName, source, [], folder);

@@ -34,7 +34,7 @@ public sealed class DebugAdapterClientTests : IAsyncDisposable
               "exceptionBreakpointFilters": [ { "filter": "all", "label": "All exceptions" }, { "filter": "user-unhandled", "label": "Unhandled", "default": true } ] }
             """);
 
-        var capabilities = await client.InitializeAsync(new InitializeArguments("coreclr") { ClientId = "runesmith", ClientName = "Runesmith" }, Token);
+        var capabilities = await client.InitializeAsync(new InitializeArguments("fake") { ClientId = "runesmith", ClientName = "Runesmith" }, Token);
 
         Assert.True(capabilities.SupportsConfigurationDoneRequest);
         Assert.True(client.Capabilities.SupportsConditionalBreakpoints);
@@ -42,7 +42,7 @@ public sealed class DebugAdapterClientTests : IAsyncDisposable
         Assert.Equal(["all", "user-unhandled"], capabilities.ExceptionBreakpointFilters!.Select(f => f.Filter));
         Assert.True(capabilities.ExceptionBreakpointFilters![1].Default);
         var sent = adapter.Arguments("initialize")!;
-        Assert.Equal("coreclr", sent["adapterId"]!.GetValue<string>());
+        Assert.Equal("fake", sent["adapterId"]!.GetValue<string>());
         Assert.True(sent["linesStartAt1"]!.GetValue<bool>());
         Assert.Equal("path", sent["pathFormat"]!.GetValue<string>());
     }
@@ -66,11 +66,11 @@ public sealed class DebugAdapterClientTests : IAsyncDisposable
     public async Task SendsTypedArgumentsAndReadsTypedBodies()
     {
         adapter.On("setBreakpoints", """{ "breakpoints": [ { "verified": true, "line": 4, "id": 1 }, { "verified": false, "message": "No code" } ] }""");
-        adapter.On("stackTrace", """{ "stackFrames": [ { "id": 10, "name": "Main", "line": 4, "column": 1, "source": { "path": "/p/Program.cs" } } ], "totalFrames": 1 }""");
+        adapter.On("stackTrace", """{ "stackFrames": [ { "id": 10, "name": "Main", "line": 4, "column": 1, "source": { "path": "/p/Program.src" } } ], "totalFrames": 1 }""");
         adapter.On("variables", """{ "variables": [ { "name": "count", "value": "3", "type": "int", "variablesReference": 0 } ] }""");
         adapter.On("evaluate", """{ "result": "6", "type": "int", "variablesReference": 0 }""");
 
-        var breakpoints = await client.SetBreakpointsAsync(new SetBreakpointsArguments(new Source { Path = "/p/Program.cs" },
+        var breakpoints = await client.SetBreakpointsAsync(new SetBreakpointsArguments(new Source { Path = "/p/Program.src" },
             [new SourceBreakpoint(4), new SourceBreakpoint(9) { Condition = "i > 2", LogMessage = "i is {i}" }]), Token);
         var stack = await client.StackTraceAsync(new StackTraceArguments(1), Token);
         var variables = await client.VariablesAsync(new VariablesArguments(7), Token);
@@ -79,10 +79,10 @@ public sealed class DebugAdapterClientTests : IAsyncDisposable
         Assert.Equal([true, false], breakpoints.Select(b => b.Verified));
         Assert.Equal("No code", breakpoints[1].Message);
         var sent = adapter.Arguments("setBreakpoints")!;
-        Assert.Equal("/p/Program.cs", sent["source"]!["path"]!.GetValue<string>());
+        Assert.Equal("/p/Program.src", sent["source"]!["path"]!.GetValue<string>());
         Assert.Equal("i > 2", sent["breakpoints"]![1]!["condition"]!.GetValue<string>());
         Assert.Null(sent["breakpoints"]![0]!["condition"]);
-        Assert.Equal("/p/Program.cs", Assert.Single(stack.StackFrames).Source!.Path);
+        Assert.Equal("/p/Program.src", Assert.Single(stack.StackFrames).Source!.Path);
         Assert.Equal(("count", "3", "int"), (variables[0].Name, variables[0].Value, variables[0].Type));
         Assert.Equal("6", result.Result);
         Assert.Equal("watch", adapter.Arguments("evaluate")!["context"]!.GetValue<string>());
@@ -126,7 +126,7 @@ public sealed class DebugAdapterClientTests : IAsyncDisposable
         await adapter.SendEventAsync("output", """{ "category": "stdout", "output": "hello\n" }""");
         await adapter.SendEventAsync("breakpoint", """{ "reason": "changed", "breakpoint": { "verified": true, "id": 1 } }""");
         await adapter.SendEventAsync("stopped", """{ "reason": "breakpoint", "threadId": 1, "allThreadsStopped": true }""");
-        await adapter.SendEventAsync("module", """{ "reason": "new", "module": { "id": 1, "name": "App.dll" } }""");
+        await adapter.SendEventAsync("module", """{ "reason": "new", "module": { "id": 1, "name": "app.bin" } }""");
         await adapter.SendEventAsync("continued", """{ "threadId": 1 }""");
         await adapter.SendEventAsync("exited", """{ "exitCode": 3 }""");
         await adapter.SendEventAsync("terminated");
@@ -204,10 +204,10 @@ public sealed class DebugAdapterClientTests : IAsyncDisposable
     [Fact]
     public async Task AnswersTheAdaptersRequestsWithTheHandlerOrAsNotSupported()
     {
-        var refused = await adapter.SendRequestAsync("runInTerminal", """{ "args": ["dotnet", "App.dll"] }""");
+        var refused = await adapter.SendRequestAsync("runInTerminal", """{ "args": ["tool", "app"] }""");
         client.RequestHandler = (command, arguments, _) =>
             Task.FromResult<object?>(new JsonObject { ["processId"] = arguments!.Value.GetProperty("args").GetArrayLength() });
-        var answered = await adapter.SendRequestAsync("runInTerminal", """{ "args": ["dotnet", "App.dll"] }""");
+        var answered = await adapter.SendRequestAsync("runInTerminal", """{ "args": ["tool", "app"] }""");
 
         Assert.False(refused["success"]!.GetValue<bool>());
         Assert.Contains("not supported", refused["message"]!.GetValue<string>(), StringComparison.Ordinal);
@@ -237,7 +237,7 @@ public sealed class DebugAdapterClientTests : IAsyncDisposable
         adapter.On("initialize", """{ "supportsConfigurationDoneRequest": true, "supportsTerminateRequest": true }""");
         await client.InitializeAsync(new InitializeArguments("fake"), Token);
 
-        await client.LaunchAsync(new JsonObject { ["program"] = "/p/App.dll", ["args"] = new JsonArray("a", "b c"), ["stopAtEntry"] = false }, Token);
+        await client.LaunchAsync(new JsonObject { ["program"] = "/p/app.bin", ["args"] = new JsonArray("a", "b c"), ["stopAtEntry"] = false }, Token);
         await client.ConfigurationDoneAsync(Token);
         Assert.True(await client.TerminateAsync(Token));
         await client.DisconnectAsync(new DisconnectArguments { TerminateDebuggee = true }, Token);

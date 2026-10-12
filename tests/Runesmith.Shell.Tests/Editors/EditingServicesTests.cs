@@ -31,9 +31,9 @@ public sealed class EditingServicesTests : IDisposable
     [Fact]
     public Task AppliesEachFilesChangesAsOneUndoStepOfThatFileAndOpensTheOthers() => Run(async () =>
     {
-        var a = documents.Add(Path.Combine(folder, "A.cs"), "class A { Old x; }");
-        var b = documents.Add(Path.Combine(folder, "B.cs"), "Old.Make();");
-        var closed = Path.Combine(folder, "C.cs");
+        var a = documents.Add(Path.Combine(folder, "A.src"), "class A { Old x; }");
+        var b = documents.Add(Path.Combine(folder, "B.src"), "Old.Make();");
+        var closed = Path.Combine(folder, "C.src");
         await File.WriteAllTextAsync(closed, "// Old\r\nOld y;\r\n");
         var edit = new WorkspaceEdit(
         [
@@ -57,8 +57,8 @@ public sealed class EditingServicesTests : IDisposable
     [Fact]
     public Task ChangesNothingWhenOneFileChangedSinceTheEditWasComputed() => Run(async () =>
     {
-        var a = documents.Add(Path.Combine(folder, "A.cs"), "one");
-        var b = documents.Add(Path.Combine(folder, "B.cs"), "two");
+        var a = documents.Add(Path.Combine(folder, "A.src"), "one");
+        var b = documents.Add(Path.Combine(folder, "B.src"), "two");
         var stale = b.Buffer.Current;
         b.Buffer.Insert(0, "x");
 
@@ -77,7 +77,7 @@ public sealed class EditingServicesTests : IDisposable
     [Fact]
     public Task RefusesOverlappingChangesAndChangesPastTheEnd() => Run(async () =>
     {
-        var a = documents.Add(Path.Combine(folder, "A.cs"), "abcdef");
+        var a = documents.Add(Path.Combine(folder, "A.src"), "abcdef");
 
         Assert.False(await service.ApplyAsync(new WorkspaceEdit([new DocumentEdit(a.FilePath!, [new TextChange(new TextSpan(0, 3), "x"), new TextChange(new TextSpan(2, 2), "y")])])));
         Assert.False(await service.ApplyAsync(new WorkspaceEdit([new DocumentEdit(a.FilePath!, [new TextChange(new TextSpan(5, 4), "x")])])));
@@ -88,7 +88,7 @@ public sealed class EditingServicesTests : IDisposable
     [Fact]
     public Task AnEditorShowingTheFileAppliesTheChangesAndKeepsItsCaretOnItsText() => Run(async () =>
     {
-        var a = documents.Add(Path.Combine(folder, "A.cs"), "int total = Sum();");
+        var a = documents.Add(Path.Combine(folder, "A.src"), "int total = Sum();");
         using var editor = new TextEditor(a, new FakeEditorServices().Create());
         editors.Shown.Add(editor);
         editor.CaretOffset = 15;
@@ -106,7 +106,7 @@ public sealed class EditingServicesTests : IDisposable
     {
         var fakes = new FakeEditorServices();
         fakes.Features.Format = _ => [new TextChange(new TextSpan(0, 0), "// formatted\n")];
-        var a = documents.Add(Path.Combine(folder, "A.cs"), "code");
+        var a = documents.Add(Path.Combine(folder, "A.src"), "code");
         using var editor = new TextEditor(a, fakes.Create());
         var settings = new Settings();
 

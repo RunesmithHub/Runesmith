@@ -29,8 +29,8 @@ public sealed class TestFeedbackTests
                 Actual = "5",
                 StackTrace =
                 [
-                    new TestStackFrame("at Xunit.Assert.Equal()") { FilePath = "/xunit/Assert.cs", Position = new TextPosition(99, 0) },
-                    new TestStackFrame("at CalculatorTests.Add() in /src/CalculatorTests.cs:line 7") { FilePath = Items.File, Position = new TextPosition(6, 8) },
+                    new TestStackFrame("at Lib.Assert.Equal()") { FilePath = "/lib/Assert.src", Position = new TextPosition(99, 0) },
+                    new TestStackFrame("at CalculatorTests.Add() in /src/CalculatorTests.src:line 7") { FilePath = Items.File, Position = new TextPosition(6, 8) },
                 ],
             });
             run.Passed(Items.Id("Subtract"));
@@ -44,19 +44,19 @@ public sealed class TestFeedbackTests
         Assert.Equal(DiagnosticSeverity.Error, problem.Severity);
         Assert.Equal(TestService.DiagnosticSource, problem.Source);
         Assert.Equal("Add: Assert.Equal() Failure: Values differ (expected 4, actual 5)", problem.Message);
-        Assert.Empty(diagnostics.Get("/xunit/Assert.cs"));
+        Assert.Empty(diagnostics.Get("/lib/Assert.src"));
     }
 
     [Fact]
     public void AStackFrameIsInTheFolderWhicheverSeparatorsItsPathUses()
     {
         var root = Path.Combine(Path.GetTempPath(), "runesmith-tests", "src");
-        var inside = root.Replace(Path.DirectorySeparatorChar, '/') + "/CalculatorTests.cs";
+        var inside = root.Replace(Path.DirectorySeparatorChar, '/') + "/CalculatorTests.src";
         var failure = new TestFailure("Assert.Equal() Failure")
         {
             StackTrace =
             [
-                new TestStackFrame("at Other.Run()") { FilePath = Path.Combine(root + "2", "Other.cs"), Position = new TextPosition(1, 0) },
+                new TestStackFrame("at Other.Run()") { FilePath = Path.Combine(root + "2", "Other.src"), Position = new TextPosition(1, 0) },
                 new TestStackFrame("at CalculatorTests.Add()") { FilePath = inside, Position = new TextPosition(6, 8) },
             ],
         };

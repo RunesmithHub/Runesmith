@@ -8,7 +8,7 @@ using Runesmith.Tests.Dap;
 
 namespace Runesmith.Shell.Tests.Debugging;
 
-/// <summary>A debug adapter scripted like a small program paused in <c>Program.cs</c>: it answers the start-up requests, and stops at the line
+/// <summary>A debug adapter scripted like a small program paused in <c>Program.src</c>: it answers the start-up requests, and stops at the line
 /// <see cref="Line"/> when told, with a frame without source above the program's frame.</summary>
 internal sealed class ScriptedProgram : IAsyncDisposable
 {
@@ -92,10 +92,10 @@ internal sealed class ScriptedProgram : IAsyncDisposable
     }
 }
 
-/// <summary>A debug engine for the <c>dotnet</c> debugger that launches the plan's program with fixed arguments.</summary>
+/// <summary>A debug engine for the <c>acme</c> debugger that launches the plan's program with fixed arguments.</summary>
 internal sealed class FakeEngine(DebugAdapterDescriptor? adapter = null) : IDebugAdapterProvider
 {
-    public IReadOnlyList<string> Debuggers => ["dotnet"];
+    public IReadOnlyList<string> Debuggers => ["acme"];
 
     public string Name => "Fake debugger";
 
@@ -118,7 +118,7 @@ internal static class DebugTesting
     public static CancellationToken Token => TestContext.Current.CancellationToken;
 
     public static LaunchPlan Plan(string program) =>
-        new("dotnet", [program], Path.GetDirectoryName(program)!) { Debug = new DebugLaunch("dotnet", new Dictionary<string, string> { ["program"] = program }) };
+        new("acme", [program], Path.GetDirectoryName(program)!) { Debug = new DebugLaunch("acme", new Dictionary<string, string> { ["program"] = program }) };
 
     public static BreakpointService Breakpoints(string root, string state) => new(new FakeWorkspace(root), null, state);
 

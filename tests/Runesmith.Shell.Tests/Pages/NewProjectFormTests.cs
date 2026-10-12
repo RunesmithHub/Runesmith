@@ -7,12 +7,12 @@ namespace Runesmith.Shell.Tests.Pages;
 
 public sealed class NewProjectFormTests : IDisposable
 {
-    private static readonly ProjectTemplate Console = new("test.console", "Console App", "C#", TemplateCategories.Console)
+    private static readonly ProjectTemplate Console = new("test.console", "Console App", "Sample", TemplateCategories.Console)
     {
         Options = new OptionSet(
         [
-            new Option("Framework", "Target framework", OptionKind.Choice) { Default = "net10.0", Choices = [new("net10.0", ".NET 10.0"), new("net9.0", ".NET 9.0")] },
-            new Option("aot", "Native AOT", OptionKind.Toggle) { Default = "false" },
+            new Option("Framework", "Target framework", OptionKind.Choice) { Default = "v10", Choices = [new("v10", ".NET 10.0"), new("v9", ".NET 9.0")] },
+            new Option("fast", "Fast start", OptionKind.Toggle) { Default = "false" },
         ]),
     };
 
@@ -23,25 +23,24 @@ public sealed class NewProjectFormTests : IDisposable
     [Fact]
     public void TheDialogFieldsComeFirstAndTheTemplateValuesLeaveThemOut()
     {
-        var options = NewProjectForm.Options(Console, offerGit: true);
-        Assert.Equal([NewProjectForm.Name, NewProjectForm.Location, NewProjectForm.Git, "Framework", "aot"], options.Options.Select(o => o.Id));
+        var options = NewProjectForm.Options(Console, []);
+        Assert.Equal([NewProjectForm.Name, NewProjectForm.Location, "Framework", "fast"], options.Options.Select(o => o.Id));
 
         var values = options.Defaults();
         values.Set(NewProjectForm.Name, "Hello");
-        Assert.Equal(["Framework", "aot"], NewProjectForm.TemplateValues(values).All.Keys.Order(StringComparer.Ordinal));
-        Assert.DoesNotContain(NewProjectForm.Git, NewProjectForm.Options(Console, offerGit: false).Options.Select(o => o.Id));
+        Assert.Equal(["Framework", "fast"], NewProjectForm.TemplateValues(values).All.Keys.Order(StringComparer.Ordinal));
     }
 
     [Fact]
     public void RememberedValuesApplyOverTheDefaultsAndOnlyChangesAreRemembered()
     {
-        var values = NewProjectForm.InitialValues(Console, new Dictionary<string, string> { ["aot"] = "true", ["gone"] = "x" });
-        Assert.Equal("true", values.Get("aot"));
-        Assert.Equal("net10.0", values.Get("Framework"));
+        var values = NewProjectForm.InitialValues(Console, new Dictionary<string, string> { ["fast"] = "true", ["gone"] = "x" });
+        Assert.Equal("true", values.Get("fast"));
+        Assert.Equal("v10", values.Get("Framework"));
         Assert.Null(values.Get("gone"));
 
         values.Set(NewProjectForm.Name, "Hello");
-        Assert.Equal(new Dictionary<string, string> { ["aot"] = "true" }, NewProjectForm.ChangedValues(Console, values));
+        Assert.Equal(new Dictionary<string, string> { ["fast"] = "true" }, NewProjectForm.ChangedValues(Console, values));
     }
 
     [Theory]
@@ -83,13 +82,13 @@ public sealed class NewProjectFormTests : IDisposable
     public void ACreatedProjectPutsItsTemplateFirstInRecentAndKeepsItsChanges()
     {
         var session = NewProjectSession.Empty
-            .WithCreated("a", "/x", new Dictionary<string, string> { ["aot"] = "true" }, createGitRepository: true)
-            .WithCreated("b", "/y", new Dictionary<string, string>(), createGitRepository: false)
-            .WithCreated("a", "/z", new Dictionary<string, string>(), createGitRepository: false);
+            .WithCreated("a", "/x", new Dictionary<string, string> { ["fast"] = "true" }, new Dictionary<string, bool> { ["step"] = true })
+            .WithCreated("b", "/y", new Dictionary<string, string>(), new Dictionary<string, bool> { ["step"] = false })
+            .WithCreated("a", "/z", new Dictionary<string, string>(), new Dictionary<string, bool> { ["step"] = false });
 
         Assert.Equal(["a", "b"], session.Recent);
         Assert.Equal("/z", session.Location);
         Assert.False(session.Values.ContainsKey("a"));
-        Assert.False(session.CreateGitRepository);
+        Assert.False(session.Steps!["step"]);
     }
 }

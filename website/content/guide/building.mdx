@@ -4,18 +4,17 @@ description: Build the selected run configuration or the open folder, read the o
 ---
 
 **Build › Build** (<Keys>Ctrl+Shift+B</Keys>) builds the [run configuration](./running.mdx) selected in the toolbar: only its project, when its
-kind knows how, such as a .NET project with `dotnet build` of that project. Otherwise, and when no configuration is selected, it builds the
-open folder with a build provider that knows how. The [C# plugin](/plugins/csharp) adds a provider for .NET, which
-runs `dotnet build`, and the [Java plugin](/plugins/java) one for Maven and Gradle; install them from the plugin hub. Other plugins can
-add more.
+kind knows how. Otherwise, and when no configuration is selected, it builds the open folder with a build provider that knows how.
+Runesmith has no build provider of its own: the plugin of a language brings the one for its build tools. Install it from the
+[plugin hub](./plugins.mdx).
 
 ## Build
 
 <Steps>
 
-1. Open a folder that has a solution or project file at its top, such as `App.slnx`, and pick a run configuration in the toolbar.
+1. Open a folder with a project the plugin of its language can build, and pick a run configuration in the toolbar.
 2. Press <Keys>Ctrl+Shift+B</Keys>, or click the hammer of the run widget in the toolbar.
-3. Follow the build in the **Output** panel's **Build** channel. Errors and warnings appear in the **Problems** panel as the compiler
+3. Follow the build in the **Output** panel's **Build** channel. Errors and warnings appear in the **Problems** panel as the build tool
    reports them.
 
 </Steps>
@@ -24,18 +23,15 @@ Runesmith saves every changed file first. While the build runs, the task indicat
 it and then its cancel button, or press <Keys>Ctrl+Break</Keys>, to cancel it. When the build ends, a notification says whether it
 succeeded, with the number of errors and warnings; the bell at the right of the status bar keeps it.
 
-**Build** is turned off while a build runs, or when no configuration is selected and no provider can build the folder.
+**Build** is turned off while a build runs, or when no configuration is selected and no provider can build the folder, such as when no
+installed plugin knows the folder's build tool.
 
 Running a configuration builds it first with its **Build** step, and writes the build log in its tab of the **Run** panel instead of the
 **Output** panel; see [Running](./running.mdx#before-launch).
 
-## What the .NET provider builds
-
-The .NET provider builds the first `.slnx` file at the top of the folder, or else the first `.sln`, `.csproj` or `.fsproj` file, with
-`dotnet build`. It needs the .NET SDK: the default one from [SDKs](./sdks.mdx) when Runesmith installed it, and otherwise `dotnet` on the
-`PATH`.
+What a provider builds in a folder, and the SDK it needs, is in the documentation of its plugin.
 
 ## Related
 
 - [Problems](./problems.mdx)
-- [C# support](/plugins/csharp)
+- [SDKs](./sdks.mdx)

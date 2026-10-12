@@ -128,7 +128,7 @@ public sealed class WorkspaceFiles : IWorkspaceFiles, IDisposable
         {
             if (!_shared.TryGetValue(folder, out var shared))
             {
-                var exclude = GlobMatcher.Parse(_settings.Get<string>(SettingKeys.Exclude));
+                var exclude = GlobMatcher.Parse(_workspace.ExcludeGlobs);
                 shared = _shared[folder] = new SharedWatcher(
                     new FileWatcher(folder, recursive: true, (changes, overflowed) => Report(folder, changes, overflowed)),
                     path => path.Length > folder.Length && exclude.IsMatchOrInside(GlobMatcher.ToGlobPath(Path.GetRelativePath(folder, path))));

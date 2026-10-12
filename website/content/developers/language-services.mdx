@@ -143,12 +143,12 @@ dotnet run --project benchmarks/Runesmith.Benchmarks --configuration Release -- 
 ## The typing benchmark
 
 `benchmarks/Runesmith.TypingBenchmark` is a plugin that drives the running editor and records what every meter measured meanwhile. It needs
-no language plugin: it writes a C# file of 10,008 lines, which Runesmith highlights with its own grammar, and gives that file semantic
-tokens and occurrence highlights of its own, as a language server would. Then it:
+no language plugin: it brings a sample language of its own with a grammar, writes a file of 10,008 lines in it, and gives that file
+semantic tokens and occurrence highlights of its own, as a language server would. Then it:
 
 1. Opens the file and measures what it added to memory.
 2. Folds a method in every tenth class and the body of one class, so lines are hidden.
-3. Types sixteen lines of C# into a method in the middle of the file at 70 ms per key, about 140 words a minute, without accepting
+3. Types sixteen lines into a method in the middle of the file at 70 ms per key, about 140 words a minute, without accepting
    suggestions.
 4. Puts the caret on a name used 1,000 times, so its occurrences are highlighted, and scrolls down two wheel notches a frame for 400
    frames.
@@ -175,6 +175,6 @@ argument names the folder for the results. Each measurement is named after its p
 
 ## Related
 
-- [C# support](/plugins/csharp)
+- [The C# plugin](https://github.com/RunesmithHub/plugin-csharp), whose analyzer runs on these services
 - [Plugin API](/plugins/api#language-analyzers)
 - [Architecture](./architecture.mdx)

@@ -18,8 +18,7 @@ Runesmith is licensed under the Apache License 2.0; see [LICENSE](LICENSE). It u
 | [Avalonia.Controls.WebView](https://github.com/AvaloniaUI/Avalonia.Controls.WebView) 12.1.0 | MIT, under the Avalonia license text below | Web views in plugins' panels and editors |
 | [Inter](https://github.com/rsms/inter), through Avalonia.Fonts.Inter 12.1.3 | SIL Open Font License 1.1 | The user interface's font |
 | [Tmds.DBus](https://github.com/tmds/Tmds.DBus), through Avalonia | MIT | Runesmith on Linux |
-| [TextMateSharp](https://github.com/danipen/TextMateSharp) and TextMateSharp.Grammars 2.0.4 | MIT | Syntax highlighting |
-| The TextMate grammars in TextMateSharp.Grammars | MIT, from [Visual Studio Code](https://github.com/microsoft/vscode/tree/main/extensions), and the licenses some grammar files carry themselves | Syntax highlighting |
+| [TextMateSharp](https://github.com/danipen/TextMateSharp) 2.0.4 | MIT | The syntax highlighting engine; the grammars come from plugins |
 | [Onigwrap](https://github.com/aikawayataro/Onigwrap) 1.0.11, through TextMateSharp | MIT | Regular expressions for the grammars |
 | [Oniguruma](https://github.com/kkos/oniguruma), the native library in Onigwrap | BSD 2-Clause | Regular expressions for the grammars |
 | [Microsoft.VisualStudio.Composition](https://github.com/microsoft/vs-mef) 17.13.41 | MIT | Composing Runesmith's parts and plugins |
@@ -364,37 +363,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 The MIT License (MIT)
 
 Copyright (c) 2021 Daniel Peñalba
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-The .NET runtime includes further third-party components; their notices are at https://github.com/dotnet/runtime/blob/main/THIRD-PARTY-NOTICES.TXT.
-
-## The TextMate grammars
-
-The grammars in TextMateSharp.Grammars come from the extensions of Visual Studio Code, which are licensed as follows. Some grammar files
-were made by other projects and carry their own license text inside the file; those terms apply to those files.
-
-```text
-The MIT License (MIT)
-
-Copyright (c) 2015 - present Microsoft Corporation
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

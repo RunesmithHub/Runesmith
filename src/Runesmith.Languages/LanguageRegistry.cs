@@ -3,7 +3,7 @@ using Runesmith.Sdk.Languages;
 
 namespace Runesmith.Languages;
 
-/// <summary>Knows the built-in languages and the ones plugins add; a plugin's definition replaces a built-in one with the same id.</summary>
+/// <summary>Knows plain text and the languages plugins add. Runesmith brings no language of its own: every other one comes from a plugin.</summary>
 [Export(typeof(ILanguageRegistry))]
 [Shared]
 public sealed class LanguageRegistry : ILanguageRegistry
@@ -13,19 +13,16 @@ public sealed class LanguageRegistry : ILanguageRegistry
     private readonly Dictionary<string, LanguageDefinition> byExtension = new(StringComparer.OrdinalIgnoreCase);
 
     [ImportingConstructor]
-    public LanguageRegistry([ImportMany] IEnumerable<LanguageDefinition> pluginLanguages, TextMateGrammars grammars)
+    public LanguageRegistry([ImportMany] IEnumerable<LanguageDefinition> pluginLanguages)
     {
         ArgumentNullException.ThrowIfNull(pluginLanguages);
-        ArgumentNullException.ThrowIfNull(grammars);
-        var plugins = pluginLanguages.ToList();
-        foreach (var language in BuiltInLanguages.Create(grammars.BuiltIn).Concat(plugins))
+        PlainText = new LanguageDefinition(ILanguageRegistry.PlainText, "Plain Text") { Extensions = [".txt", ".text"], Icon = "file-text" };
+        byId[PlainText.Id] = PlainText;
+        foreach (var language in pluginLanguages)
             byId[language.Id] = language;
 
         Languages = [.. byId.Values.OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase)];
-        PlainText = byId[ILanguageRegistry.PlainText];
-
-        // Built-in languages are indexed first so that a plugin's language wins a shared extension or file name.
-        foreach (var language in Languages.OrderBy(l => plugins.Contains(l) ? 1 : 0))
+        foreach (var language in Languages)
         {
             foreach (var name in language.FileNames)
                 byFileName[name] = language;

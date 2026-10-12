@@ -213,9 +213,9 @@ A widget that throws is left out and the error goes to the **Plugins** output.
 
 | Export | What it adds |
 | --- | --- |
-| `LanguageDefinition` | A language: its extensions or file names, its TextMate scope, comments, brackets, quotes and icon. A plugin's definition replaces a built-in one with the same id. |
-| `GrammarDefinition` | A TextMate grammar file for a scope Runesmith does not have. |
-| `LanguageServerDefinition` | A language server: its command, arguments, languages, root markers and an install hint shown when it is missing. Runesmith then gives its features to the editor. |
+| `LanguageDefinition` | A language: its extensions or file names, its TextMate scope, comments, brackets, quotes and icon. Runesmith has only plain text of its own; every other language is one a plugin exports. |
+| `GrammarDefinition` | The TextMate grammar file of a scope, which highlights the language whose `ScopeName` names it. Runesmith ships the engine and no grammar. |
+| `LanguageServerDefinition` | A language server: its command, arguments, environment variables, languages, root markers and an install hint shown when it is missing. Runesmith then gives its features to the editor. |
 | `ILanguageAnalyzer` | A language analyzer that runs inside Runesmith and answers completion, hover, go to definition, signature help and problems. See [Language analyzers](#language-analyzers). |
 | `ICompletionProvider`, `IHoverProvider`, `IDefinitionProvider`, `ISignatureHelpProvider` | Single language features of your own, without a language server or an analyzer. |
 | `ICodeActionProvider`, `IRenameProvider`, `IDocumentFormattingProvider`, `IRangeFormattingProvider` | Quick fixes and refactorings, rename and formatting. See [Editor extensions](./language-features.mdx). |
@@ -226,22 +226,29 @@ A widget that throws is left out and the error goes to the **Plugins** output.
 | `ISemanticTokensProvider` | Tokens classified by meaning, colored over the TextMate highlighting. See [Semantic tokens](./language-features.mdx#semantic-tokens). |
 | `ICallHierarchyProvider`, `ITypeHierarchyProvider` | Callers and callees of a function, base and derived types of a type. See [Call and type hierarchies](./language-features.mdx#call-and-type-hierarchies). |
 
-Definitions are exported from a property, as the C# plugin does:
+Definitions are exported from properties. A language and its grammar, whose file ships beside the plugin's assembly:
 
 ```csharp
-public sealed class CSharpLanguage
+public sealed class TomlLanguage
 {
     [Export(typeof(LanguageDefinition))]
-    public LanguageDefinition Definition { get; } = new("csharp", "C#")
+    public LanguageDefinition Definition { get; } = new("toml", "TOML")
     {
-        Extensions = [".cs", ".csx"],
-        ScopeName = "source.cs",
-        LineComment = "//",
-        BlockComment = ("/*", "*/"),
-        Icon = "file-code",
+        Extensions = [".toml"],
+        ScopeName = "source.toml",
+        LineComment = "#",
+        Icon = "settings",
     };
+
+    [Export(typeof(GrammarDefinition))]
+    public GrammarDefinition Grammar { get; } = new("source.toml",
+        Path.Combine(Path.GetDirectoryName(typeof(TomlLanguage).Assembly.Location)!, "grammars", "toml.tmLanguage.json"));
 }
 ```
+
+Copy the grammar file to the output with `<None Include="grammars\*.json" CopyToOutputDirectory="PreserveNewest" />` in the
+implementation project. A grammar may include the grammars of other plugins by their scope, as Markdown does for the code in its fences;
+where no installed plugin brings the scope, that part stays plain. When two plugins bring the same scope, the first one loaded keeps it.
 
 Mark a provider with `[Languages("toml")]`, or `[Languages(LanguagesAttribute.Any)]` for every language. Runesmith reads the attribute
 without creating the provider, so the provider loads only when a document of one of its languages needs it.
@@ -676,87 +683,34 @@ folder change on disk, and after a workspace edit creates, renames or deletes fi
 after the plugin's id in Runesmith's data folder, and creates it. A local copy of a plugin from the hub gets
 a folder of its own under `plugins/local`.
 
-## Version control
-
-The contracts between the [Git](./git.mdx) plugin and the hosting plugins, such as [GitHub](./github.mdx), are in
-`Runesmith.Sdk.VersionControl`, so any plugin can use them or add a hosting service of its own.
-
-| Contract | Provided by | What it does |
-| --- | --- | --- |
-| `IRepositoryService` | The Git plugin | The open folder's repository: its top folder, branch, HEAD, upstream, ahead and behind, and remotes, with `Changed` on the UI thread. |
-| `IGitService` | The Git plugin | Runs the user's `git` the way the Git plugin does: never waiting for a prompt, with credentials for one command. |
-| `IGitCredentialSource` | Each hosting plugin | A signed-in account's token for its server's `https` remotes. The first source that answers wins. |
-| `IRepositoryHostProvider` | Each hosting plugin | The service's accounts, and adding one, such as on another server. |
-| `IRepositoryHost` | Each hosting plugin | One account: signing in and out, its repositories, web links, the default branch and pull requests. |
-
-Runesmith may run without the Git plugin, so import its services with `[Import(AllowDefault = true)]` and expect null.
-`IGitService` returns a `GitResult` with Git's exit code and output rather than throwing; `GitRunOptions.CredentialsFor` names the remote
-whose credentials the command gets:
-
-```csharp
-var result = await git.RunAsync(repository.Root, ["fetch", "origin"],
-    new GitRunOptions { CredentialsFor = repository.Remotes[0].FetchUrl }, cancellationToken);
-if (!result.Succeeded)
-    notifications.Notify(NotificationKind.Error, "Fetch failed", result.Error);
-```
-
-### Write a hosting plugin
-
-A hosting plugin exports a provider of its accounts, one host per account, and a credential source for its servers. The Git plugin then
-shows a tab per account in the clone dialog, an **Add Account** entry for the provider, the **Pull Requests** window for repositories the
-host owns, and **Open on** and **Copy Link** commands named after the provider. It does not reference the Git plugin.
-
-```csharp
-[Export(typeof(IRepositoryHostProvider))]
-[Shared]
-[method: ImportingConstructor]
-public sealed class AcmeHostProvider(AcmeHost host) : IRepositoryHostProvider
-{
-    public string Name => "Acme";
-
-    public string Icon => "globe";
-
-    public IReadOnlyList<IRepositoryHost> Hosts { get; } = [host];
-
-    public event EventHandler? Changed { add { } remove { } }
-
-    public async Task<IRepositoryHost?> AddAccountAsync(CancellationToken cancellationToken) =>
-        await host.SignInAsync(cancellationToken) ? host : null;
-}
-
-[Export(typeof(IGitCredentialSource))]
-[method: ImportingConstructor]
-public sealed class AcmeCredentials(AcmeHost host) : IGitCredentialSource
-{
-    public async Task<GitCredentials?> GetAsync(string remoteUrl, CancellationToken cancellationToken) =>
-        host.Owns(remoteUrl) && await host.GetTokenAsync(cancellationToken) is { } token
-            ? new GitCredentials(host.Server, host.Account!, token)
-            : null;
-}
-```
-
-`AcmeHost` implements `IRepositoryHost`:
-
-- `Owns` says whether a remote URL is on its server, in any of Git's forms, such as `https://git.acme.dev/team/app.git` or
-  `git@git.acme.dev:team/app.git`. When several hosts own a remote, a signed-in one wins.
-- `GetWebUrl` turns a `WebTarget` into a page: the repository, a file at a revision with its lines, a folder, a commit or a branch.
-- `GetRepositoriesAsync` lists what the account may clone, as `HostedRepository` records; the clone dialog groups them by owner.
-- `GetPullRequestsAsync` and `CreatePullRequestAsync` list and open pull requests. Set `PullRequest.HeadRef` to the ref that holds a pull
-  request's commits on the base repository, such as `refs/pull/12/head`, so **Checkout** works for pull requests from forks.
-- `Account` is null while signed out, and `Changed` tells the Git plugin when it signs in or out, or its access changes; the clone dialog
-  then loads the repositories again.
-- To offer **+ Organization** in the clone dialog, register a command named `<host id>.addOrganization`, such as
-  `github.addOrganization`; the dialog shows the chip while the command can run, and loads the list again when the window is activated.
-
 ## API versions
 
-The SDK package's version is the plugin API version, `RunesmithApi.Version`. Before 1.0, additions come in patch versions: a plugin built
-for `^0.1.0` loads in a Runesmith with API 0.1.2, and a plugin that uses anything added in 0.1.2 declares `"runesmithApi": "^0.1.2"` and
-references `Runesmith.Sdk` 0.1.2, so an older Runesmith lists it as needing a newer API instead of failing when it calls a member it lacks.
-New plugins start at `^0.1.4`. See [API versions](./index.mdx#api-versions) for how Runesmith checks the range.
+The SDK package's version is the plugin API version, `RunesmithApi.Version`. A plugin declares the range it works with in
+`runesmithApi`; new plugins start at `^0.2.0`. See [API versions](./index.mdx#api-versions) for how Runesmith checks the range.
 
-API 0.1.3 adds no members. Its packages carry Runesmith's English text as Runesmith 0.1.1 has it, which language packs check their
-translations against, so a pack that translates that text references `Runesmith.Sdk` 0.1.3 and declares `"runesmithApi": "^0.1.3"`.
+API 0.2.0 removes what Runesmith knew of single languages and tools, so plugins built for 0.1 do not load in it until they are built
+against it:
+
+| Changed in 0.2.0 | What to do |
+| --- | --- |
+| No built-in languages or grammars | A language plugin exports its `LanguageDefinition` and the `GrammarDefinition` of its scope, and ships the grammar file. |
+| `IWorkspace.Solutions` is gone | Find your build tool's project files yourself, with `IWorkspaceSearch.FindFilesAsync`. |
+| `Runesmith.Sdk.VersionControl` is gone | The contracts are the Git plugin's, in `Runesmith.Git.Contracts`; depend on `runesmith.git`. |
+| No default `files.exclude` | Export an `IFileExcludeContributor` for the folders of your tools. |
+| The Run console links only `path:line` and `path(line,column)` | Export an `IConsoleLinkProvider` for the forms of your language, such as its stack frames. |
+| Runesmith sets no runtime's variables on the programs it runs | Put them in your `LaunchPlan.Environment`, and a language server's in `LanguageServerDefinition.Environment`. |
+
+| Added in 0.2.0 | What it is |
+| --- | --- |
+| `IConsoleLinkProvider`, `ConsoleLink` | Places in source files that a line of a program's output names, for the Run console and the terminal. |
+| `IFileExcludeContributor` | Globs of files and folders the Explorer, Quick Open and search leave out. |
+| `IProjectCreationStep` | A toggle in the New Project dialog that does something to every new project, such as making it a repository. |
+| `ISdkProvider.HasVendors`, `PreferredVendor`, `DownloadDescription` | How the SDKs page names a kind's SDKs and what its download dialog asks and says. |
+| `LanguageServerDefinition.Environment` | Environment variables a language server starts with. |
+
+The versions before 0.2.0 added the following, all of which 0.2.0 has.
+
+API 0.1.3 adds no members. Its packages carry Runesmith's English text, which language packs check their translations against.
 
 | Added in 0.1.1 | What it is |
 | --- | --- |
@@ -768,8 +722,7 @@ translations against, so a pack that translates that text references `Runesmith.
 | `ColorScheme(id, name, json)` and `ColorScheme.Json` | A [syntax color scheme](./themes.mdx#syntax-color-schemes) given as JSON instead of a file. |
 | `RunesmithPaths.Hub` | The folder Runesmith manages for the plugin hub. |
 
-API 0.1.2 adds the members marked "Added in plugin API 0.1.2" in the SDK's documentation; a plugin that uses them declares
-`"runesmithApi": "^0.1.2"`.
+API 0.1.2 adds the members marked "Added in plugin API 0.1.2" in the SDK's documentation.
 
 | Added in 0.1.2 | What it is |
 | --- | --- |
@@ -794,8 +747,7 @@ API 0.1.2 adds the members marked "Added in plugin API 0.1.2" in the SDK's docum
 | `ITerminalService`, `ITerminal`, `TerminalOptions`, `TerminalDataEventArgs`, `TerminalExitedEventArgs` | [Terminals](./terminal.mdx). |
 | `ThemeColors.TerminalColors` | The terminal's ANSI colors in a [color theme](./themes.mdx). |
 
-API 0.1.4 adds the members marked "Added in plugin API 0.1.4"; a plugin that uses them declares `"runesmithApi": "^0.1.4"` and references
-`Runesmith.LanguageServices` 0.1.4.
+API 0.1.4 adds the members marked "Added in plugin API 0.1.4".
 
 | Added in 0.1.4 | What it is |
 | --- | --- |
@@ -809,5 +761,5 @@ API 0.1.4 adds the members marked "Added in plugin API 0.1.4"; a plugin that use
 - [Editor extensions](./language-features.mdx): decorations, code actions, rename, formatting and keyboard hooks.
 - [Custom editors](./custom-editors.mdx) and [Web views](./web-views.mdx)
 - [Test providers](./testing.mdx) and [Terminals](./terminal.mdx)
-- [C# support](./csharp.mdx), a complete plugin.
-- [Git](./git.mdx) and [GitHub](./github.mdx), the version control plugins.
+- [The C# plugin](https://github.com/RunesmithHub/plugin-csharp), a complete language plugin.
+- [The Git plugin](https://github.com/RunesmithHub/plugin-git) and [its contracts](https://github.com/RunesmithHub/plugin-git/blob/main/docs/contracts.md), for hosting plugins.

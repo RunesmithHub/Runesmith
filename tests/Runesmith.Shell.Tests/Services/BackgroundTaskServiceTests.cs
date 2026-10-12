@@ -32,7 +32,7 @@ public sealed class BackgroundTaskServiceTests
         var service = new BackgroundTaskService();
         var changes = 0;
         service.Changed += (_, _) => changes++;
-        using var task = service.Start("Loading Java projects");
+        using var task = service.Start("Loading projects");
 
         task.Report("12 of 31", 12 / 31.0);
         Assert.Equal("12 of 31", task.Detail);

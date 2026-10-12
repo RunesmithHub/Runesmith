@@ -1,8 +1,9 @@
 # Runesmith
 
-Runesmith is a code editor built on .NET 10 and [Avalonia](https://avaloniaui.net), for Windows, Linux and macOS. It opens a folder, edits
-its files with highlighting for more than 60 languages, and gets completion, signature help, hover, go to definition and problems from
-language plugins, such as the official C# and Java plugins, and from language servers. This first version focuses on C#.
+Runesmith is a code editor built on .NET 10 and [Avalonia](https://avaloniaui.net), for Windows, Linux and macOS. It is the editor and
+the tools plugins build on, and nothing else: it knows no language, no build tool and no version control system by itself. Every language,
+with its highlighting, completion, builds, runs and debugger, comes from a plugin, and so do Git, themes and viewers for files that are
+not text.
 
 Runesmith is a private MVP for now.
 
@@ -10,16 +11,18 @@ Runesmith is a private MVP for now.
 
 - **A docking workspace.** Editors and panels are tabs that drag to any edge, into another group or out into a window of their own, in
   light and dark.
-- **An editor for code.** TextMate highlighting, brackets and quotes that close as you type, indentation that follows the code, line
-  commands, and find and replace with regular expressions.
-- **C# analysis.** Completion, signature help, hover, go to definition and problems as you type, from the official C# plugin's analyzer
-  on the C# compiler (Roslyn). It runs inside Runesmith and supports every C# version up to C# 14. Install the plugin from the plugin
-  manager or [hub.runesmith.dev](https://hub.runesmith.dev); Runesmith suggests it when you open a C# file.
-- **Language servers.** Plugins can add Language Server Protocol servers for other languages.
+- **An editor for text.** Brackets and quotes that close as you type, indentation that follows the text, line commands, folding, and find
+  and replace with regular expressions.
+- **A highlighting engine.** A TextMate engine colors a language with the grammar its plugin brings, and semantic tokens over it.
+- **Language services.** Plugins bring language analyzers that run inside Runesmith, or Language Server Protocol servers; Runesmith turns
+  either into completion, signature help, hover, navigation, problems, quick fixes, rename and formatting.
 - **Navigation.** Quick Open, a command palette for every command, go to line, back and forward, and find in files with globs.
-- **Building.** `dotnet build` with its errors and warnings in the **Problems** panel.
+- **Building, running, debugging and testing.** The **Problems** panel, run configurations, a Debug Adapter Protocol client, the Test
+  Explorer and the SDKs page, each filled by the plugins of your languages.
+- **A terminal.** Your shell in a panel, with links to the files its output names.
 - **Settings and keys.** Settings for you and for each folder, and key bindings you can change.
-- **Plugins.** Languages, language servers, commands, panels, settings and build providers, with a `dotnet new` template to start from.
+- **Plugins.** Languages, grammars, analyzers, language servers, commands, panels, editors, settings, build providers and more, with a
+  `dotnet new` template to start from.
 
 ## Quick start
 
@@ -32,13 +35,9 @@ dotnet run --project src/Runesmith.App
 ```
 
 Its UI library, [HammerUI](https://github.com/RunesmithHub/HammerUI), comes from the Runesmith Hub feed, with no sign-in. Runesmith ships
-with no plugins. The official plugins, such as Git, GitHub, C#, Java, and Gitea and Forgejo, live in their own repositories and are
-installed from the plugin hub by those who want them: open **Tools › Plugins**, or start from [hub.runesmith.dev](https://hub.runesmith.dev).
-Runesmith suggests the official plugin that fits when you open a folder that is a Git repository, one with a remote on GitHub, or a C# or
-Java file.
-
-With the C# plugin installed, C# completion, hover and problems work without installing anything else. Loading your C# projects uses
-MSBuild, which needs the .NET SDK, as building does.
+with no plugins, so a new install edits every file as plain text. The official plugins live in their own repositories and are installed
+from the plugin hub by those who want them: open **Tools › Plugins**, or start from [hub.runesmith.dev](https://hub.runesmith.dev).
+When you open a file no installed plugin knows, Runesmith suggests the official plugin whose keywords name it.
 
 ## Documentation
 
@@ -46,7 +45,7 @@ The documentation site's sources are in [`website/content`](website/content):
 
 - [Guide](website/content/guide): installing, the window, the editor, navigation, language features, settings, keyboard shortcuts, the
   command line and troubleshooting.
-- [Plugins](website/content/plugins): how plugins load, creating one with the template, the API and C# support.
+- [Plugins](website/content/plugins): how plugins load, creating one with the template and the API.
 - [Developers](website/content/developers): the architecture, the language services, building and testing, running and debugging,
   contributing and releasing.
 

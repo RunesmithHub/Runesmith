@@ -10,7 +10,7 @@ namespace Runesmith.Shell.Tests.Editors;
 
 public sealed class ChangeBasesTests
 {
-    private static readonly string FilePath = Path.Combine(Path.GetTempPath(), "runesmith-tests", "Program.cs");
+    private static readonly string FilePath = Path.Combine(Path.GetTempPath(), "runesmith-tests", "Program.src");
 
     [Fact]
     public Task TakesTheFirstBaseAProviderHasAndSkipsOnesThatFail() => Run(async () =>
@@ -38,7 +38,7 @@ public sealed class ChangeBasesTests
         await WaitAsync(() => area.BaseText == "first");
 
         provider.Text = "second";
-        provider.Raise([Path.Combine(Path.GetDirectoryName(FilePath)!, "Other.cs")]);
+        provider.Raise([Path.Combine(Path.GetDirectoryName(FilePath)!, "Other.src")]);
         await Task.Delay(50);
         Assert.Equal("first", area.BaseText);
 

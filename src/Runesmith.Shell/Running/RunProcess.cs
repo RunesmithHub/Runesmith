@@ -71,11 +71,10 @@ public sealed class RunProcess : IDisposable
         foreach (var argument in plan.Arguments)
             start.ArgumentList.Add(argument);
 
-        // .NET programs write their console colors as escape sequences only when told to and when TERM names a terminal with colors.
-        start.Environment["DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION"] = "1";
+        // Programs write colors only when TERM names a terminal that has them; what else a runtime needs comes with the plan.
         if (!start.Environment.TryGetValue("TERM", out var term) || string.IsNullOrEmpty(term) || term == "dumb")
             start.Environment["TERM"] = "xterm-256color";
-        // .NET reads TERMINFO but not TERMINFO_DIRS, which systems without /usr/share/terminfo, such as NixOS, set instead.
+        // Some runtimes read TERMINFO but not TERMINFO_DIRS, which systems without /usr/share/terminfo, such as NixOS, set instead.
         if (!start.Environment.ContainsKey("TERMINFO") && start.Environment.TryGetValue("TERMINFO_DIRS", out var folders) && folders is { Length: > 0 }
             && FindTerminfo(folders, start.Environment["TERM"]!) is { } folder)
             start.Environment["TERMINFO"] = folder;

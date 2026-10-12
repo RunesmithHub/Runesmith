@@ -18,7 +18,7 @@ public sealed class DebugSessionTests : IAsyncDisposable
 
     public DebugSessionTests()
     {
-        program = new ScriptedProgram(Path.Combine(root, "Program.cs"));
+        program = new ScriptedProgram(Path.Combine(root, "Program.src"));
         breakpoints = Breakpoints(root, state);
         session = new DebugSession("App", "Fake debugger", program.Client, breakpoints, program.ReleaseAsync);
     }
@@ -32,7 +32,7 @@ public sealed class DebugSessionTests : IAsyncDisposable
     }
 
     private Task StartAsync() =>
-        session.StartAsync(new DebugAdapterRequest(DebugRequestKind.Launch, new JsonObject { ["program"] = "App.dll" }), "fake", Token);
+        session.StartAsync(new DebugAdapterRequest(DebugRequestKind.Launch, new JsonObject { ["program"] = "app.bin" }), "fake", Token);
 
     [Fact]
     public async Task StartingSendsTheBreakpointsAndExceptionFiltersBeforeConfigurationDone()
@@ -46,7 +46,7 @@ public sealed class DebugSessionTests : IAsyncDisposable
         Assert.Equal(DebugState.Running, session.State);
         Assert.Equal(["initialize", "launch", "setBreakpoints", "setExceptionBreakpoints", "configurationDone"], program.Adapter.Commands);
         Assert.Equal("fake", program.Adapter.Arguments("initialize")!["adapterId"]!.GetValue<string>());
-        Assert.Equal("App.dll", program.Adapter.Arguments("launch")!["program"]!.GetValue<string>());
+        Assert.Equal("app.bin", program.Adapter.Arguments("launch")!["program"]!.GetValue<string>());
         var sent = program.Adapter.Arguments("setBreakpoints")!;
         Assert.Equal(program.ProgramPath, sent["source"]!["path"]!.GetValue<string>());
         Assert.Equal([5, 10], sent["breakpoints"]!.AsArray().Select(b => b!["line"]!.GetValue<int>()));
@@ -130,7 +130,7 @@ public sealed class DebugSessionTests : IAsyncDisposable
     [Fact]
     public async Task AnAdapterThatRefusesTheLaunchFailsTheStartWithItsMessage()
     {
-        program.Adapter.On("launch", _ => FakeReply.Failure("The program 'App.dll' does not exist."));
+        program.Adapter.On("launch", _ => FakeReply.Failure("The program 'app.bin' does not exist."));
 
         var exception = await Assert.ThrowsAsync<DebugAdapterException>(StartAsync);
 
@@ -208,14 +208,14 @@ public sealed class DebugSessionTests : IAsyncDisposable
         session.ProgramOutput += (_, e) => seen.Add(e.Output);
 
         await program.Adapter.SendEventAsync("output", """{ "category": "stdout", "output": "Hello\n" }""");
-        await program.Adapter.SendEventAsync("output", """{ "category": "console", "output": "Loaded App.dll\n" }""");
+        await program.Adapter.SendEventAsync("output", """{ "category": "console", "output": "Loaded app.bin\n" }""");
         await program.Adapter.SendEventAsync("output", """{ "category": "telemetry", "output": "secret\n" }""");
         await WaitAsync(() => session.Console.GetText().Contains("Loaded", StringComparison.Ordinal));
 
         Assert.Equal(["Hello\n"], seen);
         var lines = session.Console.Drain(all: true).Lines;
         Assert.Contains(lines, l => l.Text == "Hello" && l.Source == ConsoleSource.Output);
-        Assert.Contains(lines, l => l.Text == "Loaded App.dll" && l.Source == ConsoleSource.System);
+        Assert.Contains(lines, l => l.Text == "Loaded app.bin" && l.Source == ConsoleSource.System);
         Assert.DoesNotContain(lines, l => l.Text.Contains("secret", StringComparison.Ordinal));
     }
 }

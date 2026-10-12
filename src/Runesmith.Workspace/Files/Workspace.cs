@@ -5,7 +5,7 @@ using Runesmith.Sdk.Workspace;
 
 namespace Runesmith.Workspace.Files;
 
-/// <summary>The open folder: its solutions, its files and the changes made to them on disk.</summary>
+/// <summary>The open folder: its files and the changes made to them on disk.</summary>
 [Export]
 [Export(typeof(IWorkspace))]
 [Shared]
@@ -14,25 +14,29 @@ public sealed class Workspace : IWorkspace, IDisposable
     private readonly ISettingsService _settings;
     private readonly IMessageBus _messageBus;
     private readonly RecentFolders _recentFolders;
+    private readonly string _contributedExcludes;
     private GlobMatcher _exclude;
     private FileIndex? _index;
     private FileWatcher? _watcher;
 
     [ImportingConstructor]
-    public Workspace(ISettingsService settings, IMessageBus messageBus, RecentFolders recentFolders)
+    public Workspace(ISettingsService settings, IMessageBus messageBus, RecentFolders recentFolders,
+        [ImportMany] IEnumerable<IFileExcludeContributor>? excludes = null)
     {
         _settings = settings;
         _messageBus = messageBus;
         _recentFolders = recentFolders;
-        _exclude = GlobMatcher.Parse(settings.Get<string>(SettingKeys.Exclude));
+        _contributedExcludes = string.Join(';', (excludes ?? []).SelectMany(contributor => contributor.Globs));
+        _exclude = GlobMatcher.Parse(ExcludeGlobs);
         settings.Changed += OnSettingChanged;
     }
 
     public string? RootPath { get; private set; }
 
-    public string? Name => RootPath is null ? null : Path.GetFileName(RootPath) is { Length: > 0 } name ? name : RootPath;
+    /// <summary>Gets the globs of what is left out: the <c>files.exclude</c> setting and what plugins contribute.</summary>
+    internal string ExcludeGlobs => $"{_settings.Get<string>(SettingKeys.Exclude)};{_contributedExcludes}";
 
-    public IReadOnlyList<string> Solutions { get; private set; } = [];
+    public string? Name => RootPath is null ? null : Path.GetFileName(RootPath) is { Length: > 0 } name ? name : RootPath;
 
     /// <summary>Gets whether changes made on disk outside Runesmith are followed; they are not when the system has no file watches left.</summary>
     public bool IsWatching => _watcher?.IsWatching ?? false;
@@ -54,7 +58,6 @@ public sealed class Workspace : IWorkspace, IDisposable
 
         Unload();
         RootPath = root;
-        Solutions = FindSolutions(root);
         Watch(root);
         _recentFolders.Add(root);
         AnnounceChange();
@@ -94,7 +97,6 @@ public sealed class Workspace : IWorkspace, IDisposable
         _watcher = null;
         _index = null;
         RootPath = null;
-        Solutions = [];
     }
 
     private void Watch(string root)
@@ -210,27 +212,11 @@ public sealed class Workspace : IWorkspace, IDisposable
         if (e.Key != SettingKeys.Exclude)
             return;
 
-        _exclude = GlobMatcher.Parse(_settings.Get<string>(SettingKeys.Exclude));
+        _exclude = GlobMatcher.Parse(ExcludeGlobs);
         if (RootPath is { } root)
         {
             Watch(root);
             _messageBus.Publish(new FilesChangedMessage([root]));
-        }
-    }
-
-    private static string[] FindSolutions(string root)
-    {
-        try
-        {
-            string[] solutions = [.. Directory.EnumerateFiles(root, "*.slnx"), .. Directory.EnumerateFiles(root, "*.sln")];
-            if (solutions.Length == 0)
-                solutions = [.. Directory.EnumerateFiles(root, "*.csproj")];
-            Array.Sort(solutions, NaturalComparer.Instance);
-            return solutions;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            return [];
         }
     }
 }

@@ -22,7 +22,7 @@ public sealed class FoldingTests
         // end
         """;
 
-    private static readonly string FilePath = Path.Combine(Path.GetTempPath(), "runesmith-tests", "Folding.cs");
+    private static readonly string FilePath = Path.Combine(Path.GetTempPath(), "runesmith-tests", "Folding.src");
 
     [Fact]
     public void FoldingARegionHidesTheLinesAfterItsFirstUpToItsLast()
@@ -55,7 +55,7 @@ public sealed class FoldingTests
         model.SetRanges([new FoldingRange(1, 6), new FoldingRange(3, 5)], buffer.Current.LineCount);
         model.SetCollapsed(model.RegionAt(3)!, true);
 
-        model.Map(buffer.Insert(0, "using System;\n\n"));
+        model.Map(buffer.Insert(0, "import stuff;\n\n"));
         Assert.Equal([(3, 8, false), (5, 7, true)], model.Regions.Select(r => (r.StartLine, r.EndLine, r.IsCollapsed)));
 
         model.Map(buffer.Insert(buffer.Current.GetLine(5).End, " // run"));

@@ -7,7 +7,7 @@ public sealed class DocumentHistoryTests
     [Fact]
     public void MapsOffsetsAndSpansThroughLaterVersions()
     {
-        var history = new DocumentHistory(new SourceDocument("/a.cs", "csharp", 1, TextSnapshot.Create("hello world")));
+        var history = new DocumentHistory(new SourceDocument("/a.src", "sample", 1, TextSnapshot.Create("hello world")));
         var first = history.Latest.Snapshot;
         history.Add(first.Apply([new TextChange(new TextSpan(0, 0), ">> ")]), [new TextChange(new TextSpan(0, 0), ">> ")]);
         var second = history.Latest.Snapshot;
@@ -22,7 +22,7 @@ public sealed class DocumentHistoryTests
     [Fact]
     public void FindsTheVersionOfASnapshot()
     {
-        var history = new DocumentHistory(new SourceDocument("/a.cs", "csharp", 1, TextSnapshot.Create("a")));
+        var history = new DocumentHistory(new SourceDocument("/a.src", "sample", 1, TextSnapshot.Create("a")));
         var first = history.Latest.Snapshot;
         var second = history.Add(first.Apply([new TextChange(new TextSpan(1, 0), "b")]), [new TextChange(new TextSpan(1, 0), "b")]);
 
@@ -34,7 +34,7 @@ public sealed class DocumentHistoryTests
     [Fact]
     public void ForgetsOldVersions()
     {
-        var history = new DocumentHistory(new SourceDocument("/a.cs", "csharp", 1, TextSnapshot.Create("")));
+        var history = new DocumentHistory(new SourceDocument("/a.src", "sample", 1, TextSnapshot.Create("")));
         for (var i = 0; i < 40; i++)
         {
             var snapshot = history.Latest.Snapshot;

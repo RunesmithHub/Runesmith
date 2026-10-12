@@ -241,7 +241,7 @@ internal sealed class ServerSession : IAsyncDisposable
         {
             Command = ServerCommand.Resolve(context.GetCommand(Definition)),
             Arguments = Definition.Arguments,
-            Environment = ServerCommand.Environment(),
+            Environment = Definition.Environment,
             RootPath = RootPath,
             InitializationOptions = ParseOptions(Definition.InitializationOptions),
             ClientVersion = typeof(ServerSession).Assembly.GetName().Version?.ToString(3),

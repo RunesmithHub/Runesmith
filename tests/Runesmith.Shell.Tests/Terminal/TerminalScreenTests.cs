@@ -523,7 +523,7 @@ public sealed class TerminalScreenTests
         Assert.All(others, uri => Assert.Null(new TerminalLink(uri, null).WebAddress));
         Assert.All(others, uri => Assert.Null(new TerminalLink(uri, null).File));
 
-        var path = Path.Combine(Path.GetTempPath(), "runesmith link", "App.cs");
+        var path = Path.Combine(Path.GetTempPath(), "runesmith link", "App.src");
         var uri = new Uri(path).AbsoluteUri;
         Assert.Equal((path, 0, 0), new TerminalLink(uri, null).File);
         Assert.Equal((path, 12, 0), new TerminalLink(uri + "#12", null).File);

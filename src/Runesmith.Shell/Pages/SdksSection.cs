@@ -89,9 +89,9 @@ public sealed class SdksSection
         }
     }
 
-    /// <summary>Gets the name of a release in messages, such as ".NET SDK 10.0.401" or "Temurin 25.0.1".</summary>
+    /// <summary>Gets the name of a release in messages: its vendor and version, or the kind's name and the version for a kind with one vendor.</summary>
     internal static string Describe(ISdkProvider provider, SdkRelease release) =>
-        release.Kind == "dotnet" ? $"{provider.Name} {release.Version}" : $"{release.Vendor} {release.Version}";
+        provider.HasVendors ? $"{release.Vendor} {release.Version}" : $"{provider.Name} {release.Version}";
 
     /// <summary>Gets a size in bytes as people read it, such as "212 MB".</summary>
     internal static string FormatSize(long bytes) => bytes switch
@@ -219,7 +219,7 @@ public sealed class SdksSection
                 actions.Children.Add(remove);
             }
 
-            var title = sdk.Kind == "dotnet" ? sdk.Version : sdk.DisplayName;
+            var title = provider.HasVendors ? sdk.DisplayName : sdk.Version;
             var description = sdk.Architecture is null ? sdk.Path : $"{sdk.Path}  ({sdk.Architecture})";
             return (new SettingRow { Icon = Icons.Package, Title = title, Description = description, Content = actions }, actions);
         }
@@ -241,7 +241,7 @@ public sealed class SdksSection
 
         private async Task RemoveAsync(InstalledSdk sdk)
         {
-            var name = sdk.Kind == "dotnet" ? $"{provider.Name} {sdk.Version}" : sdk.DisplayName;
+            var name = provider.HasVendors ? sdk.DisplayName : $"{provider.Name} {sdk.Version}";
             if (!await owner.notifications.ConfirmAsync(Strings.SettingsSdksRemoveTitle(name), Strings.SettingsSdksRemoveQuestion(sdk.Path), Strings.SettingsRemove, isDestructive: true))
                 return;
 

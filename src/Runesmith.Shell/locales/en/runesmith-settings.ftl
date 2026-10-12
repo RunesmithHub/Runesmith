@@ -201,7 +201,7 @@ settings-new-project-search = Search templates
 settings-new-project-create = Create
 settings-cancel = Cancel
 settings-new-project-loading = Loading templates...
-settings-new-project-no-templates = No templates are installed. Install a template plugin, such as C# templates or Java templates, from Tools > Plugins, or check that yours are on there.
+settings-new-project-no-templates = No templates are installed. Install a template plugin from Tools > Plugins, or check that yours are on there.
 settings-new-project-no-match = No templates match. Try other words or clear the filters.
 # Variables:
 #   $folder - the folder the project goes into
@@ -209,7 +209,6 @@ settings-new-project-target = The project will be created in { $folder }
 # Variables:
 #   $name - the project's name
 settings-new-project-creating = Creating { $name }...
-settings-new-project-creating-git = Creating the Git repository...
 settings-template-about = About this template
 settings-template-description = Description
 settings-template-author = Author
@@ -220,7 +219,6 @@ settings-drag-to-resize = Drag to resize
 settings-project-name = Name
 settings-project-name-placeholder = MyProject
 settings-project-location = Location
-settings-project-git = Create Git repository
 settings-project-location-required = Type a full path, or choose a folder.
 settings-project-name-required = Type a name.
 
@@ -271,8 +269,6 @@ settings-install = Install
 # Variables:
 #   $kind - the kind of SDK, such as .NET SDK
 settings-sdks-download-title = Download { $kind }
-settings-sdks-dotnet-source = Releases from Microsoft. Runesmith installs .NET SDKs side by side in one folder, and global.json picks between them.
-settings-sdks-java-source = Builds of OpenJDK from their vendors: Temurin from Adoptium, the others as the foojay Discovery API lists them.
 settings-sdks-loading = Loading the releases...
 # Variables:
 #   $error - what went wrong

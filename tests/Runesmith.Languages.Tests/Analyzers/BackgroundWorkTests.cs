@@ -6,18 +6,18 @@ namespace Runesmith.Languages.Tests.Analyzers;
 public sealed class BackgroundWorkTests
 {
     [Theory]
-    [InlineData("Load C# projects", "Loading C# projects")]
-    [InlineData("Load Java projects", "Loading Java projects")]
-    [InlineData("Warm up C#", "Warming up C#")]
-    [InlineData("Reload a closed Java file", "Reloading a closed Java file")]
+    [InlineData("Load sample projects", "Loading sample projects")]
+    [InlineData("Load other projects", "Loading other projects")]
+    [InlineData("Warm up the analyzer", "Warming up the analyzer")]
+    [InlineData("Reload a closed other file", "Reloading a closed other file")]
     [InlineData("Indexing", "Indexing")]
     public void DescribesWorkAsWhatItIsDoing(string name, string expected) => Assert.Equal(expected, AnalyzerBridge.Describe(name));
 
     [Theory]
-    [InlineData("Load C# projects", true)]
-    [InlineData("Load the JDK", true)]
-    [InlineData("Prefetch C# completion", false)]
-    [InlineData("Speculate C# member access", false)]
+    [InlineData("Load sample projects", true)]
+    [InlineData("Load the library", true)]
+    [InlineData("Prefetch sample completion", false)]
+    [InlineData("Speculate sample member access", false)]
     [InlineData("Bring a document up to date", false)]
     public void ReportsAllButTheWorkThatFollowsKeyPresses(string name, bool expected) => Assert.Equal(expected, AnalyzerBridge.IsReported(name));
 
@@ -26,7 +26,7 @@ public sealed class BackgroundWorkTests
     {
         var tasks = new RecordingTasks();
 
-        using (new DelayedTask(tasks, "Loading C# projects", TimeSpan.FromSeconds(30)))
+        using (new DelayedTask(tasks, "Loading sample projects", TimeSpan.FromSeconds(30)))
         {
         }
 
@@ -38,7 +38,7 @@ public sealed class BackgroundWorkTests
     {
         var tasks = new RecordingTasks();
 
-        var work = new DelayedTask(tasks, "Loading Java projects", TimeSpan.FromMilliseconds(10));
+        var work = new DelayedTask(tasks, "Loading other projects", TimeSpan.FromMilliseconds(10));
         await tasks.FirstStart.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         Assert.Single(tasks.Running);
 

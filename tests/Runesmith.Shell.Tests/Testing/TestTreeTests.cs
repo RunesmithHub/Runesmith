@@ -163,12 +163,12 @@ public sealed class TestTreeTests
         tree.ReplaceAll(provider, Items.Calculator("Add"));
         var files = new List<string>();
         tree.ResultsChanged += (_, changed) => files.AddRange(changed);
-        var failure = new TestFailure("boom") { FilePath = "/src/Calculator.cs", Position = new Runesmith.Text.TextPosition(9, 0) };
+        var failure = new TestFailure("boom") { FilePath = "/src/Calculator.src", Position = new Runesmith.Text.TextPosition(9, 0) };
 
         tree.SetResults([(tree.Find(provider, Items.Id("Add"))!, new TestResult(TestState.Failed) { Failure = failure })]);
 
         Assert.Contains(Items.File, files);
-        Assert.Contains("/src/Calculator.cs", files);
+        Assert.Contains("/src/Calculator.src", files);
     }
 
     [Fact]

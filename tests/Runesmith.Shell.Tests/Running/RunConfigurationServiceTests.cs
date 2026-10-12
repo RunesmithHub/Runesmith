@@ -13,12 +13,12 @@ public sealed class RunConfigurationServiceTests : IDisposable
     public void RunJsonRoundTripsAsPrettyJson()
     {
         var values = new OptionValues();
-        values.Set("project", "src/App/App.csproj");
+        values.Set("project", "src/App/App.proj");
         values.Set("arguments", "--verbose\n--port=5000");
         RunConfiguration[] saved =
         [
-            new("dotnet.project", "App", values) { BeforeLaunch = [new(BeforeLaunchKind.Command, "npm install"), new(BeforeLaunchKind.Build)] },
-            new("java.maven", "Package", new OptionValues()) { BeforeLaunch = [] },
+            new("acme.project", "App", values) { BeforeLaunch = [new(BeforeLaunchKind.Command, "npm install"), new(BeforeLaunchKind.Build)] },
+            new("other.package", "Package", new OptionValues()) { BeforeLaunch = [] },
         ];
 
         RunConfigurationFile.WriteShared(root, saved);
@@ -26,12 +26,12 @@ public sealed class RunConfigurationServiceTests : IDisposable
         var read = RunConfigurationFile.ReadShared(root);
 
         Assert.Contains("\n  \"configurations\": [", text, StringComparison.Ordinal);
-        Assert.Contains("\"type\": \"dotnet.project\"", text, StringComparison.Ordinal);
+        Assert.Contains("\"type\": \"acme.project\"", text, StringComparison.Ordinal);
         Assert.Contains("\"beforeLaunch\"", text, StringComparison.Ordinal);
         Assert.Contains("\"kind\": \"command\"", text, StringComparison.Ordinal);
         Assert.Equal(2, read.Count);
         Assert.Equal("App", read[0].Name);
-        Assert.Equal("dotnet.project", read[0].TypeId);
+        Assert.Equal("acme.project", read[0].TypeId);
         Assert.Equal(["--verbose", "--port=5000"], read[0].Values.GetList("arguments"));
         Assert.Equal([new BeforeLaunchStep(BeforeLaunchKind.Command, "npm install"), new BeforeLaunchStep(BeforeLaunchKind.Build)], read[0].BeforeLaunch);
         Assert.Empty(read[1].BeforeLaunch);

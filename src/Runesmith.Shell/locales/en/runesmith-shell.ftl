@@ -101,7 +101,7 @@ shell-unfold-all = Unfold All
 
 # Commands of SdkCommands.cs
 shell-sdks = SDKs...
-shell-sdks-description = Show, download, update and remove .NET SDKs and JDKs.
+shell-sdks-description = Show, download, update and remove the SDKs of your languages.
 
 # Commands of PerformanceMonitor.cs
 shell-performance-report = Performance Report
@@ -382,7 +382,7 @@ shell-format-selection-description = Format the selected lines with the formatte
 shell-next-change-description = Move to the next lines that differ from the base, such as the last commit.
 shell-rollback-lines-description = Put the changed lines at the caret or in the selection back as they are in the base.
 shell-show-changes-description = Show the file beside its base, such as the last commit.
-shell-build-description = Build the selected run configuration's project, or the open folder, such as its solution with dotnet build.
+shell-build-description = Build the selected run configuration's project, or the open folder.
 
 ## Leftovers of the toolbar, status bar and appearance
 

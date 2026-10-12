@@ -74,12 +74,12 @@ You write `plugin.json` at the root of the plugin, next to the two projects:
   "authors": ["Acme"],
   "license": "MIT",
   "repository": "https://github.com/acme/todo-highlighter",
-  "runesmithApi": "^0.1.4",
+  "runesmithApi": "^0.2.0",
   "projects": {
     "contracts": "Acme.Todo.Contracts/Acme.Todo.Contracts.csproj",
     "implementation": "Acme.Todo/Acme.Todo.csproj"
   },
-  "dependencies": [{ "id": "runesmith.git", "range": "^0.1.0" }],
+  "dependencies": [{ "id": "runesmith.git", "range": "^0.2.0" }],
   "capabilities": [{ "id": "network", "reason": "Links to-dos to the issues on your issue tracker." }],
   "networkHosts": ["*"],
   "languages": ["en", "nl"],
@@ -109,7 +109,7 @@ You write `plugin.json` at the root of the plugin, next to the two projects:
 | `languagePack` | For a language pack | The `language` a [language pack](./language-packs.mdx) adds, its `name` in itself and its `englishName`. A language pack has no `languages`, `capabilities` or `dependencies`. |
 | `icon` | Yes | A PNG or WebP icon, 256 to 1024 pixels square. |
 | `categories` | Yes | One to three of: Languages, Version control, Themes, Formatters and linters, Debugging, Testing, Build and run, Snippets and templates, Navigation, Productivity, Visualization, Cloud and remote, Data and databases, Documentation, Education, Other. |
-| `keywords` | No | Up to ten lowercase words for search. |
+| `keywords` | No | Up to ten lowercase words for search. Runesmith also [suggests](/guide/plugins#suggested-plugins) an official plugin for a file or folder by them: name the extensions of your files without the dot, such as `toml`, and the names of files and folders that have none, such as `dockerfile`. |
 
 The plugin hub rejects fields that are not in this table, so a misspelled field does not pass unnoticed.
 
@@ -162,14 +162,15 @@ could not load, the plugin does not load either, and the reason names the depend
 
 ## API versions
 
-The plugin API follows semantic versioning. `RunesmithApi.Version` in the SDK is the version this Runesmith provides, `0.1.4`, and
-`RunesmithApi.OldestSupported` the oldest version plugins can be built for, `0.1.0`. Runesmith loads a plugin when:
+The plugin API follows semantic versioning. `RunesmithApi.Version` in the SDK is the version this Runesmith provides, `0.2.0`, and
+`RunesmithApi.OldestSupported` the oldest version plugins can be built for, `0.2.0`. Runesmith loads a plugin when:
 
 - `RunesmithApi.Version` is inside the plugin's `runesmithApi` range, and
 - the lowest version of that range, the API the plugin was built against, is at least `RunesmithApi.OldestSupported`.
 
-`^0.1.0` loads in every Runesmith with an API from 0.1.0 up to, not including, 0.2.0, and `^0.1.2` in those from 0.1.2. Before 1.0,
-additions to the API come in patch versions, so a plugin that uses one declares the version that added it; new plugins start at `^0.1.4`.
+`^0.2.0` loads in every Runesmith with an API from 0.2.0 up to, not including, 0.3.0. Before 1.0, additions to the API come in patch
+versions, so a plugin that uses one declares the version that added it, and a change that breaks plugins raises the minor version, as
+0.2.0 did; new plugins start at `^0.2.0`.
 The [API overview](./api.mdx#api-versions) lists what each version added. A plugin that cannot load is listed with the reason, and the rest
 of Runesmith works as usual.
 
@@ -185,8 +186,6 @@ does not exist, a second plugin with the same id, or a dependency that did not l
 
 - [Create a plugin](./create-a-plugin.mdx) with the `runesmith-plugin` template.
 - [API overview](./api.mdx): what a plugin can export and import.
-- [C# support](./csharp.mdx), an official plugin with its source in
+- [The C# plugin](https://github.com/RunesmithHub/plugin-csharp), an official plugin with its source in
   [RunesmithHub/plugin-csharp](https://github.com/RunesmithHub/plugin-csharp).
-- [Git](./git.mdx): changes, commits, branches, history, diffs, cloning and pull requests.
-- [GitHub](./github.mdx): signing in to GitHub, cloning from your account and organizations, links and pull requests.
-- [Gitea and Forgejo](./gitea.mdx): signing in to gitea.com, Codeberg and other Gitea and Forgejo servers, cloning, links and pull requests.
+- The official plugins' own documentation, in their repositories under [RunesmithHub](https://github.com/RunesmithHub/).

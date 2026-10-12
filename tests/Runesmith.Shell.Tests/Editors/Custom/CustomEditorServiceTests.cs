@@ -5,7 +5,6 @@ using Runesmith.Composition;
 using Runesmith.Sdk.Editors;
 using Runesmith.Shell.Editors;
 using Runesmith.Shell.Editors.Custom;
-using Runesmith.Shell.Editors.Images;
 
 namespace Runesmith.Shell.Tests.Editors.Custom;
 
@@ -31,7 +30,6 @@ public sealed class CustomEditorServiceTests : IDisposable
             await File.WriteAllTextAsync(path, "one");
 
             Assert.Contains(custom.Catalog.Providers, p => p.Definition.Id == NoteEditorProvider.Id);
-            Assert.Contains(custom.Catalog.Providers, p => p.Definition.Id == ImageViewerProvider.Id && p.IsBuiltIn);
             Assert.Equal([EditorProviderDefinition.TextEditorId, NoteEditorProvider.Id], custom.GetChoices(path).Select(c => c.Id));
             Assert.Equal(NoteEditorProvider.Id, Assert.Single(custom.GetChoices(path), c => c.IsDefault).Id);
 
@@ -70,7 +68,7 @@ public sealed class CustomEditorServiceTests : IDisposable
             Assert.Empty(editors.Editors);
             Assert.Equal(NoteEditorProvider.Id, custom.OpenEditorOf(path));
 
-            await Assert.ThrowsAsync<ArgumentException>(() => custom.OpenWithAsync(path, ImageViewerProvider.Id));
+            await Assert.ThrowsAsync<ArgumentException>(() => custom.OpenWithAsync(path, "missing.editor"));
 
             var reopened = Assert.Single(custom.Panels);
             Assert.True(await custom.CloseAsync(reopened.Id, ask: false));
@@ -90,20 +88,13 @@ public sealed class CustomEditorServiceTests : IDisposable
             var custom = result.Exports.GetExportedValue<CustomEditorService>();
             var editors = result.Exports.GetExportedValue<EditorService>();
             var path = Path.Combine(folder, "red.png");
-            await File.WriteAllBytesAsync(path, Images.SampleImages.Png);
-
-            Assert.Null(await editors.OpenAsync(path));
-            Assert.IsType<ImageViewer>(Assert.Single(custom.Panels).Editor);
+            await File.WriteAllBytesAsync(path, [0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D]);
 
             Assert.True(await custom.OpenWithAsync(path, EditorProviderDefinition.TextEditorId));
             var document = Assert.Single(editors.Editors).Document;
             Assert.True(document.IsReadOnly);
             Assert.StartsWith("\u0089PNG", document.Buffer.Current.GetText(), StringComparison.Ordinal);
-
-            Assert.True(await custom.OpenWithAsync(path, ImageViewerProvider.Id));
-            Assert.Empty(editors.Editors);
-            Assert.Single(custom.Panels);
-            await custom.CloseAllAsync();
+            Assert.Empty(custom.Panels);
         }, TestContext.Current.CancellationToken);
     }
 }

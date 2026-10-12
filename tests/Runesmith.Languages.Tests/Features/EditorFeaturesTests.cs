@@ -20,7 +20,7 @@ public sealed class EditorFeaturesTests
             codeActions:
             [
                 Export<ICodeActionProvider>(new Actions(new CodeAction("Refactor", CodeActionKind.Refactor), new CodeAction("Fix", CodeActionKind.QuickFix)), "fake"),
-                Export<ICodeActionProvider>(new Actions(new CodeAction("Other language", CodeActionKind.QuickFix)), "csharp"),
+                Export<ICodeActionProvider>(new Actions(new CodeAction("Other language", CodeActionKind.QuickFix)), "sample"),
                 Export<ICodeActionProvider>(new Actions(new CodeAction("Preferred", CodeActionKind.Refactor) { IsPreferred = true }), LanguagesAttribute.Any),
             ]);
 
@@ -86,7 +86,7 @@ public sealed class EditorFeaturesTests
     {
         var output = new RecordingOutput();
         var broken = new BrokenDecorations();
-        var features = Create(decorations: [Export<IDecorationProvider>(broken, "fake"), Export<IDecorationProvider>(new BrokenDecorations(), "csharp")], output: output);
+        var features = Create(decorations: [Export<IDecorationProvider>(broken, "fake"), Export<IDecorationProvider>(new BrokenDecorations(), "sample")], output: output);
 
         var providers = features.GetDecorationProviders(Document);
         var decorations = await providers[0].GetDecorationsAsync(new DecorationRequest(Document, Document.Buffer.Current), Token);

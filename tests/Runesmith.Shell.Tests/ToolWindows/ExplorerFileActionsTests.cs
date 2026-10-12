@@ -33,14 +33,14 @@ public sealed class ExplorerFileActionsTests : IDisposable
     public Task EachCommandIsOneStepThatUndoesAndRedoesWithoutANotification() => Run(async () =>
     {
         var explorer = Create();
-        var file = Write("A.cs", "class A {}");
-        var created = Path.Combine(root, "New.cs");
+        var file = Write("A.src", "class A {}");
+        var created = Path.Combine(root, "New.src");
         var folder = Path.Combine(root, "Models");
-        var renamed = Path.Combine(root, "B.cs");
+        var renamed = Path.Combine(root, "B.src");
 
-        await explorer.CreateAsync(root, "New.cs", folder: false);
+        await explorer.CreateAsync(root, "New.src", folder: false);
         await explorer.CreateAsync(root, "Models", folder: true);
-        await explorer.RenameAsync(file, "B.cs");
+        await explorer.RenameAsync(file, "B.src");
         await explorer.DeleteAsync(renamed, isFolder: false);
 
         Assert.True(File.Exists(created));
@@ -74,14 +74,14 @@ public sealed class ExplorerFileActionsTests : IDisposable
     {
         var explorer = Create();
         var folder = Path.Combine(root, "Models");
-        var file = Write(Path.Combine("Models", "Order.cs"), "class Order {}");
+        var file = Write(Path.Combine("Models", "Order.src"), "class Order {}");
         notifications.Confirm = false;
 
         await explorer.DeleteAsync(folder, isFolder: true);
         await explorer.DeleteAsync(file, isFolder: false);
 
         Assert.Equal(
-            [("Delete?", "Delete the folder Models and everything in it?", "Delete", true), ("Delete?", "Delete Order.cs?", "Delete", true)],
+            [("Delete?", "Delete the folder Models and everything in it?", "Delete", true), ("Delete?", "Delete Order.src?", "Delete", true)],
             notifications.Questions);
         Assert.True(File.Exists(file));
         Assert.Empty(participant.Asked);
@@ -99,20 +99,20 @@ public sealed class ExplorerFileActionsTests : IDisposable
     public Task WhatCannotBeDoneIsReportedWithTheExplorersMessages() => Run(async () =>
     {
         var explorer = Create();
-        var a = Write("A.cs", "a");
-        var b = Write("B.cs", "b");
+        var a = Write("A.src", "a");
+        var b = Write("B.src", "b");
         var document = await documents!.OpenAsync(a);
         document.History.Push(document.Buffer.Apply([new TextChange(new TextSpan(0, 0), "unsaved ")]), null, null);
 
-        await explorer.CreateAsync(root, "B.cs", folder: false);
-        await explorer.RenameAsync(b, "A.cs");
+        await explorer.CreateAsync(root, "B.src", folder: false);
+        await explorer.RenameAsync(b, "A.src");
         await explorer.DeleteAsync(a, isFolder: false);
 
         Assert.Equal(
             [
-                (NotificationKind.Error, "B.cs could not be created", "B.cs already exists."),
-                (NotificationKind.Error, "B.cs could not be renamed", "A.cs already exists."),
-                (NotificationKind.Error, "A.cs could not be deleted", "A.cs has unsaved changes."),
+                (NotificationKind.Error, "B.src could not be created", "B.src already exists."),
+                (NotificationKind.Error, "B.src could not be renamed", "A.src already exists."),
+                (NotificationKind.Error, "A.src could not be deleted", "A.src has unsaved changes."),
             ],
             notifications.Shown);
         Assert.Equal("b", File.ReadAllText(b));

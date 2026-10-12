@@ -511,12 +511,9 @@ plugins-local-not-loaded-tip = A plugin from the hub has the same id, so this co
 ## Suggestions to install official plugins
 
 # Variables:
-#   $name - the plugin's name, such as Git
-#   $brings - what it adds, one of the plugins-suggest-brings messages
-plugins-suggestion = Install the { $name } plugin for { $brings }.
-plugins-suggest-brings-language = completion, problems and builds
-plugins-suggest-brings-git = commits, branches, diffs and the log
-plugins-suggest-brings-github = pull requests, reviews and checks
+#   $name - the plugin's name
+#   $handles - what it was suggested for: a file extension such as .toml, or the name of a file or folder
+plugins-suggestion = The { $name } plugin on the hub works with { $handles }. Install it?
 plugins-suggestion-install = Install
 plugins-suggestion-decline = Don't suggest again
 

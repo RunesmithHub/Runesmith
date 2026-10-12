@@ -203,7 +203,7 @@ public sealed class TestRunTests
         provider.Run = async (request, run, token) =>
         {
             Assert.Equal(RunMode.Debug, request.Mode);
-            exitCode = await run.DebugAsync(new LaunchPlan("dotnet", ["test.dll"], "/") { Debug = new DebugLaunch("dotnet", new Dictionary<string, string>()) }, token);
+            exitCode = await run.DebugAsync(new LaunchPlan("acme", ["test.dll"], "/") { Debug = new DebugLaunch("acme", new Dictionary<string, string>()) }, token);
         };
         var run = (await service.RunAllAsync(RunMode.Debug))!;
         await run.Completion.WaitAsync(Timeout, Token);
@@ -245,7 +245,7 @@ public sealed class TestRunTests
         Assert.Equal(Items.Id("Add"), service.FindAt(Items.File, 5)!.Id);
         Assert.Equal("Calculator.Tests.CalculatorTests", service.FindAt(Items.File, 3)!.Id);
         Assert.Null(service.FindAt(Items.File, 0));
-        Assert.Null(service.FindAt("/elsewhere.cs", 5));
+        Assert.Null(service.FindAt("/elsewhere.src", 5));
     }
 
     [Fact]
@@ -270,7 +270,7 @@ public sealed class TestRunTests
     {
         var service = await DiscoveredAsync();
 
-        await Task.WhenAll(Enumerable.Range(0, 20).Select(i => service.DiscoverFileAsync($"/src/File{i}.cs", TextSnapshot.Create("x"), Token)));
+        await Task.WhenAll(Enumerable.Range(0, 20).Select(i => service.DiscoverFileAsync($"/src/File{i}.src", TextSnapshot.Create("x"), Token)));
 
         Assert.Equal(2, provider.Discoveries);
     }

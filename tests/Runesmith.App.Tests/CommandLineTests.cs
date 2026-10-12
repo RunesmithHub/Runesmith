@@ -7,9 +7,9 @@ public sealed class CommandLineTests
     [Fact]
     public void ALinkIsKeptApartFromThePaths()
     {
-        var command = CommandLine.Parse(["src/Program.cs:12", "runesmith://hub/plugin/lumen.todo?version=1.0.0"]);
+        var command = CommandLine.Parse(["src/Program.src:12", "runesmith://hub/plugin/lumen.todo?version=1.0.0"]);
 
-        Assert.Equal(["src/Program.cs:12"], command.Paths);
+        Assert.Equal(["src/Program.src:12"], command.Paths);
         Assert.Equal("runesmith://hub/plugin/lumen.todo?version=1.0.0", command.Link);
     }
 

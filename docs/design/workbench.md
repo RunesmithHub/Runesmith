@@ -42,7 +42,7 @@ depth one click away. Three rules decide most questions:
 | p  |                    |  bottom tool window (Run, Problems, Output, ...)   |                   | p    |
 | e  |                    |                                                    |                   | e    |
 +----+--------------------+---------------------------------------------------+-------------------+------+
-| path > Type > Member            [background task: Loading C# projects 12/31]    Ln 12, Col 5  LF  UTF-8  4 spaces  C#  [bell] |
+| path > Type > Member            [background task: Loading projects 12/31]    Ln 12, Col 5  LF  UTF-8  4 spaces  Go  [bell] |
 +----------------------------------------------------------------------------------------------------------+
 ```
 
@@ -86,7 +86,7 @@ edges of the window:
 ### Status bar
 
 From left to right: the navigation path (when breadcrumbs are hidden), the **background task indicator** (what the analyzers and builds
-are doing, such as "Loading C# projects 12 of 31", with a popup listing all tasks and a cancel button for each), and the document's caret
+are doing, such as "Loading projects 12 of 31", with a popup listing all tasks and a cancel button for each), and the document's caret
 position, line ending, encoding, indentation and language, each a button that changes it. The notification bell at the end opens the
 notification history.
 
@@ -107,10 +107,10 @@ An `OptionSet` is a list of `Option`s:
 | `Text` | Text field, with an optional pattern | Project name, main class |
 | `Path` | Text field with a browse button, for a file or a folder | Location, working directory |
 | `Choice` | Drop-down; 2 to 4 short choices show as a segmented control | Target framework, language, build system |
-| `Toggle` | Check box | Create Git repository |
+| `Toggle` | Check box | Add sample code |
 | `Number` | Number field with a range | Port |
 | `List` | Editable list of values or of key and value pairs | Program arguments, environment variables |
-| `Sdk` | Drop-down of installed SDKs of a kind, with Download... at its end | .NET SDK, JDK |
+| `Sdk` | Drop-down of installed SDKs of a kind, with Download... at its end | The SDK a project builds with |
 
 Each option has an id, a label, an optional description shown as a hint below the field, a default, a `Group` (`Main` or `Advanced`;
 advanced options sit in a collapsible section), and `VisibleWhen` and `EnabledWhen` conditions on other options' values. Validation
@@ -120,7 +120,7 @@ The renderer lays out a two-column form: labels right-aligned in the first colum
 
 ## Run, build and debug
 
-A **run configuration** is a named, saved way to run something: a project with arguments, a test suite, a Maven goal. The toolbar's run
+A **run configuration** is a named, saved way to run something: a project with arguments, a test suite, a goal of a build tool. The toolbar's run
 widget selects the active one and runs, debugs, stops and builds it.
 
 ### The model
@@ -149,15 +149,8 @@ providers stay as the way a whole folder builds; a configuration type can build 
 ### Debugging
 
 Debug configurations are part of the model from the start: each type's options include its debugging options, and its launch plan says
-how to debug it. The debugger itself is a separate piece of work with its own design, [Debugging](debugging.md): a Debug Adapter Protocol client with a .NET adapter,
-and a Java debugger over JDWP. Until it lands, the Debug button is disabled with a tooltip saying why.
-
-### Configurations shipped
-
-- **C#.** .NET project (project, target framework, launch profile from `launchSettings.json`, configuration, arguments, environment,
-  working directory, SDK), .NET tests (`dotnet test` with a filter) and .NET command (any `dotnet` command).
-- **Java.** Application (main class and module, JDK, VM options, program arguments, class path from the project), Maven goals and Gradle
-  tasks, and JUnit tests.
+how to debug it. The debugger itself is a separate piece of work with its own design, [Debugging](debugging.md): a Debug Adapter Protocol client, with the engines of
+language plugins. Until it lands, the Debug button is disabled with a tooltip saying why.
 
 ### The configurations dialog
 
@@ -168,11 +161,12 @@ and the selected one's form on the right, then its Before launch list.
 
 File > New Project, and New Project on the welcome screen, open a large dialog:
 
-- **Left: the templates.** A search field, then filter chips for language (C#, Java, ...) and kind (Console, Library, Web, Desktop, Test,
+- **Left: the templates.** A search field, then filter chips for language and kind (Console, Library, Web, Desktop, Test,
   Other). The list below groups templates by kind; each row shows the icon, the name and the language, and a second line with the short
   description. Rows are dense (two lines in 44 px), so a 700 px dialog shows about 15 templates at once instead of a handful, and search
   narrows hundreds in one keystroke. Recently used templates come first.
-- **Right: the form.** Name, Location with a hint showing where the project will be created, Create Git repository, then the template's
+- **Right: the form.** Name, Location with a hint showing where the project will be created, a toggle for each step a plugin adds, such as
+  creating a repository, then the template's
   options from its `OptionSet`, then two collapsible sections: About this template (description, author, tags, source) and Advanced.
 - **Bottom:** Create and Cancel. Creating shows progress in the dialog and then opens the new folder.
 
@@ -182,18 +176,8 @@ Values the user changes are remembered per template.
 
 A `ProjectTemplateProvider` export supplies templates. A `ProjectTemplate` has an id, name, description, language, kind, tags, icon,
 its `OptionSet`, and a method that creates the project into a folder and reports progress. Templates ship in their own plugins, so a user
-can switch a language's templates off in the Plugins settings without losing the language:
+can switch a language's templates off in the Plugins settings without losing the language.
 
-- **`runesmith.csharp-templates`** reads the templates the .NET SDK itself ships and the ones the user installed with
-  `dotnet new install`: the template packages in the SDK's `templates/<version>` folder and in the template engine's packages folder. Each
-  package's `.template.config/template.json` describes the template's name, identity, short name, classifications, language and
-  parameters, and its `localize` files the display text. Parameters become options: a `choice` becomes a `Choice`, a `bool` a `Toggle`,
-  text and numbers a `Text` or `Number`; a template's `Framework` parameter becomes Target framework next to the SDK picker. Creating runs
-  `dotnet new` with the SDK the user picked, the template's identity and the options, then creates a `.slnx` solution and adds the
-  project unless the user put both in one folder. Every template a user has installed appears without Runesmith knowing about it.
-- **`runesmith.java-templates`** has Runesmith's own Java templates: Application, Library, Compact source file, and Multi-module
-  project. Their options: build system (Maven, Gradle or none), Gradle's script language (Kotlin or Groovy), group and artifact, JDK,
-  Java release, module declaration, JUnit tests and sample code.
 
 ## SDKs
 
@@ -203,18 +187,9 @@ architecture, from the vendor's own metadata. Installs are verified against the 
 folder, `sdks/<kind>/`.
 
 An `SdkProvider` export, one per kind, finds installed SDKs, lists available releases, installs and removes them. The `Sdk` option kind
-lists them in forms, so templates and run configurations pick an SDK the same way.
+lists them in forms, so templates and run configurations pick an SDK the same way. A provider says whether its kind has several vendors,
+which one the form starts on, and where its releases come from. Each language plugin brings the provider of its SDK.
 
-- **.NET** (in the C# plugin). Releases come from Microsoft's release metadata: the release index lists the channels (11.0, 10.0, ...) with
-  their support phase and latest SDK, and each channel's `releases.json` lists every SDK with its download per platform and its SHA-512
-  hash. Runesmith installs SDKs side by side in one .NET root, as the official install script does, so one `dotnet` serves them all and
-  `global.json` picks between them. Found SDKs come from `DOTNET_ROOT`, the `dotnet` on the `PATH` and the usual install folders. Update
-  means a newer patch in the same channel; Runesmith offers it and keeps the older one until the user removes it.
-- **Java** (in the Java plugin). Distributions and packages come from the foojay Discovery API, which lists builds of OpenJDK from many
-  vendors (Temurin, Zulu, Corretto, Liberica, Microsoft, GraalVM and others) with their checksums. The download form filters by vendor,
-  major version (marked LTS where it is), package (JDK or JDK with JavaFX) and architecture. Found JDKs come from `JAVA_HOME`, the `java`
-  on the `PATH`, `/usr/lib/jvm`, `~/.jdks`, `~/.sdkman/candidates/java` and the platform's usual folders. Projects pick a JDK, and the Java
-  analyzer reads that JDK's API for the project's release.
 
 Runesmith reaches these services only when the user opens the SDKs page or a Download form, and, if the user allows it, once a day to
 check for updates. On NixOS, downloaded SDKs run through `nix-ld`.
@@ -234,10 +209,9 @@ check for updates. On NixOS, downloaded SDKs run through `nix-ld`.
 1. **The shell.** Main toolbar with the main menu button, project widget and search; stripes; the status bar with the task indicator;
    the refined theme; the welcome screen.
 2. **Options and forms.** The model and the renderer.
-3. **SDKs.** The provider contract, .NET and Java providers, and the SDKs page with the download form.
-4. **New projects.** The provider contract, the dialog, and the C# and Java template plugins.
-5. **Run, build and debug configurations.** The model, the runner and the Run tool window, the configurations dialog, the run widget, and
-   the C# and Java configuration types.
+3. **SDKs.** The provider contract and the SDKs page with the download form.
+4. **New projects.** The provider contract and the dialog.
+5. **Run, build and debug configurations.** The model, the runner and the Run tool window, the configurations dialog, and the run widget.
 6. **Debugging**, designed separately.
 
 Each step lands with tests (template and metadata parsing against recorded files, option conditions, the runner with a real process,

@@ -23,7 +23,7 @@ public sealed class TerminalViewTests
         if (OperatingSystem.IsWindows())
             return true;
 
-        var file = Path.Combine(Directory.CreateTempSubdirectory("runesmith-terminal-link-").FullName, "App.cs");
+        var file = Path.Combine(Directory.CreateTempSubdirectory("runesmith-terminal-link-").FullName, "App.src");
         File.WriteAllText(file, "class App {}\n");
         var service = new TerminalService(new FakeWorkspace(Path.GetTempPath()), null, () => null, _ => { });
         var session = (TerminalSession)service.CreateTerminal("Links", new TerminalOptions { Command = "/bin/sh", Arguments = ["-c", "sleep 30"], IsHidden = true });
@@ -38,7 +38,7 @@ public sealed class TerminalViewTests
         lock (session.Gate)
         {
             session.Screen.Feed($"{Esc}]8;;https://hub.runesmith.dev{Esc}\\hub{Esc}]8;;{Esc}\\ {Esc}]8;;javascript:alert(1){Esc}\\bad{Esc}]8;;{Esc}\\ "
-                + $"{Esc}]8;;{new Uri(file).AbsoluteUri}#3{Esc}\\app{Esc}]8;;{Esc}\\ {Esc}]8;;file:///nowhere/Missing.cs{Esc}\\gone{Esc}]8;;{Esc}\\");
+                + $"{Esc}]8;;{new Uri(file).AbsoluteUri}#3{Esc}\\app{Esc}]8;;{Esc}\\ {Esc}]8;;file:///nowhere/Missing.src{Esc}\\gone{Esc}]8;;{Esc}\\");
         }
 
         int columns;

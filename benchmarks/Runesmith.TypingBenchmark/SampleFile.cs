@@ -2,8 +2,8 @@ using System.Text;
 
 namespace Runesmith.TypingBenchmark;
 
-/// <summary>The C# file the benchmark opens: 200 classes of fields, properties, documented methods, loops and a region, 10,008 lines in all,
-/// which Runesmith highlights with its own C# grammar.</summary>
+/// <summary>The file the benchmark opens, in its own sample language: 200 classes of fields, properties, documented methods, loops and a
+/// region, 10,008 lines in all, which Runesmith highlights with the grammar <see cref="SampleLanguage"/> brings.</summary>
 internal static class SampleFile
 {
     /// <summary>The number of classes.</summary>

@@ -14,15 +14,13 @@ namespace Runesmith.Shell.Pages;
 /// <summary>Picks a release of a kind of SDK, by vendor, version line, package and processor, and installs it with progress.</summary>
 internal sealed class SdkDownloadDialog
 {
-    private const string PlainPackage = "JDK";
-    private const string PreferredVendor = "Temurin";
-
     private static readonly HttpClient Http = new();
     private static readonly ConcurrentDictionary<Uri, Task<long?>> Sizes = new();
 
     private readonly SdksSection owner;
     private readonly ISdkProvider provider;
-    private readonly bool isDotnet;
+    private readonly bool isSingleVendor;
+    private readonly string plainPackage;
     private readonly ComboBox vendor = Combo();
     private readonly ComboBox line = Combo();
     private readonly ComboBox package = Combo();
@@ -45,11 +43,12 @@ internal sealed class SdkDownloadDialog
     {
         this.owner = owner;
         this.provider = provider;
-        isDotnet = provider.Kind == "dotnet";
+        isSingleVendor = !provider.HasVendors;
+        plainPackage = provider.Name;
         Dialog = new Dialog
         {
             Header = Strings.SettingsSdksDownloadTitle(provider.Name),
-            Description = isDotnet ? Strings.SettingsSdksDotnetSource : Strings.SettingsSdksJavaSource,
+            Description = provider.DownloadDescription,
             Width = 560,
             ShowCloseButton = false,
             Content = new StackPanel { Spacing = 14, Children = { form, message, progressPanel } },
@@ -57,16 +56,16 @@ internal sealed class SdkDownloadDialog
         };
         progressPanel.Children.AddRange([stage, progress]);
 
-        if (!isDotnet)
+        if (!isSingleVendor)
             AddField(Strings.SettingsSdksFieldVendor, vendor);
-        AddField(isDotnet ? Strings.SettingsSdksFieldChannel : Strings.SettingsSdksFieldVersion, line);
-        if (!isDotnet)
+        AddField(isSingleVendor ? Strings.SettingsSdksFieldChannel : Strings.SettingsSdksFieldVersion, line);
+        if (!isSingleVendor)
         {
             AddField(Strings.SettingsSdksFieldPackage, package);
             AddField(Strings.SettingsSdksFieldArchitecture, architecture);
         }
 
-        AddField(isDotnet ? Strings.SettingsSdksFieldVersion : Strings.SettingsSdksFieldRelease, versions);
+        AddField(isSingleVendor ? Strings.SettingsSdksFieldVersion : Strings.SettingsSdksFieldRelease, versions);
         AddField(Strings.SettingsSdksFieldSize, size);
 
         vendor.SelectionChanged += (_, _) => ScheduleRefill();
@@ -127,7 +126,7 @@ internal sealed class SdkDownloadDialog
         }
 
         filling = true;
-        SetItems(vendor, releases.Select(r => r.Vendor).Distinct().Select(v => Item(v, new TextBlock { Text = v })), tag => Equals(tag, PreferredVendor));
+        SetItems(vendor, releases.Select(r => r.Vendor).Distinct().Select(v => Item(v, new TextBlock { Text = v })), tag => Equals(tag, provider.PreferredVendor));
         filling = false;
         Refill();
     }
@@ -153,18 +152,18 @@ internal sealed class SdkDownloadDialog
             return;
 
         filling = true;
-        var matching = releases.Where(r => isDotnet || Equals(Tag(vendor), r.Vendor)).ToList();
+        var matching = releases.Where(r => isSingleVendor || Equals(Tag(vendor), r.Vendor)).ToList();
         var lines = matching.GroupBy(r => r.Line ?? r.Version).OrderByDescending(g => g.Key, SdkService.VersionComparer).ToList();
         SetItems(line, lines.Select(g => Item(g.Key, LineLabel(g.Key, g.First()))), PreferredLine(lines));
         matching = [.. matching.Where(r => Equals(Tag(line), r.Line ?? r.Version))];
 
-        SetItems(package, matching.Select(r => r.Package ?? PlainPackage).Distinct().OrderBy(p => p != PlainPackage).Select(p => Item(p, new TextBlock { Text = p })));
+        SetItems(package, matching.Select(r => r.Package ?? plainPackage).Distinct().OrderBy(p => p != plainPackage).Select(p => Item(p, new TextBlock { Text = p })));
         package.IsEnabled = package.ItemCount > 1;
-        matching = [.. matching.Where(r => isDotnet || Equals(Tag(package), r.Package ?? PlainPackage))];
+        matching = [.. matching.Where(r => isSingleVendor || Equals(Tag(package), r.Package ?? plainPackage))];
 
         SetItems(architecture, matching.Select(r => r.Architecture ?? "").Distinct().Select(a => Item(a, new TextBlock { Text = a })));
         architecture.IsEnabled = architecture.ItemCount > 1;
-        matching = [.. matching.Where(r => isDotnet || Equals(Tag(architecture), r.Architecture ?? ""))];
+        matching = [.. matching.Where(r => isSingleVendor || Equals(Tag(architecture), r.Architecture ?? ""))];
 
         var previous = Selected;
         var sorted = matching.OrderByDescending(r => r.Version, SdkService.VersionComparer).ToList();
@@ -199,13 +198,11 @@ internal sealed class SdkDownloadDialog
         return tag => pick is not null && Equals(tag, pick.Key);
     }
 
-    private StackPanel LineLabel(string name, SdkRelease sample)
+    private static StackPanel LineLabel(string name, SdkRelease sample)
     {
         var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new TextBlock { Text = name, VerticalAlignment = VerticalAlignment.Center } } };
         if (sample.IsLongTermSupport)
             label.Children.Add(SdksSection.Badge("LTS", "success"));
-        else if (isDotnet)
-            label.Children.Add(SdksSection.Badge("STS"));
         if (sample.SupportPhase is "preview" or "go-live")
             label.Children.Add(SdksSection.Badge(Strings.SettingsSdksBadgePreview, "warning"));
         else if (sample.SupportPhase is "maintenance" or "eol")

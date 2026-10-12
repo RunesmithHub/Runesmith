@@ -87,8 +87,8 @@ internal sealed class RecordingDiagnostics : IDiagnosticService
 /// <summary>Test items as a C# test project would have them.</summary>
 internal static class Items
 {
-    public const string File = "/src/CalculatorTests.cs";
-    public const string OtherFile = "/src/ParserTests.cs";
+    public const string File = "/src/CalculatorTests.src";
+    public const string OtherFile = "/src/ParserTests.src";
 
     public static TestItem Project(params TestItem[] children) => new("Project", "Calculator.Tests", TestItemKind.Project) { Children = children };
 

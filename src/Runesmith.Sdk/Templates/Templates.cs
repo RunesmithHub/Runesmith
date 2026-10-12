@@ -53,6 +53,30 @@ public sealed record ProjectCreationRequest(string Name, string Location, Option
 /// <param name="FilesToOpen">Files to open in editors, such as the program's main file.</param>
 public sealed record ProjectCreationResult(string Folder, IReadOnlyList<string> FilesToOpen);
 
+/// <summary>Something done to every new project once its template has created it, such as making it a repository of a version control
+/// system. Export it with <c>[Export(typeof(IProjectCreationStep))]</c>.</summary>
+/// <remarks>The New Project dialog shows each available step as a toggle after Name and Location, and remembers whether it was on. Added in
+/// plugin API 0.2.0.</remarks>
+public interface IProjectCreationStep
+{
+    /// <summary>Gets a unique id, such as <c>acme.license</c>; the dialog remembers the toggle by it.</summary>
+    string Id { get; }
+
+    /// <summary>Gets the toggle's label, such as "Add a license file"; read each time the dialog opens, so it follows the language.</summary>
+    string Title { get; }
+
+    /// <summary>Gets whether the step can run on this computer, such as whether the program it starts is installed; the dialog leaves out a
+    /// step that cannot. Read each time the dialog opens.</summary>
+    bool IsAvailable => true;
+
+    /// <summary>Gets whether the toggle is on the first time the dialog shows it.</summary>
+    bool IsOnByDefault => true;
+
+    /// <summary>Runs the step on a project that was just created; reports what it does to <paramref name="progress"/>.</summary>
+    /// <exception cref="InvalidOperationException">The step failed; the dialog shows the message, and the project stays as created.</exception>
+    Task RunAsync(ProjectCreationResult project, IProgress<string> progress, CancellationToken cancellationToken);
+}
+
 /// <summary>Supplies project templates and creates projects from them. Export it with <c>[Export(typeof(IProjectTemplateProvider))]</c>.</summary>
 public interface IProjectTemplateProvider
 {

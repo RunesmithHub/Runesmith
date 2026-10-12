@@ -8,10 +8,10 @@ public sealed class RunConfigurationsDialogTests
 {
     private static readonly FakeType Type = new()
     {
-        Options = new([new Option("command", "Command", OptionKind.Text), new Option("sdk", "SDK", OptionKind.Sdk) { SdkKind = "dotnet" }]),
+        Options = new([new Option("command", "Command", OptionKind.Text), new Option("sdk", "SDK", OptionKind.Sdk) { SdkKind = "acme" }]),
     };
 
-    private static readonly Dictionary<string, string> Defaults = new() { ["dotnet"] = "/sdks/dotnet" };
+    private static readonly Dictionary<string, string> Defaults = new() { ["acme"] = "/sdks/acme" };
 
     [Fact]
     public void ADetectedConfigurationStaysDetectedUntilTheUserChangesIt()
@@ -19,7 +19,7 @@ public sealed class RunConfigurationsDialogTests
         var detected = new RunConfiguration("fake", "App", Values(("command", "echo"))) { IsDetected = true };
         var entry = RunConfigurationsDialog.Entry.From(detected, Type, Type.Options);
 
-        entry.Values.Set("sdk", "/sdks/dotnet");
+        entry.Values.Set("sdk", "/sdks/acme");
         Assert.True(entry.ToConfiguration(Defaults).IsDetected);
 
         entry.Values.Set("command", "echo changed");
@@ -33,7 +33,7 @@ public sealed class RunConfigurationsDialogTests
     [Fact]
     public void NameStorageAndStepsComeFromTheFormAndAChosenSdkIsKept()
     {
-        var saved = new RunConfiguration("fake", "App", Values(("sdk", "/sdks/dotnet")));
+        var saved = new RunConfiguration("fake", "App", Values(("sdk", "/sdks/acme")));
         var entry = RunConfigurationsDialog.Entry.From(saved, Type, Type.Options);
 
         entry.Values.Set(RunConfigurationsDialog.NameId, " Renamed ");
@@ -44,7 +44,7 @@ public sealed class RunConfigurationsDialogTests
         Assert.Equal("Renamed", configuration.Name);
         Assert.True(configuration.IsLocal);
         Assert.Equal([new BeforeLaunchStep(BeforeLaunchKind.Command, "make"), new BeforeLaunchStep(BeforeLaunchKind.Build)], configuration.BeforeLaunch);
-        Assert.Equal("/sdks/dotnet", configuration.Values.Get("sdk"));
+        Assert.Equal("/sdks/acme", configuration.Values.Get("sdk"));
         Assert.Equal("App (copy)", entry.Copy("App (copy)").ToConfiguration(Defaults).Name);
     }
 

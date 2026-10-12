@@ -54,7 +54,7 @@ The handler gets each `FileChangeEvent` with its `Kind`, its full `Path` and, fo
 | --- | --- | --- |
 | `Folder` | The open folder | The folder to watch. Without one, the watcher follows the folder the user opens. |
 | `Exclude` | None | Globs to leave out, on top of `files.exclude`. |
-| `IncludeExcluded` | `false` | Also report what `files.exclude` leaves out, such as `bin`, `obj`, `node_modules` and `.git`. |
+| `IncludeExcluded` | `false` | Also report what `files.exclude` and the plugins' `IFileExcludeContributor`s leave out, such as the output folders of builds. |
 | `Delay` | None | How long to wait for more changes after the last one before reporting a batch. |
 
 ### How changes arrive

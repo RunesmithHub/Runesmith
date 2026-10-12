@@ -65,10 +65,10 @@ public sealed class SnippetTests
     [Fact]
     public void VariablesResolveUseTheirDefaultWhenEmptyAndUnknownOnesBecomePlaceholders()
     {
-        var values = new Dictionary<string, string?> { ["TM_FILENAME"] = "Program.cs", ["TM_SELECTED_TEXT"] = "" };
+        var values = new Dictionary<string, string?> { ["TM_FILENAME"] = "Program.src", ["TM_SELECTED_TEXT"] = "" };
         var expansion = Expand("$TM_FILENAME ${TM_SELECTED_TEXT:none} $UNKNOWN ${2:x}", name => values.GetValueOrDefault(name));
 
-        Assert.Equal("Program.cs none UNKNOWN x", expansion.Text);
+        Assert.Equal("Program.src none UNKNOWN x", expansion.Text);
         Assert.Equal(["3:UNKNOWN", "2:x"], StopTexts(expansion));
     }
 
@@ -116,9 +116,9 @@ public sealed class SnippetTests
     public void VariablesReadTheDocumentAndTheSelection()
     {
         var snapshot = TextSnapshot.Create("first\n  second word");
-        var context = new SnippetContext("/src/app/Main.cs", "Main.cs", snapshot, new TextSpan(15, 4)) { LineComment = "//", Now = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero) };
+        var context = new SnippetContext("/src/app/Main.src", "Main.src", snapshot, new TextSpan(15, 4)) { LineComment = "//", Now = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.Zero) };
 
-        Assert.Equal("Main.cs", SnippetVariables.Resolve("TM_FILENAME", context));
+        Assert.Equal("Main.src", SnippetVariables.Resolve("TM_FILENAME", context));
         Assert.Equal("Main", SnippetVariables.Resolve("TM_FILENAME_BASE", context));
         Assert.Equal("word", SnippetVariables.Resolve("SELECTED_TEXT", context));
         Assert.Equal("  second word", SnippetVariables.Resolve("TM_CURRENT_LINE", context));
@@ -134,12 +134,12 @@ public sealed class SnippetTests
     public void WorkspaceVariablesReadTheOpenFolder()
     {
         var folder = Path.Combine(Path.GetTempPath(), "work", "app");
-        var inside = new SnippetContext(Path.Combine(folder, "src", "Main.cs"), "Main.cs", TextSnapshot.Create("x"), new TextSpan(0, 0)) { WorkspaceFolder = folder };
-        var outside = inside with { FilePath = Path.Combine(Path.GetTempPath(), "work", "application", "Main.cs") };
+        var inside = new SnippetContext(Path.Combine(folder, "src", "Main.src"), "Main.src", TextSnapshot.Create("x"), new TextSpan(0, 0)) { WorkspaceFolder = folder };
+        var outside = inside with { FilePath = Path.Combine(Path.GetTempPath(), "work", "application", "Main.src") };
         var noFolder = inside with { WorkspaceFolder = null };
         var untitled = inside with { FilePath = null, DocumentName = "Untitled-1" };
 
-        Assert.Equal(Path.Combine("src", "Main.cs"), SnippetVariables.Resolve("RELATIVE_FILEPATH", inside));
+        Assert.Equal(Path.Combine("src", "Main.src"), SnippetVariables.Resolve("RELATIVE_FILEPATH", inside));
         Assert.Equal("app", SnippetVariables.Resolve("WORKSPACE_NAME", inside));
         Assert.Equal(folder, SnippetVariables.Resolve("WORKSPACE_FOLDER", inside));
         Assert.Equal(outside.FilePath, SnippetVariables.Resolve("RELATIVE_FILEPATH", outside));

@@ -11,5 +11,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="plugin.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="sample.tmLanguage.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

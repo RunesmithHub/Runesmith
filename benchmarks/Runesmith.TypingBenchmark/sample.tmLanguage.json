@@ -1,0 +1,32 @@
+{
+  "name": "Benchmark sample",
+  "scopeName": "source.benchmark",
+  "patterns": [
+    { "name": "comment.block.documentation.benchmark", "match": "///.*$" },
+    { "name": "comment.line.double-slash.benchmark", "match": "//.*$" },
+    { "name": "meta.preprocessor.benchmark", "match": "^\\s*#(?:region|endregion)\\b.*$" },
+    {
+      "name": "string.quoted.double.benchmark",
+      "begin": "\"",
+      "end": "\"|$",
+      "patterns": [{ "name": "constant.character.escape.benchmark", "match": "\\\\." }]
+    },
+    { "name": "constant.numeric.benchmark", "match": "\\b\\d+(?:\\.\\d+)?\\b" },
+    { "name": "constant.language.benchmark", "match": "\\b(?:true|false|null)\\b" },
+    {
+      "name": "keyword.control.benchmark",
+      "match": "\\b(?:break|case|default|else|for|foreach|if|in|return|throw|while)\\b"
+    },
+    {
+      "name": "storage.modifier.benchmark",
+      "match": "\\b(?:const|private|public|readonly|sealed)\\b"
+    },
+    {
+      "name": "storage.type.benchmark",
+      "match": "\\b(?:bool|class|int|namespace|string|var|void)\\b"
+    },
+    { "name": "keyword.other.benchmark", "match": "\\b(?:as|base|get|is|nameof|new|set|this|using)\\b" },
+    { "name": "entity.name.function.benchmark", "match": "\\b[A-Za-z_]\\w*(?=\\s*\\()" },
+    { "name": "entity.name.type.benchmark", "match": "\\b[A-Z]\\w*\\b" }
+  ]
+}

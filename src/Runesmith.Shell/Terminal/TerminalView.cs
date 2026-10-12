@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using HammerUI;
 using HammerUI.Controls;
 using Runesmith.Sdk.Localization;
+using Runesmith.Sdk.Running;
 using Runesmith.Shell.Running;
 
 namespace Runesmith.Shell.Terminal;

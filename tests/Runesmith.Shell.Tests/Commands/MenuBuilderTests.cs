@@ -13,25 +13,25 @@ public sealed class MenuBuilderTests
         MenuItemDefinition[] items =
         [
             new(Menus.Help, "a"),
-            new("Git", "b"),
+            new("Graph", "b"),
             new("Database", "c"),
-            new(Menus.Tools + "/GitHub", "d"),
+            new(Menus.Tools + "/Graphs", "d"),
             new(Menus.File, "e"),
             new(Menus.Build, "f"),
             new(ContextMenus.Editor, "g"),
             new(ContextMenus.Explorer, "h"),
         ];
 
-        Assert.Equal([Menus.File, Menus.Build, "Database", "Git", Menus.Tools, Menus.Help], MenuBuilder.MenuNames(items));
+        Assert.Equal([Menus.File, Menus.Build, "Database", "Graph", Menus.Tools, Menus.Help], MenuBuilder.MenuNames(items));
     }
 
     [Fact]
     public void PluginMenusGoByTheirOrderThenTitle()
     {
-        MenuItemDefinition[] items = [new("docker", "a"), new("Git", "b"), new("zeta", "c"), new(Menus.Help, "d")];
-        MenuDefinition[] menus = [new("docker", "Containers"), new("zeta", "Alpha") { Order = 0 }, new("Git", "Git") { Order = -1 }];
+        MenuItemDefinition[] items = [new("docker", "a"), new("Graph", "b"), new("zeta", "c"), new(Menus.Help, "d")];
+        MenuDefinition[] menus = [new("docker", "Containers"), new("zeta", "Alpha") { Order = 0 }, new("Graph", "Graph") { Order = -1 }];
 
-        Assert.Equal(["Git", "zeta", "docker", Menus.Help], MenuBuilder.MenuNames(items, menus));
+        Assert.Equal(["Graph", "zeta", "docker", Menus.Help], MenuBuilder.MenuNames(items, menus));
     }
 
     [Fact]
@@ -75,18 +75,18 @@ public sealed class MenuBuilderTests
         object? received = null;
         commands.Add(new CommandDefinition("host.copy", "Copy", "Edit"), _ => Task.CompletedTask);
         commands.Add(new CommandDefinition(CommandIds.RollbackLines, "Rollback Lines", "Editor"), _ => Task.CompletedTask);
-        commands.Add(new CommandDefinition("git.diff", "Show Diff", "Git"), argument =>
+        commands.Add(new CommandDefinition("graph.diff", "Show Diff", "Graph"), argument =>
         {
             received = argument;
             return Task.CompletedTask;
         }, argument => argument is ContextMenuTarget { IsDirectory: false });
-        commands.Add(new CommandDefinition("git.history", "Show History", "Git"), _ => Task.CompletedTask);
-        commands.AddMenuItem(new MenuItemDefinition(ContextMenus.Editor, "git.history", "git", 2));
-        commands.AddMenuItem(new MenuItemDefinition(ContextMenus.Editor, CommandIds.RollbackLines, "git", 1));
-        commands.AddMenuItem(new MenuItemDefinition(ContextMenus.Editor, "git.diff", "git", 0));
-        commands.AddMenuItem(new MenuItemDefinition(ContextMenus.Explorer, "git.history", "git", 0));
+        commands.Add(new CommandDefinition("graph.history", "Show History", "Graph"), _ => Task.CompletedTask);
+        commands.AddMenuItem(new MenuItemDefinition(ContextMenus.Editor, "graph.history", "graph", 2));
+        commands.AddMenuItem(new MenuItemDefinition(ContextMenus.Editor, CommandIds.RollbackLines, "graph", 1));
+        commands.AddMenuItem(new MenuItemDefinition(ContextMenus.Editor, "graph.diff", "graph", 0));
+        commands.AddMenuItem(new MenuItemDefinition(ContextMenus.Explorer, "graph.history", "graph", 0));
 
-        var target = new ContextMenuTarget("/repo/a.cs") { Lines = (3, 4) };
+        var target = new ContextMenuTarget("/repo/a.src") { Lines = (3, 4) };
         var menu = MenuBuilder.ContextMenu(commands, ["host.copy", null, CommandIds.RollbackLines], ContextMenus.Editor, target);
 
         Assert.Equal(["Copy", "-", "Show Diff", "Rollback Lines", "Show History"], menu.Items.Select(i => i is MenuItem item ? (string)item.Header! : "-"));

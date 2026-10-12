@@ -1,11 +1,11 @@
 ---
 title: Install and run
-description: Download Runesmith or build it from source, and add Git, GitHub, C# or Java from the plugin hub.
+description: Download Runesmith or build it from source, and add your languages and tools from the plugin hub.
 ---
 
 Runesmith runs on Windows, Linux and macOS. Download a release archive, or build it from source with the .NET 10 SDK. It ships with no
-plugins: Git and GitHub support and languages such as C# and Java come from official plugins you install from the plugin hub, and
-Runesmith suggests them when what you open needs them.
+plugins and knows no language by itself: highlighting, completion and builds for a language, version control and viewers for files that
+are not text all come from plugins you install from the plugin hub, and Runesmith suggests an official one when what you open needs it.
 
 ## Download a release
 
@@ -62,26 +62,23 @@ a terminal when `~/.local/bin` is on your `PATH`.
 
 [Building and testing](/developers/building) has more about building, such as building without the HammerUI checkout.
 
-## Set up C# or Java
+## Add your languages
 
-Completion, signature help, hover, go to definition, problems and builds for C# and Java come from the official **C#** and **Java**
-plugins. Install the ones you need from the plugin hub:
+A new install shows every file as plain text. Highlighting, completion, signature help, hover, go to definition, problems and builds for
+a language come from its plugin. Install the ones you need from the plugin hub:
 
 <Steps>
 
 1. Open **Tools › Plugins** and choose **Browse**, or start from the plugin's page on [hub.runesmith.dev](https://hub.runesmith.dev).
-2. Find **C#** or **Java**, and **C# templates** or **Java templates** for **File › New Project**, and click **Install**.
+2. Find the plugin of your language, and its template plugin for **File › New Project**, and click **Install**. Plugins such as
+   **Web Languages** and **Scripting Languages** bring highlighting for a group of languages at once.
 3. Restart Runesmith when it offers to.
 
 </Steps>
 
-When you open a C# or Java file and its plugin is not installed, Runesmith offers it in a line over the editor. The **Git** and **GitHub**
-plugins install the same way, and Runesmith offers them when you open a folder that is a Git repository; see
-[Suggested plugins](./plugins.mdx#suggested-plugins).
-
-To load your solution and projects, with their references and C# version, the C# plugin needs the [.NET SDK](https://dot.net) installed,
-as building does. **Build** also needs `dotnet` on the `PATH`. [C# support](/plugins/csharp) and [Java support](/plugins/java) have
-the details.
+When you open a file no installed plugin knows and an official plugin is for it, Runesmith offers the plugin in a line over the editor;
+see [Suggested plugins](./plugins.mdx#suggested-plugins). What a plugin needs on your computer, such as the SDK of its language, is in
+its own documentation.
 
 ## Related
 

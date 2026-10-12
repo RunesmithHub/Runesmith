@@ -9,7 +9,7 @@ builds report, grouped by file. <Keys>Ctrl+Shift+M</Keys> shows it.
 ## Read the list
 
 Files with errors come first. Under each file, every problem shows its severity, its message, where it comes from with its code, such as
-`csharp CS0103` or `build CS1503`, and its line and column. Click a problem to go to it.
+`go undeclared` or `build E0308`, and its line and column. Click a problem to go to it.
 
 The **Problems** button on the left stripe counts the errors and warnings; click it to show or hide the panel.
 
@@ -17,7 +17,7 @@ The **Problems** button on the left stripe counts the errors and warnings; click
 
 | Source | When it reports |
 | --- | --- |
-| A language analyzer, named after its language, such as `csharp` | For each open file, once you pause typing. Typing pauses the check, and it runs again when you stop. |
+| A language analyzer, named after its language, such as `go` | For each open file, once you pause typing. Typing pauses the check, and it runs again when you stop. |
 | A language server, named after the server | As you type, for the files the server has open. |
 | `build` | During a build. Each build replaces what the previous one found. |
 | `tests` | When a test fails, at the line it failed on. The test's next pass removes it. See [Test Explorer](./test-explorer.mdx#in-the-editor). |
