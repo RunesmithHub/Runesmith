@@ -1,6 +1,7 @@
 using Runesmith.Languages.Analyzers;
 using Runesmith.LanguageServices.Tests;
 using Runesmith.Sdk.Build;
+using Runesmith.Sdk.Languages;
 using Runesmith.Text;
 
 namespace Runesmith.Languages.Tests.Analyzers;
@@ -9,7 +10,7 @@ public sealed class AnalyzerBridgeTests : IDisposable
 {
     private const string FilePath = "/work/A.fake";
 
-    private readonly FakeAnalyzer analyzer = new("WriteLine");
+    private readonly FakeAnalyzer analyzer = new("WriteLine", "Write");
     private readonly TestDocuments documents = new();
     private readonly TestWorkspace workspace = new();
     private readonly TestDiagnostics diagnostics = new();
@@ -98,6 +99,24 @@ public sealed class AnalyzerBridgeTests : IDisposable
         await workspace.OpenAsync("/work");
 
         Assert.Contains("workspace /work", analyzer.Calls);
+    }
+
+    [Fact]
+    public async Task ASnippetFromTheAnalyzerReachesTheEditorAsASnippet()
+    {
+        analyzer.Snippets["WriteLine"] = "WriteLine($0)";
+        var document = new TestDocument(FilePath, "A.fake", "Wri");
+        documents.Add(document);
+
+        var list = await new AnalyzerCompletionProvider(bridge).GetCompletionsAsync(
+            new CompletionRequest(document, document.Buffer.Current, 3, CompletionTrigger.Invoked), TestContext.Current.CancellationToken);
+
+        var call = list.Items.Single(item => item.Label == "WriteLine");
+        Assert.True(call.IsSnippet);
+        Assert.Equal("WriteLine($0)", call.InsertText);
+        var word = list.Items.Single(item => item.Label == "Write");
+        Assert.False(word.IsSnippet);
+        Assert.Null(word.InsertText);
     }
 
     private async Task<IReadOnlyList<Diagnostic>> WaitForDiagnosticsAsync(string path)

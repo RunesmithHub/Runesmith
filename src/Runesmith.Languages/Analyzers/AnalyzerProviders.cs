@@ -38,6 +38,7 @@ public sealed class AnalyzerCompletionProvider(AnalyzerBridge bridge) : IComplet
             {
                 Detail = entry.Detail,
                 InsertText = entry.InsertText,
+                IsSnippet = entry.IsSnippet && entry.InsertText is not null,
                 FilterText = entry.FilterText,
                 ReplaceSpan = result.ReplaceSpan,
                 SortText = i.ToString("D4", System.Globalization.CultureInfo.InvariantCulture),

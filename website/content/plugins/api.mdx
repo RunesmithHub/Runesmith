@@ -288,7 +288,7 @@ public sealed class CSharpAnalysis
 | `Initialize(context)` | Called once, before anything else, with the host's services as an `AnalyzerContext`. |
 | `OpenWorkspaceAsync(rootPath, cancellationToken)` | Opens a folder, or no folder when the path is null; called again when the folder changes. |
 | `Open(document)`, `Change(document, changes)`, `Close(path)` | A document opened, changed or closed. `changes` turn the previous version into this one. |
-| `CompleteAsync(query, sink, cancellationToken)` | Adds the suggestions at a position to the sink. |
+| `CompleteAsync(query, sink, cancellationToken)` | Adds the suggestions at a position to the sink. A suggestion with `IsSnippet` set inserts its `InsertText` as a [snippet](./ui.mdx#snippets), such as `Add($0)` to put the caret between a call's parentheses. |
 | `ResolveAsync(entry, cancellationToken)` | The documentation of a suggestion the user selected, and the other edits accepting it makes, such as adding an import. |
 | `HoverAsync`, `DefinitionAsync`, `SignatureHelpAsync` | Answers for a `DocumentPosition`: a document version and an offset. |
 | `DiagnosticsAsync(document, cancellationToken)` | The problems of a document version, as `Problem`s. |
@@ -793,6 +793,13 @@ API 0.1.2 adds the members marked "Added in plugin API 0.1.2" in the SDK's docum
 | `ITestProvider`, `ITestRun`, `TestItem`, `TestItemKind`, `TestDiscoveryContext`, `TestDocumentContext`, `TestsChangedEventArgs`, `TestRunRequest`, `TestFailure`, `TestStackFrame` | [Test providers](./testing.mdx). |
 | `ITerminalService`, `ITerminal`, `TerminalOptions`, `TerminalDataEventArgs`, `TerminalExitedEventArgs` | [Terminals](./terminal.mdx). |
 | `ThemeColors.TerminalColors` | The terminal's ANSI colors in a [color theme](./themes.mdx). |
+
+API 0.1.4 adds the members marked "Added in plugin API 0.1.4"; a plugin that uses them declares `"runesmithApi": "^0.1.4"` and references
+`Runesmith.LanguageServices` 0.1.4.
+
+| Added in 0.1.4 | What it is |
+| --- | --- |
+| `CompletionCandidate.IsSnippet`, `CompletionEntry.IsSnippet` | A [language analyzer's](#language-analyzers) suggestion that inserts a snippet, such as a call's parentheses with the caret between them. |
 
 ## Related
 

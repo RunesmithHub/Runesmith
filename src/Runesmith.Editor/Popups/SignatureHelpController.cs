@@ -47,6 +47,15 @@ internal sealed class SignatureHelpController : IDisposable
             Schedule();
     }
 
+    /// <summary>Asks for signature help when an accepted suggestion leaves the caret just after a character that opens it, such as the
+    /// <c>(</c> of a call whose parentheses it inserted.</summary>
+    public void OnCompletionInserted()
+    {
+        var caret = area.Selection.Caret;
+        if (area.Selection.IsEmpty && caret > 0 && caret <= area.Snapshot.Length && features.IsSignatureHelpTrigger(area.Document, area.Snapshot[caret - 1]))
+            Trigger();
+    }
+
     /// <summary>Updates the open popup shortly after the caret moves, since the current parameter or call may have changed.</summary>
     public void OnSelectionChanged()
     {
