@@ -21,7 +21,7 @@ public sealed class NavigationFeaturesTests
         var first = new Navigator { Locations = [At("/work/B.fake", 3), At("/work/A.fake", 1)] };
         var second = new Navigator { Locations = [At("/work/A.fake", 1), At("/work/A.fake", 0)] };
         var other = new Navigator { Locations = [At("/work/C.fake", 0)] };
-        var features = Create(references: [Export<IReferenceProvider>(first, "fake"), Export<IReferenceProvider>(second, LanguagesAttribute.Any), Export<IReferenceProvider>(other, "csharp")],
+        var features = Create(references: [Export<IReferenceProvider>(first, "fake"), Export<IReferenceProvider>(second, LanguagesAttribute.Any), Export<IReferenceProvider>(other, "sample")],
             implementations: [Export<IImplementationProvider>(first, "fake")]);
 
         var references = await features.GetReferencesAsync(Document, Snapshot, 26, includeDeclaration: false, Token);

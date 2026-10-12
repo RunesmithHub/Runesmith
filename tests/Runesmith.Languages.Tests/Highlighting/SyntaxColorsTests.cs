@@ -65,7 +65,10 @@ public sealed class SyntaxColorsTests : IDisposable
         const string theme = """
             { "name": "Dusk", "tokenColors": [ { "scope": "keyword", "settings": { "foreground": "#FF8800", "fontStyle": "bold" } } ] }
             """;
-        var grammars = new TextMateGrammars([]);
+        const string grammar = """
+            { "scopeName": "source.sample", "patterns": [ { "name": "keyword.control.sample", "match": "\\breturn\\b" } ] }
+            """;
+        var grammars = new TextMateGrammars([new Runesmith.Sdk.Languages.GrammarDefinition("source.sample", Write("sample.tmLanguage.json", grammar))]);
         var colors = new SyntaxColors(grammars);
         var fromFile = new ColorScheme("ember.file", "Ember File", Write("dusk.json", theme));
         var fromJson = new ColorScheme("ember.json", "Ember Json", Encoding.UTF8.GetBytes(theme));
@@ -96,7 +99,7 @@ public sealed class SyntaxColorsTests : IDisposable
     private static List<(string? Color, FontStyle Style)> Styles(TextMateGrammars grammars, ColorScheme scheme, string line)
     {
         var registry = grammars.GetRegistry(scheme);
-        var grammar = Assert.IsAssignableFrom<IGrammar>(registry.GetGrammar("source.cs"));
+        var grammar = Assert.IsAssignableFrom<IGrammar>(registry.GetGrammar("source.sample"));
         var tokens = grammar.TokenizeLine2(new LineText(line), null, TimeSpan.FromSeconds(10)).Tokens;
         return [.. Enumerable.Range(0, tokens.Length / 2).Select(i => tokens[(2 * i) + 1])
             .Select(m => (registry.Theme.GetColor(EncodedTokenAttributes.GetForeground(m)), EncodedTokenAttributes.GetFontStyle(m)))];

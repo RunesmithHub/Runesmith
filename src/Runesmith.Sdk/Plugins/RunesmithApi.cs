@@ -7,11 +7,11 @@ namespace Runesmith.Sdk.Plugins;
 public static class RunesmithApi
 {
     /// <summary>The version of this API.</summary>
-    public static Version Version { get; } = new(0, 1, 4);
+    public static Version Version { get; } = new(0, 2, 0);
 
     /// <summary>The oldest API version plugins can be built against and still run: the start of <see cref="Version"/>'s compatibility
     /// line.</summary>
-    public static Version OldestSupported { get; } = new(0, 1, 0);
+    public static Version OldestSupported { get; } = new(0, 2, 0);
 
     /// <summary>Whether a plugin built against API version <paramref name="pluginApiVersion"/> can run against this API: it is at least
     /// <see cref="OldestSupported"/> and not newer than <see cref="Version"/>.</summary>

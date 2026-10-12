@@ -3,17 +3,16 @@ title: Language features
 description: Highlighting, completion, signature help, hover, go to definition, problems, quick fixes, rename, formatting, inlay hints, code lens, references, symbols, folding and hierarchies, and the analyzers and language servers behind them.
 ---
 
-Runesmith highlights more than 60 languages by itself. Language analyzers and language servers add the rest: completion, signature help,
-hover, go to definition, problems, quick fixes, rename, formatting, inlay hints and code lens, and language servers and plugins also add
-references, symbols, folding, semantic highlighting, selection ranges and hierarchies. The official C# and Java plugins,
-which you install from the plugin hub, bring Runesmith's own analyzers, which run inside Runesmith; other plugins can add analyzers and
-language servers for more languages. When you open a C# or Java file without its plugin, Runesmith
+Runesmith knows no language by itself. A language comes from a plugin: its files, its highlighting, and, from language analyzers and
+language servers, completion, signature help, hover, go to definition, problems, quick fixes, rename, formatting, inlay hints and code
+lens, references, symbols, folding, semantic highlighting, selection ranges and hierarchies. Install the plugin of a language from the
+plugin hub. When you open a file no installed plugin knows and an official plugin is for it, Runesmith
 [suggests it](./plugins.mdx#suggested-plugins).
 
 ## Highlighting
 
-Runesmith picks a file's language by its name or extension, and highlights it with the language's TextMate grammar in the colors of the
-current theme. Large files highlight the visible lines first and the rest in the background, so typing never waits for it. The language
+Runesmith picks a file's language by its name or extension, among the languages your plugins bring, and highlights it with the TextMate
+grammar the language's plugin ships, in the colors of the current theme. A file of no installed language is plain text. Large files highlight the visible lines first and the rest in the background, so typing never waits for it. The language
 shows in the status bar.
 
 When the language knows what each name means, such as from its language server, it colors names by meaning over that highlighting:
@@ -113,7 +112,7 @@ pointer on a hint to see more about it, when the language has more.
 Code lens are lines of small text above a line, such as how many times a method is used or a command to run a test. Click one to run its
 command.
 
-Both come from language servers, language analyzers and plugins, and follow your typing; the C# analyzer shows inlay hints. Turn them off
+Both come from language servers, language analyzers and plugins, and follow your typing. Turn them off
 with **Inlay hints** (`editor.inlayHints`) and **Code lens** (`editor.codeLens`).
 
 ## Gutter icons and highlights
@@ -124,8 +123,8 @@ running a test. Icons and highlights that matter in the whole file can also mark
 
 ## Language analyzers
 
-A language analyzer runs inside Runesmith and reads the editor's text directly, so it needs no install step and no separate process. The
-C# analyzer is one; [C# support](/plugins/csharp) describes what it does. Analyzers write their log to the **Language analyzers** channel
+A language analyzer runs inside Runesmith and reads the editor's text directly, so it needs no install step and no separate process. A
+plugin brings the analyzer of its language. Analyzers write their log to the **Language analyzers** channel
 of the **Output** panel, such as which projects they loaded and how long it took.
 
 ## Language servers
@@ -149,7 +148,6 @@ Each server has two settings: whether it runs and which executable it runs. See 
 
 ## Related
 
-- [C# support](/plugins/csharp)
 - [References](./references.mdx)
 - [Outline](./outline.mdx)
 - [Folding](./folding.mdx)

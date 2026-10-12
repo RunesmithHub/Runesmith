@@ -10,7 +10,7 @@ namespace Runesmith.Editor.Tests;
 
 public sealed class GlyphMarginTests
 {
-    private static readonly string FilePath = Path.Combine(Path.GetTempPath(), "runesmith-tests", "Program.cs");
+    private static readonly string FilePath = Path.Combine(Path.GetTempPath(), "runesmith-tests", "Program.src");
 
     [Fact]
     public Task AClickBesideALineTogglesABreakpointThere() => Run(async () =>

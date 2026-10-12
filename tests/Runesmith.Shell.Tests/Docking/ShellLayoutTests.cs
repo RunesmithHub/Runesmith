@@ -17,7 +17,7 @@ public sealed class ShellLayoutTests
         layout.Attach(host);
         var window = new Window { Width = 600, Height = 400, Content = host };
         window.Show();
-        var id = ShellLayout.DocumentPanelId("/tmp/a.cs");
+        var id = ShellLayout.DocumentPanelId("/tmp/a.src");
         var first = new TestPanel(id);
         layout.Register(first);
         layout.AddToEditors(id);

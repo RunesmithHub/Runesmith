@@ -13,7 +13,7 @@ namespace Runesmith.Editor.Tests;
 
 public sealed class EditorFeatureTests
 {
-    private static readonly string FilePath = Path.Combine(Path.GetTempPath(), "runesmith-tests", "Program.cs");
+    private static readonly string FilePath = Path.Combine(Path.GetTempPath(), "runesmith-tests", "Program.src");
 
     [Fact]
     public Task FormattingIsOneUndoStepAndKeepsTheCaretOnItsText() => Run(async () =>
@@ -108,7 +108,7 @@ public sealed class EditorFeatureTests
     public Task TheLightBulbShowsOnTheCaretsLineWhenActionsAreOffered() => Run(async () =>
     {
         var fakes = new FakeEditorServices();
-        fakes.Features.Actions.Add(new CodeAction("Add using System.Text", CodeActionKind.QuickFix));
+        fakes.Features.Actions.Add(new CodeAction("Add import some.Texts", CodeActionKind.QuickFix));
         using var editor = new TextEditor(new FileTestDocument(FilePath, "one\nStringBuilder b;\nthree"), fakes.Create());
 
         editor.CaretOffset = 6;
@@ -125,7 +125,7 @@ public sealed class EditorFeatureTests
     public Task ApplyingAnActionAppliesItsEditThenRunsItsCommand() => Run(async () =>
     {
         var fakes = new FakeEditorServices();
-        var edit = new WorkspaceEdit([new DocumentEdit(FilePath, [new TextChange(new TextSpan(0, 0), "using System.Text;\n")])]);
+        var edit = new WorkspaceEdit([new DocumentEdit(FilePath, [new TextChange(new TextSpan(0, 0), "import some.Texts;\n")])]);
         using var editor = new TextEditor(new FileTestDocument(FilePath, "StringBuilder b;"), fakes.Create());
 
         await editor.CodeActions.ApplyAsync(new CodeAction("Add using", CodeActionKind.QuickFix) { Edit = edit, CommandId = "test.after", CommandArgument = 7 });

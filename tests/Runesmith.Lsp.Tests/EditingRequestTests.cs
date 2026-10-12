@@ -6,7 +6,7 @@ namespace Runesmith.Lsp.Tests;
 
 public sealed class EditingRequestTests
 {
-    private const string Uri = "file:///work/Program.cs";
+    private const string Uri = "file:///work/Program.src";
 
     private const string AllFeatures = """
         {
@@ -58,12 +58,12 @@ public sealed class EditingRequestTests
             [
               { "title": "Run fixer", "command": "fix.all", "arguments": [1] },
               { "title": "Add using", "kind": "quickfix", "isPreferred": true,
-                "edit": { "changes": { "file:///work/Program.cs": [ { "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 0, "character": 0 } }, "newText": "using System;\n" } ] } } },
+                "edit": { "changes": { "file:///work/Program.src": [ { "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 0, "character": 0 } }, "newText": "import stuff;\n" } ] } } },
               { "title": "Extract method", "kind": "refactor.extract", "data": { "id": 7 } }
             ]
             """);
         await server.StartAsync();
-        var diagnostic = new Diagnostic(Range(0, 0, 0, 6), DiagnosticSeverity.Error, "CS0246", "csharp", "Missing type", null)
+        var diagnostic = new Diagnostic(Range(0, 0, 0, 6), DiagnosticSeverity.Error, "E0246", "sample", "Missing type", null)
         {
             Data = JsonDocument.Parse("""{ "fixer": "add-using" }""").RootElement,
         };
@@ -80,7 +80,7 @@ public sealed class EditingRequestTests
         Assert.Null(actions[0].Edit);
         var edit = Assert.Single(actions[1].Edit!.Documents);
         Assert.Equal(Uri, edit.Uri);
-        Assert.Equal("using System;\n", Assert.Single(edit.Edits).NewText);
+        Assert.Equal("import stuff;\n", Assert.Single(edit.Edits).NewText);
         Assert.True(actions[1].IsPreferred);
         Assert.Equal(7, actions[2].Data?.GetProperty("id").GetInt32());
     }
@@ -140,7 +140,7 @@ public sealed class EditingRequestTests
         server.Answer("textDocument/rename", parameters => $$"""
             { "changes": {
                 "{{Uri}}": [ { "range": { "start": { "line": 0, "character": 4 }, "end": { "line": 0, "character": 9 } }, "newText": "{{parameters!.Value.GetProperty("newName").GetString()}}" } ],
-                "file:///work/Other.cs": [ { "range": { "start": { "line": 5, "character": 1 }, "end": { "line": 5, "character": 6 } }, "newText": "total" } ] } }
+                "file:///work/Other.src": [ { "range": { "start": { "line": 5, "character": 1 }, "end": { "line": 5, "character": 6 } }, "newText": "total" } ] } }
             """);
         await server.StartAsync();
 
@@ -156,10 +156,10 @@ public sealed class EditingRequestTests
         await using var server = new FakeServer(AllFeatures);
         server.Answer("textDocument/rename", _ => """
             { "documentChanges": [
-                { "kind": "create", "uri": "file:///work/New.cs", "options": { "ignoreIfExists": true } },
-                { "textDocument": { "uri": "file:///work/New.cs", "version": null },
+                { "kind": "create", "uri": "file:///work/New.src", "options": { "ignoreIfExists": true } },
+                { "textDocument": { "uri": "file:///work/New.src", "version": null },
                   "edits": [ { "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 0, "character": 0 } }, "newText": "class New {}" } ] },
-                { "kind": "rename", "oldUri": "file:///work/Program.cs", "newUri": "file:///work/Main.cs", "options": { "overwrite": true } },
+                { "kind": "rename", "oldUri": "file:///work/Program.src", "newUri": "file:///work/Main.src", "options": { "overwrite": true } },
                 { "kind": "delete", "uri": "file:///work/obj", "options": { "recursive": true, "ignoreIfNotExists": true } } ] }
             """);
         await server.StartAsync();
@@ -167,9 +167,9 @@ public sealed class EditingRequestTests
         var edit = await server.Client.RenameAsync(Uri, new Position(0, 5), "Main", Token);
 
         Assert.Collection(edit!.DocumentChanges!,
-            change => Assert.Equal(new CreateFile("file:///work/New.cs", new CreateFileOptions(null, true)), change),
+            change => Assert.Equal(new CreateFile("file:///work/New.src", new CreateFileOptions(null, true)), change),
             change => Assert.Equal("class New {}", Assert.Single(Assert.IsType<TextDocumentEdit>(change).Edits).NewText),
-            change => Assert.Equal(new RenameFile(Uri, "file:///work/Main.cs", new RenameFileOptions(true, null)), change),
+            change => Assert.Equal(new RenameFile(Uri, "file:///work/Main.src", new RenameFileOptions(true, null)), change),
             change => Assert.Equal(new DeleteFile("file:///work/obj", new DeleteFileOptions(true, true)), change));
         Assert.Single(edit.Documents);
         var workspaceEdit = server.Parameters("initialize").GetProperty("capabilities").GetProperty("workspace").GetProperty("workspaceEdit");

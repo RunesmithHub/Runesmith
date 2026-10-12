@@ -38,11 +38,11 @@ public sealed class PickModelTests
     [Fact]
     public void DescriptionsAndDetailsMatchOnlyWhenAskedTo()
     {
-        var rows = new[] { Row("Program.cs", description: "src/App"), Row("README.md", detail: "How to build the app") };
+        var rows = new[] { Row("Program.src", description: "src/App"), Row("README.md", detail: "How to build the app") };
 
         Assert.Empty(PickModel.Filter(rows, "app", Options));
-        Assert.Equal(["Program.cs"], Labels(PickModel.Filter(rows, "app", Options with { MatchOnDescription = true })));
-        Assert.Equal(["Program.cs", "README.md"], Labels(PickModel.Filter(rows, "app", Options with { MatchOnDescription = true, MatchOnDetail = true })));
+        Assert.Equal(["Program.src"], Labels(PickModel.Filter(rows, "app", Options with { MatchOnDescription = true })));
+        Assert.Equal(["Program.src", "README.md"], Labels(PickModel.Filter(rows, "app", Options with { MatchOnDescription = true, MatchOnDetail = true })));
         Assert.Empty(PickModel.Filter(rows, "app", Options with { MatchOnDescription = true })[0].Matches);
     }
 

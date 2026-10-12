@@ -26,7 +26,7 @@ public sealed class TreeViewTests
         Assert.Equal(["(root)"], provider.Asked);
 
         await model.ExpandAsync(model.Roots[0]);
-        Assert.Equal(["src", "  app", "    Program.cs", "  lib", "README.md"], Labels(model));
+        Assert.Equal(["src", "  app", "    Program.src", "  lib", "README.md"], Labels(model));
         Assert.Equal(["(root)", "src", "app"], provider.Asked);
 
         model.Collapse(model.Roots[0]);
@@ -46,16 +46,16 @@ public sealed class TreeViewTests
         await model.ExpandAsync(model.Roots[0]);
         await model.ExpandAsync(model.Rows.First(n => n.Item.Label == "lib"));
 
-        provider.Children["lib"] = [Leaf("Util.cs")];
+        provider.Children["lib"] = [Leaf("Util.src")];
         await model.RefreshAsync(null);
-        Assert.Equal(["src", "  app", "    Program.cs", "  lib", "    Util.cs", "README.md"], Labels(model));
+        Assert.Equal(["src", "  app", "    Program.src", "  lib", "    Util.src", "README.md"], Labels(model));
 
-        provider.Children["app"] = [Leaf("Program.cs"), Leaf("Startup.cs")];
+        provider.Children["app"] = [Leaf("Program.src"), Leaf("Startup.src")];
         provider.Asked.Clear();
         await model.RefreshAsync(Folder("app") with { Description = "2 files" });
         Assert.Equal(["app"], provider.Asked);
         Assert.Equal("2 files", model.Rows[1].Item.Description);
-        Assert.Equal(["src", "  app", "    Program.cs", "    Startup.cs", "  lib", "    Util.cs", "README.md"], Labels(model));
+        Assert.Equal(["src", "  app", "    Program.src", "    Startup.src", "  lib", "    Util.src", "README.md"], Labels(model));
         return true;
     }, TestContext.Current.CancellationToken);
 
@@ -84,11 +84,11 @@ public sealed class TreeViewTests
         await model.ExpandAsync(model.Rows.First(n => n.Item.Label == "lib"));
 
         model.SetFilter("prog");
-        Assert.Equal(["src", "  app", "    Program.cs"], Labels(model));
+        Assert.Equal(["src", "  app", "    Program.src"], Labels(model));
         Assert.Equal([0, 1, 2, 3], model.Rows[2].FilterMatches);
 
         model.SetFilter("");
-        Assert.Equal(["src", "  app", "    Program.cs", "  lib", "README.md"], Labels(model));
+        Assert.Equal(["src", "  app", "    Program.src", "  lib", "README.md"], Labels(model));
         Assert.Null(model.Rows[2].FilterMatches);
         return true;
     }, TestContext.Current.CancellationToken);
@@ -101,12 +101,12 @@ public sealed class TreeViewTests
         var revealed = new List<TreeNode>();
         model.RevealRequested += (_, e) => revealed.Add(e.Node);
 
-        Assert.True(await model.RevealAsync(Leaf("Program.cs"), focus: true));
+        Assert.True(await model.RevealAsync(Leaf("Program.src"), focus: true));
 
-        Assert.Equal(["src", "  app", "    Program.cs", "  lib", "README.md"], Labels(model));
-        Assert.Equal("Program.cs", Assert.Single(model.Selection).Label);
-        Assert.Equal("Program.cs", Assert.Single(revealed).Item.Label);
-        Assert.False(await model.RevealAsync(Leaf("Missing.cs")));
+        Assert.Equal(["src", "  app", "    Program.src", "  lib", "README.md"], Labels(model));
+        Assert.Equal("Program.src", Assert.Single(model.Selection).Label);
+        Assert.Equal("Program.src", Assert.Single(revealed).Item.Label);
+        Assert.False(await model.RevealAsync(Leaf("Missing.src")));
         return true;
     }, TestContext.Current.CancellationToken);
 
@@ -159,7 +159,7 @@ public sealed class TreeViewTests
     public Task ALargeTreeDrawsOnlyTheRowsInView() => HeadlessSession.Value.Dispatch(async () =>
     {
         var provider = new FakeTree();
-        provider.Children["lib"] = [.. Enumerable.Range(0, 10_000).Select(i => Leaf($"File{i}.cs"))];
+        provider.Children["lib"] = [.. Enumerable.Range(0, 10_000).Select(i => Leaf($"File{i}.src"))];
         using var model = new TreeViewModel(provider, Definition, _ => { });
         var view = new TreeViewControl(model, null, null);
         var window = new Window { Width = 400, Height = 500, Content = view };
@@ -173,7 +173,7 @@ public sealed class TreeViewTests
         Assert.InRange(view.List.GetRealizedContainers().Count(), 1, 60);
         view.List.ScrollIntoView(9_000);
         Dispatcher.UIThread.RunJobs();
-        Assert.Contains(view.List.GetRealizedContainers(), c => c.DataContext is TreeNode { Item.Label: "File8996.cs" });
+        Assert.Contains(view.List.GetRealizedContainers(), c => c.DataContext is TreeNode { Item.Label: "File8996.src" });
         window.Close();
         return true;
     }, TestContext.Current.CancellationToken);
@@ -241,7 +241,7 @@ public sealed class TreeViewTests
         {
             [""] = [Folder("src") with { CommandId = null }, Leaf("README.md")],
             ["src"] = [Folder("app") with { CollapsibleState = TreeItemCollapsibleState.Expanded }, Folder("lib")],
-            ["app"] = [Leaf("Program.cs")],
+            ["app"] = [Leaf("Program.src")],
             ["lib"] = [],
         };
 

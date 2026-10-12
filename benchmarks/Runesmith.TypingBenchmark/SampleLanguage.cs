@@ -5,14 +5,34 @@ using Runesmith.Text;
 
 namespace Runesmith.TypingBenchmark;
 
-/// <summary>Semantic tokens and occurrence highlights for the benchmark's sample file, as an analyzer inside Runesmith would give them: each
-/// version of the text is read and classified once. Other documents are left to the next provider.</summary>
+/// <summary>The language of the benchmark's sample file, a small brace language of its own with its own TextMate grammar, so the benchmark
+/// needs no language plugin, and its semantic tokens and occurrence highlights, as an analyzer inside Runesmith would give them: each version
+/// of the text is read and classified once. Other documents are left to the next provider.</summary>
 [Export(typeof(ISemanticTokensProvider))]
 [Export(typeof(IDocumentHighlightProvider))]
-[Languages("csharp")]
+[Languages(SampleLanguage.Id)]
 [Shared]
 public sealed class SampleLanguage : ISemanticTokensProvider, IDocumentHighlightProvider
 {
+    /// <summary>The id of the sample language.</summary>
+    public const string Id = "benchmark";
+
+    /// <summary>The extension of the sample file.</summary>
+    public const string Extension = ".bench";
+
+    [Export(typeof(LanguageDefinition))]
+    public LanguageDefinition Definition { get; } = new(Id, "Benchmark sample")
+    {
+        Extensions = [Extension],
+        ScopeName = "source.benchmark",
+        LineComment = "//",
+        BlockComment = ("/*", "*/"),
+    };
+
+    [Export(typeof(GrammarDefinition))]
+    public GrammarDefinition Grammar { get; } = new("source.benchmark",
+        Path.Combine(Path.GetDirectoryName(typeof(SampleLanguage).Assembly.Location) ?? "", "sample.tmLanguage.json"));
+
     private static readonly HashSet<string> Keywords =
     [
         "as", "base", "bool", "break", "case", "class", "const", "default", "else", "false", "for", "foreach", "get", "if", "in", "int", "is",

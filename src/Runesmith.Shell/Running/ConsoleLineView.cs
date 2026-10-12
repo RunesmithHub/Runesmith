@@ -4,6 +4,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Runesmith.Sdk.Running;
 
 namespace Runesmith.Shell.Running;
 

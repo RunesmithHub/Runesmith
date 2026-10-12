@@ -5,7 +5,7 @@ description: Open files that are not text, such as images or diagrams, in an edi
 
 A custom editor shows a file in an editor tab with a control of your own, for files that are not text, such as images, diagrams or
 designers. Runesmith opens matching files in it, offers it under **Open With**, keeps the tab's dot of unsaved changes, and routes
-**Save**, **Undo**, **Redo**, **Revert File** and **Close Editor** to it while its tab is active. Runesmith's own image viewer is built the
+**Save**, **Undo**, **Redo**, **Revert File** and **Close Editor** to it while its tab is active. The official Images plugin's image viewer is built the
 same way.
 
 ## Add an editor
@@ -117,8 +117,7 @@ A file opens in the first editor of this list that applies:
 
 1. The editor the user chose as the default for its kind of file, with **Set Default Editor**. The choice is kept per pattern, such as
    `*.png`, in `editor-associations.json` in Runesmith's settings folder.
-2. A custom editor with `EditorPriority.Default` whose pattern matches. Plugins' editors come before Runesmith's own, so a plugin can take
-   over images from the image viewer.
+2. A custom editor with `EditorPriority.Default` whose pattern matches. When several plugins' editors are the default for a file, the first one loaded opens it.
 3. The text editor.
 
 `IEditorService.OpenAsync` follows this order; it returns null when the file opened in a custom editor. To open a file in a particular
@@ -134,4 +133,4 @@ A custom editor can show a web page made with HTML, CSS and JavaScript: put the 
 
 - [Web views](./web-views.mdx)
 - [API overview](./api.mdx)
-- [Open With and images](/guide/open-with), for users
+- [Open With](/guide/open-with), for users

@@ -140,7 +140,7 @@ internal static class TerminalShells
         if (!OperatingSystem.IsWindows() && string.IsNullOrEmpty(variable("LANG")) && string.IsNullOrEmpty(variable("LC_ALL")) && string.IsNullOrEmpty(variable("LC_CTYPE")))
             environment["LANG"] = OperatingSystem.IsMacOS() ? "en_US.UTF-8" : "C.UTF-8";
 
-        // .NET reads TERMINFO but not TERMINFO_DIRS, which systems without /usr/share/terminfo, such as NixOS, set instead.
+        // Some runtimes read TERMINFO but not TERMINFO_DIRS, which systems without /usr/share/terminfo, such as NixOS, set instead.
         if (string.IsNullOrEmpty(variable("TERMINFO")) && variable("TERMINFO_DIRS") is { Length: > 0 } folders
             && Running.RunProcess.FindTerminfo(folders, "xterm-256color") is { } folder)
             environment["TERMINFO"] = folder;

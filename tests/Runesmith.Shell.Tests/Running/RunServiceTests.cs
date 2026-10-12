@@ -183,7 +183,7 @@ public sealed class RunServiceTests : IDisposable
     }
 
     [Fact]
-    public void TheProcessGetsThePlansEnvironmentOverRunesmithsAndColorsForDotnet()
+    public void TheProcessGetsThePlansEnvironmentOverRunesmiths()
     {
         var plan = new LaunchPlan("tool", ["a b", "c"], root) { Environment = new Dictionary<string, string> { ["MY_VALUE"] = "1", ["PATH"] = "/custom" } };
 
@@ -193,7 +193,6 @@ public sealed class RunServiceTests : IDisposable
         Assert.Equal(root, start.WorkingDirectory);
         Assert.Equal("1", start.Environment["MY_VALUE"]);
         Assert.Equal("/custom", start.Environment["PATH"]);
-        Assert.Equal("1", start.Environment["DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION"]);
         Assert.True(start.RedirectStandardInput && start.RedirectStandardOutput && start.RedirectStandardError);
         Assert.Equal("tool \"a b\" c", RunService.CommandLine(plan.Program, plan.Arguments));
     }

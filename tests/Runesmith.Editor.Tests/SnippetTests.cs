@@ -12,7 +12,7 @@ namespace Runesmith.Editor.Tests;
 
 public sealed class SnippetTests
 {
-    private static readonly string FilePath = Path.Combine(Path.GetTempPath(), "runesmith-tests", "Snippets.cs");
+    private static readonly string FilePath = Path.Combine(Path.GetTempPath(), "runesmith-tests", "Snippets.src");
 
     [Fact]
     public Task TabAndShiftTabMoveBetweenStopsAndTheLastTabEndsAtTheFinalPosition() => Run((editor, _) =>
@@ -103,7 +103,7 @@ public sealed class SnippetTests
         fakes.Folder.RootPath = folder;
 
         editor.InsertSnippet("$WORKSPACE_NAME: $RELATIVE_FILEPATH in ${WORKSPACE_FOLDER}");
-        Assert.Equal($"runesmith-tests: Snippets.cs in {folder}", Text(editor));
+        Assert.Equal($"runesmith-tests: Snippets.src in {folder}", Text(editor));
 
         editor.Undo();
         fakes.Folder.Close();
@@ -119,7 +119,7 @@ public sealed class SnippetTests
 
         editor.InsertSnippet(new SnippetString().AppendText("/* ").AppendVariable("TM_FILENAME").AppendText(" */ (").AppendVariable("SELECTED_TEXT").AppendText(")"));
 
-        Assert.Equal("/* Snippets.cs */ (value)", Text(editor));
+        Assert.Equal("/* Snippets.src */ (value)", Text(editor));
     });
 
     [Fact]

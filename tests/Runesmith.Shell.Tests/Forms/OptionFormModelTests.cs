@@ -9,17 +9,17 @@ public sealed class OptionFormModelTests
     [
         new Option("system", "Build system", OptionKind.Choice)
         {
-            Default = "maven",
-            Choices = [new("maven", "Maven"), new("gradle", "Gradle"), new("none", "None")],
+            Default = "make",
+            Choices = [new("make", "Make"), new("ninja", "Ninja"), new("none", "None")],
         },
-        new Option("dsl", "Gradle DSL", OptionKind.Choice)
+        new Option("dsl", "Ninja script", OptionKind.Choice)
         {
             Default = "kotlin",
             Choices = [new("kotlin", "Kotlin"), new("groovy", "Groovy")],
-            VisibleWhen = new OptionCondition("system", ["gradle"]),
+            VisibleWhen = new OptionCondition("system", ["ninja"]),
         },
         new Option("group", "Group id", OptionKind.Text) { IsRequired = true, Pattern = "^[a-z][a-z0-9.]*$", PatternMessage = "Use lower-case words." },
-        new Option("tests", "JUnit tests", OptionKind.Toggle) { Default = "true", EnabledWhen = new OptionCondition("system", ["maven", "gradle"]) },
+        new Option("tests", "Unit tests", OptionKind.Toggle) { Default = "true", EnabledWhen = new OptionCondition("system", ["make", "ninja"]) },
         new Option("port", "Port", OptionKind.Number) { Minimum = 1, Maximum = 65535, EnabledWhen = new OptionCondition("tests", ["true"]) },
     ]);
 
@@ -33,7 +33,7 @@ public sealed class OptionFormModelTests
         Assert.False(model.IsVisible(dsl));
         Assert.True(model.IsEnabled(tests));
 
-        model.Set("system", "gradle");
+        model.Set("system", "ninja");
         Assert.True(model.IsVisible(dsl));
 
         model.Set("system", "none");
@@ -49,17 +49,17 @@ public sealed class OptionFormModelTests
             new Option("project", "Project", OptionKind.Choice) { Default = "a", Choices = [new("a", "A"), new("b", "B")] },
             new Option("framework", "Target framework", OptionKind.Choice)
             {
-                Choices = [new("net10.0", "net10.0")],
+                Choices = [new("v10", "v10")],
                 VisibleWhen = new OptionCondition("project", ["a"]),
             },
             new Option("framework", "Target framework", OptionKind.Choice)
             {
-                Choices = [new("net8.0", "net8.0")],
+                Choices = [new("v8", "v8")],
                 VisibleWhen = new OptionCondition("project", ["b"]),
             },
         ]);
         var values = options.Defaults();
-        values.Set("framework", "net8.0");
+        values.Set("framework", "v8");
         var model = new OptionFormModel(options, values);
 
         Assert.False(model.IsValid);

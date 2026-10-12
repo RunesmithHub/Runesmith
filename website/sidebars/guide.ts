@@ -24,7 +24,6 @@ const sidebars: SidebarsConfig = {
     'test-explorer',
     'terminal',
     'building',
-    'version-control',
     'sdks',
     'plugins',
     'settings',

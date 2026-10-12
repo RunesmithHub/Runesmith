@@ -11,9 +11,9 @@ using Runesmith.Text;
 
 namespace Runesmith.TypingBenchmark;
 
-/// <summary>Opens a generated C# file of 10,000 lines, measures the memory it takes, types sixteen lines into a method in its middle at about
+/// <summary>Opens a generated file of 10,000 lines in the benchmark's own sample language, measures the memory it takes, types sixteen lines into a method in its middle at about
 /// 140 words a minute, scrolls through it with the mouse wheel, writes what the editor measured meanwhile to the folder
-/// <c>RUNESMITH_TYPING_BENCHMARK</c> names, and exits. It needs no language plugin: Runesmith highlights C# with its own grammar.</summary>
+/// <c>RUNESMITH_TYPING_BENCHMARK</c> names, and exits. It needs no language plugin: <see cref="SampleLanguage"/> brings the language and its grammar.</summary>
 /// <remarks><c>RUNESMITH_TYPING_BENCHMARK_FILE</c> names the file, which is written when it does not exist. Before typing, a method of every
 /// tenth class and the body of one class are folded, so lines are hidden, and <see cref="SampleLanguage"/> gives the file semantic tokens
 /// and occurrence highlights; while scrolling, the occurrences of a name used 1,000 times are highlighted. Nothing is saved.</remarks>

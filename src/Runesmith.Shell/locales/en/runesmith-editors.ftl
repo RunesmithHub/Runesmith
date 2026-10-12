@@ -101,12 +101,6 @@ editors-set-default-for = Set Default Editor for { $pattern }...
 #   $pattern - the kind of file, such as *.png
 editors-default-editor-for = Default editor for { $pattern }
 editors-text-editor = Text Editor
-editors-image-viewer = Image Viewer
-editors-zoom-out = Zoom out (-)
-editors-zoom-in = Zoom in (+)
-editors-fit = Fit
-editors-fit-tip = Fit in the window (0)
-editors-actual-size-tip = Actual size (1)
 
 ## Why a file operation or an edit across files can't be made, undone or redone
 

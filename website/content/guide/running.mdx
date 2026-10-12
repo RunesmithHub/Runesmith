@@ -3,7 +3,7 @@ title: Running
 description: Run, stop and build run configurations from the toolbar, read their output in the Run panel, and edit them with Run › Edit Configurations.
 ---
 
-A run configuration is a named way to run something in the open folder: a project with its arguments, a test suite, a Maven goal. Runesmith
+A run configuration is a named way to run something in the open folder: a project with its arguments, a test suite, a goal of a build tool. Runesmith
 finds one for each runnable project when you open a folder, and the run widget in the toolbar runs, stops and builds the one you select.
 This page covers the run widget, the **Run** panel and the configurations dialog.
 
@@ -47,17 +47,18 @@ ended with an error. Running a configuration again reuses its tab.
 | Output | What the program writes, with its colors. Standard error shows in red, and Runesmith's own lines, such as the command line it ran, in grey. |
 | Input line | Text you type here and confirm with <Keys>Enter</Keys> goes to the program's standard input. |
 
-The output understands ANSI escape sequences: the 16 basic colors, bright colors, backgrounds and bold. .NET programs that set
-`Console.ForegroundColor` show their colors too, because Runesmith sets `DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION` and a `TERM`
-with colors for them.
+The output understands ANSI escape sequences: the 16 basic colors, bright colors, backgrounds and bold. Programs get a `TERM` with
+colors; what else a runtime needs to write colors comes from its plugin.
 
 Places in files show as links. Click one to open the file at that line:
 
 | Written as | Example |
 | --- | --- |
-| Compiler messages | `Program.cs(12,5): error CS0103: ...`, `src/Main.java:7: error: ...` |
-| .NET stack frames | `at App.Program.Main() in /src/App/Program.cs:line 17` |
-| Java stack frames | `at com.example.Main.run(Main.java:42)`, found in the folder's sources by its package |
+| A path and a line | `src/main.go:7`, `src/main.go:7:12` |
+| A path with the line in parentheses | `src/app.ts(12,5): error TS2304: ...` |
+| The forms plugins add | The frames of a language's stack traces, from the plugin of the language |
+
+A link shows only when the file exists. A relative path is looked for in the folder the program runs in and in the open folder.
 
 Right-click the output for **Copy Line**, **Copy All** and **Clear**. The panel keeps the last 100,000 lines of a run.
 
@@ -73,8 +74,8 @@ ends the program.
 
 1. Pick a configuration in the list on the left, which groups them by kind. The plus button adds a configuration of a kind you choose, the minus button removes
    the selected one, and the copy button duplicates it.
-2. Change its **Name**, where it is stored, and its settings on the right. Each kind has its own settings; [C# support](/plugins/csharp#run-configurations)
-   and [Java support](/plugins/java#run-configurations) list them.
+2. Change its **Name**, where it is stored, and its settings on the right. Each kind has its own settings; the documentation of the
+   plugin that brings the kind lists them.
 3. Change its **Before launch** steps.
 4. Press **OK** to save, or **Cancel** to forget the changes.
 
@@ -100,11 +101,11 @@ it becomes a saved configuration with the same name, which takes the found one's
 {
   "configurations": [
     {
-      "type": "dotnet.project",
+      "type": "acme.project",
       "name": "ColorApp (Release)",
       "values": {
         "configuration": "Release",
-        "project": "ColorApp/ColorApp.csproj"
+        "project": "ColorApp"
       },
       "beforeLaunch": [
         { "kind": "build" }
@@ -131,6 +132,4 @@ The arrows move a step up or down, and the cross removes it.
 - [Building](./building.mdx)
 - [Debugging](./debugging.mdx)
 - [Terminal](./terminal.mdx)
-- [C# support](/plugins/csharp#run-configurations)
-- [Java support](/plugins/java#run-configurations)
 - [SDKs](./sdks.mdx)

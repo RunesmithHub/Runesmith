@@ -18,7 +18,7 @@ public sealed class DebugViewTests
     {
         var root = Directory.CreateTempSubdirectory("runesmith-debug-view-").FullName;
         var state = Directory.CreateTempSubdirectory("runesmith-debug-view-state-").FullName;
-        await using var program = new ScriptedProgram(Path.Combine(root, "Program.cs"));
+        await using var program = new ScriptedProgram(Path.Combine(root, "Program.src"));
         var breakpoints = Breakpoints(root, state);
         breakpoints.Toggle(program.ProgramPath, 4);
         var debug = new DebugService([new Lazy<IDebugAdapterProvider>(() => new FakeEngine())], breakpoints, new FakeWorkspace(root), _ => null, _ => { }, _ => { },
@@ -29,7 +29,7 @@ public sealed class DebugViewTests
         window.Show();
         Assert.Null(view.HeaderTitle);
 
-        var session = (await debug.StartAsync("App", Plan(Path.Combine(root, "App.dll")), new ConsoleBuffer(), null, Token))!;
+        var session = (await debug.StartAsync("App", Plan(Path.Combine(root, "app.bin")), new ConsoleBuffer(), null, Token))!;
         await program.StopAtBreakpointAsync();
         await WaitAsync(() => session.State == DebugState.Paused);
         await program.Adapter.SendEventAsync("output", """{ "category": "stdout", "output": "Hello\n" }""");

@@ -4,8 +4,8 @@ using Runesmith.Sdk.Templates;
 
 namespace Runesmith.Shell.Pages;
 
-/// <summary>The New Project dialog's own fields, Name, Location and Create Git repository, put in front of a template's options, and the
-/// rules that check them.</summary>
+/// <summary>The New Project dialog's own fields, Name, Location and a toggle for each step plugins add, put in front of a template's
+/// options, and the rules that check them.</summary>
 internal static class NewProjectForm
 {
     /// <summary>The id of the project's name; the dialog's ids start with <c>@</c> so they never meet a template's.</summary>
@@ -14,11 +14,11 @@ internal static class NewProjectForm
     /// <summary>The id of the folder the project's folder is created in.</summary>
     public const string Location = "@location";
 
-    /// <summary>The id of Create Git repository.</summary>
-    public const string Git = "@git";
+    /// <summary>Gets the id of the toggle of a step.</summary>
+    public static string Step(IProjectCreationStep step) => "@step:" + step.Id;
 
     /// <summary>Gets the dialog's fields followed by the template's options.</summary>
-    public static OptionSet Options(ProjectTemplate template, bool offerGit)
+    public static OptionSet Options(ProjectTemplate template, IReadOnlyList<IProjectCreationStep> steps)
     {
         ArgumentNullException.ThrowIfNull(template);
         List<Option> options =
@@ -26,8 +26,7 @@ internal static class NewProjectForm
             new(Name, Strings.SettingsProjectName, OptionKind.Text) { IsRequired = true, Placeholder = Strings.SettingsProjectNamePlaceholder },
             new(Location, Strings.SettingsProjectLocation, OptionKind.Path) { IsRequired = true, PathKind = PathKind.Folder },
         ];
-        if (offerGit)
-            options.Add(new Option(Git, Strings.SettingsProjectGit, OptionKind.Toggle));
+        options.AddRange(steps.Select(step => new Option(Step(step), step.Title, OptionKind.Toggle)));
         options.AddRange(template.Options.Options);
         return new OptionSet(options);
     }

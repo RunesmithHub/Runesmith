@@ -16,6 +16,7 @@ namespace Runesmith.Shell.Services;
 [method: ImportingConstructor]
 public sealed class NewProjectService(
     [ImportMany] IEnumerable<Lazy<IProjectTemplateProvider>> providers,
+    [ImportMany] IEnumerable<Lazy<IProjectCreationStep>> steps,
     NotificationService notifications,
     IOutputService output,
     Lazy<Workbench> workbench,
@@ -47,7 +48,7 @@ public sealed class NewProjectService(
         }
 
         var services = new OptionFormServices(sdks?.Value, commands.Value);
-        var dialog = new NewProjectDialog(loaded, services, log, Git.IsAvailable(), NewProjectSession.Load());
+        var dialog = new NewProjectDialog(loaded, services, log, AvailableSteps(log), NewProjectSession.Load());
         if (await notifications.Dialogs.ShowAsync(dialog) is not ProjectCreationResult result)
             return;
 
@@ -56,5 +57,25 @@ public sealed class NewProjectService(
 
         foreach (var file in result.FilesToOpen.Where(File.Exists))
             await editors.Value.OpenAsync(file);
+    }
+
+    // The steps plugins add that can run on this computer; one that fails to load or to answer is left out.
+    private List<IProjectCreationStep> AvailableSteps(IOutputChannel log)
+    {
+        var available = new List<IProjectCreationStep>();
+        foreach (var step in steps)
+        {
+            try
+            {
+                if (step.Value.IsAvailable)
+                    available.Add(step.Value);
+            }
+            catch (Exception exception)
+            {
+                log.AppendLine($"A project creation step could not start: {exception}");
+            }
+        }
+
+        return available;
     }
 }

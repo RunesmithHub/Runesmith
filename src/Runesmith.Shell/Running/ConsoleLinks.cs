@@ -1,85 +1,86 @@
+using System.Composition;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Runesmith.Sdk.Running;
 
 namespace Runesmith.Shell.Running;
 
-/// <summary>A place in a source file that a console line names.</summary>
-/// <param name="Start">Where the link starts in the line.</param>
-/// <param name="Length">The link's length.</param>
-/// <param name="Path">The path as the line writes it, or for a Java stack frame the source's path relative to a source root, such as
-/// <c>com/example/Main.java</c>.</param>
-/// <param name="Line">The line, counted from 1.</param>
-/// <param name="Column">The column, counted from 1, or 0 when the line names none.</param>
-/// <param name="IsSourceRelative">Whether <paramref name="Path"/> is relative to a source root rather than to a folder.</param>
-public sealed record ConsoleLink(int Start, int Length, string Path, int Line, int Column, bool IsSourceRelative = false);
-
-/// <summary>Finds file locations in console lines: compiler messages such as <c>File.cs(12,5)</c> and <c>File.java:12</c>, .NET stack frames
-/// such as <c>in /src/File.cs:line 12</c>, and Java stack frames such as <c>at com.example.Main.run(Main.java:12)</c>.</summary>
+/// <summary>Finds file locations in console lines: the forms every tool writes, <c>path:line</c>, <c>path:line:column</c> and
+/// <c>path(line,column)</c>, and the ones plugins know, such as the stack frames of their languages.</summary>
 public static partial class ConsoleLinks
 {
-    private const string Extensions = "cs|fs|vb|java|kt|kts|groovy|scala|xaml|axaml|razor|cshtml|csproj|fsproj|props|targets|json|xml|gradle|py|js|ts|go|rs|c|h|cpp|hpp";
+    /// <summary>Gets or sets the plugins' providers, asked before Runesmith's own patterns.</summary>
+    internal static IReadOnlyList<IConsoleLinkProvider> Providers { get; set; } = [];
 
     /// <summary>Finds the locations a line names, in the order they appear.</summary>
     public static IReadOnlyList<ConsoleLink> Find(string line)
     {
         ArgumentNullException.ThrowIfNull(line);
-        if (line.Length < 4 || (!line.Contains('(', StringComparison.Ordinal) && !line.Contains(':', StringComparison.Ordinal)))
+        if (line.Length < 4)
             return [];
 
         var found = new List<ConsoleLink>();
-        foreach (Match match in JavaFrame().Matches(line))
+        foreach (var provider in Providers)
         {
-            var file = match.Groups["file"];
-            var frame = match.Groups["frame"].Value;
-            var slash = frame.LastIndexOf('/');
-            if (slash >= 0)
-                frame = frame[(slash + 1)..];
-            var parts = frame.Split('.');
-            var package = parts.Length > 2 ? string.Join('/', parts[..^2]) + "/" : "";
-            Add(found, new ConsoleLink(file.Index, match.Groups["end"].Index - file.Index, package + file.Value, Number(match, "line"), 0, IsSourceRelative: true));
+            try
+            {
+                foreach (var link in provider.FindLinks(line))
+                    Add(found, link, line.Length);
+            }
+#pragma warning disable CA1031 // A plugin that fails on a line leaves the line to the other providers.
+            catch (Exception)
+#pragma warning restore CA1031
+            {
+            }
         }
 
-        foreach (Match match in DotnetFrame().Matches(line))
+        if (line.Contains('(', StringComparison.Ordinal) || line.Contains(':', StringComparison.Ordinal))
         {
-            var path = match.Groups["path"];
-            Add(found, new ConsoleLink(path.Index, match.Index + match.Length - path.Index, path.Value, Number(match, "line"), 0));
+            foreach (Match match in PathLineAndColumn().Matches(line))
+                Add(found, new ConsoleLink(match.Index, match.Length, match.Groups["path"].Value.Trim(), Number(match, "line"), Number(match, "column")), line.Length);
+
+            foreach (Match match in PathAndLine().Matches(line))
+                Add(found, new ConsoleLink(match.Index, match.Length, match.Groups["path"].Value, Number(match, "line"), Number(match, "column")), line.Length);
         }
-
-        foreach (Match match in Compiler().Matches(line))
-            Add(found, new ConsoleLink(match.Index, match.Length, match.Groups["path"].Value.Trim(), Number(match, "line"), Number(match, "column")));
-
-        foreach (Match match in PathAndLine().Matches(line))
-            Add(found, new ConsoleLink(match.Index, match.Length, match.Groups["path"].Value, Number(match, "line"), Number(match, "column")));
 
         found.Sort((a, b) => a.Start.CompareTo(b.Start));
         return found;
     }
 
-    private static void Add(List<ConsoleLink> found, ConsoleLink link)
+    private static void Add(List<ConsoleLink> found, ConsoleLink link, int lineLength)
     {
-        if (link.Line > 0 && !found.Any(f => link.Start < f.Start + f.Length && f.Start < link.Start + link.Length))
+        if (link.Line > 0 && link.Start >= 0 && link.Length > 0 && link.Start + link.Length <= lineLength
+            && !found.Any(f => link.Start < f.Start + f.Length && f.Start < link.Start + link.Length))
+        {
             found.Add(link);
+        }
     }
 
     private static int Number(Match match, string group) =>
         match.Groups[group].Success && int.TryParse(match.Groups[group].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : 0;
 
-    [GeneratedRegex(@"\bat\s+(?<frame>[\w$.<>/-]+)\((?<file>[\w$-]+\.(?:java|kt|groovy|scala)):(?<line>\d+)(?<end>\))", RegexOptions.CultureInvariant)]
-    private static partial Regex JavaFrame();
+    // A file name with an extension of up to eight characters, whatever the language: a link shows only when the file exists.
+    private const string FilePath = @"(?<path>(?:[A-Za-z]:)?[\w.\\/-]*[\w-]+\.[A-Za-z][\w]{0,7})";
 
-    [GeneratedRegex(@"\bin (?<path>(?:[A-Za-z]:)?[\\/][^:*?""<>|]+?):line (?<line>\d+)", RegexOptions.CultureInvariant)]
-    private static partial Regex DotnetFrame();
+    [GeneratedRegex(FilePath + @"\((?<line>\d+)(?:,(?<column>\d+))?(?:,\d+,\d+)?\)", RegexOptions.CultureInvariant)]
+    private static partial Regex PathLineAndColumn();
 
-    [GeneratedRegex(@"(?<path>(?:[A-Za-z]:)?[\w.\\/-]*[\w-]+\.(?:" + Extensions + @"))\((?<line>\d+)(?:,(?<column>\d+))?(?:,\d+,\d+)?\)", RegexOptions.CultureInvariant)]
-    private static partial Regex Compiler();
-
-    [GeneratedRegex(@"(?<path>(?:[A-Za-z]:)?[\w.\\/-]*[\w-]+\.(?:" + Extensions + @")):(?<line>\d+)(?::(?<column>\d+))?", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(FilePath + @":(?<line>\d+)(?::(?<column>\d+))?", RegexOptions.CultureInvariant)]
     private static partial Regex PathAndLine();
+}
+
+/// <summary>Hands the plugins' console link providers to <see cref="ConsoleLinks"/> when Runesmith starts.</summary>
+[Export]
+[Shared]
+public sealed class ConsoleLinkProviders
+{
+    [ImportingConstructor]
+    public ConsoleLinkProviders([ImportMany] IEnumerable<IConsoleLinkProvider> providers) => ConsoleLinks.Providers = [.. providers];
 }
 
 /// <summary>Turns the paths of console links into files of the open folder, remembering what it found.</summary>
 /// <param name="roots">The folders relative paths are tried against, such as the run's working directory and the open folder.</param>
-/// <param name="files">Gets the open folder's files, for Java stack frames, whose paths are relative to a source root, or null while they load.</param>
+/// <param name="files">Gets the open folder's files, for links whose path is the end of a file's path, or null while they load.</param>
 public sealed class ConsoleLinkResolver(Func<IReadOnlyList<string>> roots, Func<IReadOnlyList<string>?> files)
 {
     private readonly Dictionary<(string, bool), string?> cache = [];

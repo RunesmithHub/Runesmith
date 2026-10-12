@@ -12,11 +12,11 @@ public sealed class FileOperationRequestTests
             "workspaceFolders": { "supported": true },
             "fileOperations": {
               "willRename": { "filters": [
-                { "scheme": "file", "pattern": { "glob": "**/*.cs", "matches": "file", "options": { "ignoreCase": true } } },
+                { "scheme": "file", "pattern": { "glob": "**/*.src", "matches": "file", "options": { "ignoreCase": true } } },
                 { "pattern": { "glob": "**/Models", "matches": "folder" } },
                 { "scheme": "untitled", "pattern": { "glob": "**" } } ] },
-              "didRename": { "filters": [ { "pattern": { "glob": "**/*.cs" } } ] },
-              "didCreate": { "filters": [ { "pattern": { "glob": "**/*.cs", "matches": "file" } } ] },
+              "didRename": { "filters": [ { "pattern": { "glob": "**/*.src" } } ] },
+              "didCreate": { "filters": [ { "pattern": { "glob": "**/*.src", "matches": "file" } } ] },
               "didDelete": { "filters": [ { "pattern": { "glob": "**/Models", "matches": "folder" } } ] }
             }
           }
@@ -48,7 +48,7 @@ public sealed class FileOperationRequestTests
     [Fact]
     public async Task AsksBeforeARenameAboutTheFilesAndFoldersItsFiltersMatch()
     {
-        var program = LspUri.FromPath(Path.Combine(Root, "Program.cs"));
+        var program = LspUri.FromPath(Path.Combine(Root, "Program.src"));
         await using var server = new FakeServer(Filters);
         server.Answer("workspace/willRenameFiles", _ => $$"""
             { "changes": { "{{program}}": [ { "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 0, "character": 0 } }, "newText": "using Entities;\n" } ] } }
@@ -57,20 +57,20 @@ public sealed class FileOperationRequestTests
 
         var edit = await server.Client.WillChangeFilesAsync(FileOperationKind.Rename,
         [
-            new FileOperationTarget(Path.Combine(Root, "A.CS"), Path.Combine(Root, "B.CS"), IsFolder: false),
+            new FileOperationTarget(Path.Combine(Root, "A.SRC"), Path.Combine(Root, "B.SRC"), IsFolder: false),
             new FileOperationTarget(Path.Combine(Root, "notes.txt"), Path.Combine(Root, "todo.txt"), IsFolder: false),
             new FileOperationTarget(Path.Combine(Root, "Models"), Path.Combine(Root, "Entities"), IsFolder: true),
-            new FileOperationTarget(Path.Combine(Root, "Old.cs"), Path.Combine(Root, "New.cs"), IsFolder: true),
-            new FileOperationTarget(Path.Combine(Root, "readme.txt"), Path.Combine(Root, "Readme.cs"), IsFolder: false),
+            new FileOperationTarget(Path.Combine(Root, "Old.src"), Path.Combine(Root, "New.src"), IsFolder: true),
+            new FileOperationTarget(Path.Combine(Root, "readme.txt"), Path.Combine(Root, "Readme.src"), IsFolder: false),
         ], Token);
 
         var files = server.Parameters("workspace/willRenameFiles").GetProperty("files").EnumerateArray()
             .Select(file => (file.GetProperty("oldUri").GetString(), file.GetProperty("newUri").GetString()));
         Assert.Equal(
             [
-                (Uri(Root, "A.CS"), Uri(Root, "B.CS")),
+                (Uri(Root, "A.SRC"), Uri(Root, "B.SRC")),
                 (Uri(Root, "Models"), Uri(Root, "Entities")),
-                (Uri(Root, "readme.txt"), Uri(Root, "Readme.cs")),
+                (Uri(Root, "readme.txt"), Uri(Root, "Readme.src")),
             ],
             files);
         var (uri, _, edits) = Assert.Single(edit!.Documents);
@@ -83,10 +83,10 @@ public sealed class FileOperationRequestTests
         await using var server = new FakeServer(Filters);
         await server.StartAsync();
 
-        Assert.Null(await server.Client.WillChangeFilesAsync(FileOperationKind.Create, [new FileOperationTarget(Path.Combine(Root, "A.cs"), IsFolder: false)], Token));
+        Assert.Null(await server.Client.WillChangeFilesAsync(FileOperationKind.Create, [new FileOperationTarget(Path.Combine(Root, "A.src"), IsFolder: false)], Token));
         Assert.Null(await server.Client.WillChangeFilesAsync(FileOperationKind.Rename,
             [new FileOperationTarget(Path.Combine(Root, "a.txt"), Path.Combine(Root, "b.txt"), IsFolder: false)], Token));
-        Assert.Null(await server.Client.WillChangeFilesAsync(FileOperationKind.Delete, [new FileOperationTarget(Path.Combine(Root, "A.cs"))], Token));
+        Assert.Null(await server.Client.WillChangeFilesAsync(FileOperationKind.Delete, [new FileOperationTarget(Path.Combine(Root, "A.src"))], Token));
         Assert.DoesNotContain(server.Received, r => r.Method != "initialize");
     }
 
@@ -100,13 +100,13 @@ public sealed class FileOperationRequestTests
         await server.StartAsync();
 
         await server.Client.DidChangeFilesAsync(FileOperationKind.Create,
-            [new FileOperationTarget(Path.Combine(Root, "A.cs"), IsFolder: false), new FileOperationTarget(Path.Combine(Root, "B.txt"), IsFolder: false)]);
-        await server.Client.DidChangeFilesAsync(FileOperationKind.Rename, [new FileOperationTarget(Path.Combine(Root, "A.cs"), Path.Combine(Root, "C.cs"), IsFolder: false)]);
+            [new FileOperationTarget(Path.Combine(Root, "A.src"), IsFolder: false), new FileOperationTarget(Path.Combine(Root, "B.txt"), IsFolder: false)]);
+        await server.Client.DidChangeFilesAsync(FileOperationKind.Rename, [new FileOperationTarget(Path.Combine(Root, "A.src"), Path.Combine(Root, "C.src"), IsFolder: false)]);
         await server.Client.DidChangeFilesAsync(FileOperationKind.Delete,
-            [new FileOperationTarget(Path.Combine(Root, "Models")), new FileOperationTarget(Path.Combine(Root, "Models.cs"), IsFolder: false)]);
+            [new FileOperationTarget(Path.Combine(Root, "Models")), new FileOperationTarget(Path.Combine(Root, "Models.src"), IsFolder: false)]);
 
-        Assert.Equal([Uri(Root, "A.cs")], Uris(await NextAsync(created), "uri"));
-        Assert.Equal([Uri(Root, "C.cs")], Uris(await NextAsync(renamed), "newUri"));
+        Assert.Equal([Uri(Root, "A.src")], Uris(await NextAsync(created), "uri"));
+        Assert.Equal([Uri(Root, "C.src")], Uris(await NextAsync(renamed), "newUri"));
         Assert.Equal([Uri(Root, "Models")], Uris(await NextAsync(deleted), "uri"));
     }
 
@@ -114,10 +114,10 @@ public sealed class FileOperationRequestTests
     [InlineData("**/*.{ts,js}", "/w/src/a.ts", true)]
     [InlineData("**/*.{ts,js}", "/w/a.js", true)]
     [InlineData("**/*.{ts,js}", "/w/a.tsx", false)]
-    [InlineData("**/{src,test}/**/*.cs", "/w/test/unit/A.cs", true)]
-    [InlineData("**/{src,test}/**/*.cs", "/w/docs/A.cs", false)]
-    [InlineData("/w/*.cs", "/w/A.cs", true)]
-    [InlineData("/w/*.cs", "/w/sub/A.cs", false)]
+    [InlineData("**/{src,test}/**/*.src", "/w/test/unit/A.src", true)]
+    [InlineData("**/{src,test}/**/*.src", "/w/docs/A.src", false)]
+    [InlineData("/w/*.src", "/w/A.src", true)]
+    [InlineData("/w/*.src", "/w/sub/A.src", false)]
     [InlineData("**/example.[0-9]", "/w/example.1", true)]
     [InlineData("**/example.[0-9]", "/w/example.a", false)]
     [InlineData("**/example.[!0-9]", "/w/example.a", true)]
@@ -125,7 +125,7 @@ public sealed class FileOperationRequestTests
     [InlineData("**/a?c", "/w/abc", true)]
     [InlineData("**/a?c", "/w/a/c", false)]
     [InlineData("**", "/any/path/at/all", true)]
-    [InlineData("**/a+b (1).cs", "/w/a+b (1).cs", true)]
+    [InlineData("**/a+b (1).src", "/w/a+b (1).src", true)]
     [InlineData("**/[x", "/w/[x", true)]
     public void GlobsMatchWholePaths(string glob, string path, bool matches) =>
         Assert.Equal(matches, FileOperationFilters.ToRegex(glob, ignoreCase: false).IsMatch(path));
@@ -133,8 +133,8 @@ public sealed class FileOperationRequestTests
     [Fact]
     public void CaseCountsUnlessThePatternIgnoresIt()
     {
-        Assert.Matches(FileOperationFilters.ToRegex("**/*.CS", ignoreCase: true), "/w/a.cs");
-        Assert.DoesNotMatch(FileOperationFilters.ToRegex("**/*.CS", ignoreCase: false), "/w/a.cs");
+        Assert.Matches(FileOperationFilters.ToRegex("**/*.SRC", ignoreCase: true), "/w/a.src");
+        Assert.DoesNotMatch(FileOperationFilters.ToRegex("**/*.SRC", ignoreCase: false), "/w/a.src");
     }
 
     private static string Uri(string folder, string name) => LspUri.FromPath(Path.Combine(folder, name));

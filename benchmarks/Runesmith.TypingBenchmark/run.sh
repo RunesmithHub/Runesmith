@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Publishes Runesmith as a release does, runs the typing benchmark in a virtual display several times and prints the median of each
-# measurement over the runs. It needs no language plugin: the benchmark writes a C# file of 10,000 lines, which Runesmith highlights with its
-# own grammar, and gives it semantic tokens and occurrence highlights of its own.
+# measurement over the runs. It needs no language plugin: the benchmark writes a file of 10,000 lines in a sample language of its own, with its
+# own grammar, semantic tokens and occurrence highlights.
 # Run it in the dev shell (nix develop), which has xvfb-run. Usage: run.sh [runs] [results folder]
 set -euo pipefail
 
@@ -22,7 +22,7 @@ for run in $(seq "$runs"); do
   echo "Run $run of $runs"
   # Each run starts as the first did: no session to restore, and no unfinished starts that would offer safe mode.
   rm -rf "$home/state"
-  RUNESMITH_HOME=$home RUNESMITH_TYPING_BENCHMARK=$results RUNESMITH_TYPING_BENCHMARK_FILE=$folder/Sample.cs \
+  RUNESMITH_HOME=$home RUNESMITH_TYPING_BENCHMARK=$results RUNESMITH_TYPING_BENCHMARK_FILE=$folder/Sample.bench \
     xvfb-run -a -s "-screen 0 1440x900x24" dotnet "$home/app/runesmith.dll" --new-instance "$folder" \
     > "$home/run-$run.log" 2>&1 || { echo "Run $run failed; see $home/run-$run.log"; exit 1; }
 done

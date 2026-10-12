@@ -7,7 +7,7 @@ using Runesmith.Text;
 
 namespace Runesmith.Benchmarks.Editor;
 
-/// <summary>What folding costs an edit and a refresh in a C# file of 10,000 lines with a few blocks folded: typing a character should take
+/// <summary>What folding costs an edit and a refresh in a file of 10,000 lines of a brace language with a few blocks folded: typing a character should take
 /// microseconds and allocate nothing.</summary>
 [MemoryDiagnoser]
 public class FoldingBenchmarks
@@ -20,7 +20,7 @@ public class FoldingBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        buffer = new TextBuffer(CSharpFile(240));
+        buffer = new TextBuffer(SampleFile(240));
         var snapshot = buffer.Current;
         ranges = IndentationFolding.Compute(snapshot, 4);
         model = new FoldingModel();
@@ -54,8 +54,8 @@ public class FoldingBenchmarks
     [Benchmark]
     public void RefreshWithTheSameRanges() => model.SetRanges(ranges, buffer.Current.LineCount);
 
-    /// <summary>Gets a C# file of classes of 42 lines each, with fields, properties, methods, loops and a region.</summary>
-    internal static string CSharpFile(int classes)
+    /// <summary>Gets a file of classes of 42 lines each, with fields, properties, methods, loops and a region.</summary>
+    internal static string SampleFile(int classes)
     {
         var text = new StringBuilder("namespace Sample;\n\n");
         for (var number = 1; number <= classes; number++)

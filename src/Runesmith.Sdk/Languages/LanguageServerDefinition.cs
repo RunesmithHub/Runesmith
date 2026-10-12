@@ -7,11 +7,17 @@ namespace Runesmith.Sdk.Languages;
 /// <param name="Id">A unique id, such as <c>csharp-ls</c>; settings refer to it.</param>
 /// <param name="Name">The name shown in the status bar and the Output panel, such as "C# (csharp-ls)".</param>
 /// <param name="LanguageIds">The languages the server handles.</param>
-/// <param name="Command">The executable, found on the PATH unless it is a full path; the user can change it in the settings.</param>
+/// <param name="Command">The executable, found on the PATH unless it is a full path; the user can change it in the settings. A plugin
+/// whose server is installed elsewhere, such as in a tool folder of its runtime, gives the full path.</param>
 public sealed record LanguageServerDefinition(string Id, string Name, IReadOnlyList<string> LanguageIds, string Command)
 {
     /// <summary>Gets the command-line arguments.</summary>
     public IReadOnlyList<string> Arguments { get; init; } = [];
+
+    /// <summary>Gets environment variables the server starts with, besides Runesmith's own environment, such as the home of the runtime
+    /// it runs on.</summary>
+    /// <remarks>Added in plugin API 0.2.0.</remarks>
+    public IReadOnlyDictionary<string, string> Environment { get; init; } = new Dictionary<string, string>();
 
     /// <summary>Gets what the user is told to do when the command cannot be started, such as an install command.</summary>
     public string? InstallHint { get; init; }

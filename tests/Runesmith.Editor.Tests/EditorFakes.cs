@@ -314,8 +314,6 @@ internal sealed class FakeFolder : IWorkspace
 
     public string? Name => RootPath is null ? null : Path.GetFileName(RootPath);
 
-    public IReadOnlyList<string> Solutions => [];
-
     public event EventHandler? Changed;
 
     public Task OpenAsync(string folderPath)

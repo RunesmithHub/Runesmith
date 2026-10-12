@@ -29,14 +29,14 @@ public sealed class BreakpointServiceTests : IDisposable
         var changed = new List<string?>();
         breakpoints.Changed += (_, path) => changed.Add(path);
 
-        var added = breakpoints.Toggle(File("Program.cs"), 4);
-        breakpoints.Toggle(File("Program.cs"), 9);
-        var removed = breakpoints.Toggle(File("Program.cs"), 4);
+        var added = breakpoints.Toggle(File("Program.src"), 4);
+        breakpoints.Toggle(File("Program.src"), 9);
+        var removed = breakpoints.Toggle(File("Program.src"), 4);
 
-        Assert.Equal(new LineBreakpoint(File("Program.cs"), 4), added);
+        Assert.Equal(new LineBreakpoint(File("Program.src"), 4), added);
         Assert.Null(removed);
-        Assert.Equal([9], breakpoints.In(File("Program.cs")).Select(b => b.Line));
-        Assert.Equal([File("Program.cs"), File("Program.cs"), File("Program.cs")], changed);
+        Assert.Equal([9], breakpoints.In(File("Program.src")).Select(b => b.Line));
+        Assert.Equal([File("Program.src"), File("Program.src"), File("Program.src")], changed);
     }
 
     [Fact]
@@ -44,9 +44,9 @@ public sealed class BreakpointServiceTests : IDisposable
     {
         var workspace = new FakeWorkspace(root);
         var breakpoints = new BreakpointService(workspace, null, state);
-        breakpoints.Toggle(File("Program.cs"), 4);
-        breakpoints.Set(new LineBreakpoint(File("Util.cs"), 0) { Condition = "x > 1", HitCondition = "3", IsEnabled = false });
-        breakpoints.Set(new LineBreakpoint(File("Util.cs"), 7) { LogMessage = "x is {x}" });
+        breakpoints.Toggle(File("Program.src"), 4);
+        breakpoints.Set(new LineBreakpoint(File("Util.src"), 0) { Condition = "x > 1", HitCondition = "3", IsEnabled = false });
+        breakpoints.Set(new LineBreakpoint(File("Util.src"), 7) { LogMessage = "x is {x}" });
         breakpoints.AddWatch(" count * 2 ");
         breakpoints.AddWatch("person.Name");
         breakpoints.SetExceptionFilter("all", true, ["unhandled"]);
@@ -57,7 +57,7 @@ public sealed class BreakpointServiceTests : IDisposable
         Assert.Equal(["count * 2", "person.Name"], reopened.Watches);
         Assert.Equal(["all", "unhandled"], reopened.ExceptionFilters!.Order());
         var json = System.IO.File.ReadAllText(Directory.GetFiles(Path.Combine(state, "debug")).Single());
-        Assert.Contains("\"src/Program.cs\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"src/Program.src\"", json, StringComparison.Ordinal);
         Assert.Contains("\"line\": 5", json, StringComparison.Ordinal);
 
         await workspace.OpenAsync(other);
@@ -72,7 +72,7 @@ public sealed class BreakpointServiceTests : IDisposable
     public void ADamagedStateFileReadsAsNoBreakpoints()
     {
         var breakpoints = Breakpoints(root, state);
-        breakpoints.Toggle(File("Program.cs"), 1);
+        breakpoints.Toggle(File("Program.src"), 1);
         System.IO.File.WriteAllText(Directory.GetFiles(Path.Combine(state, "debug")).Single(), "{ not json");
 
         Assert.Empty(Breakpoints(root, state).All);
@@ -98,25 +98,25 @@ public sealed class BreakpointServiceTests : IDisposable
     public void EditsInAnOpenDocumentMoveItsBreakpointsAndMergeOnesThatMeet()
     {
         var documents = new FakeDocuments();
-        var document = documents.Add(File("Program.cs"), "one\ntwo\nthree\nfour\n");
+        var document = documents.Add(File("Program.src"), "one\ntwo\nthree\nfour\n");
         var breakpoints = new BreakpointService(new FakeWorkspace(root), documents, state);
-        breakpoints.Toggle(File("Program.cs"), 1);
-        breakpoints.Toggle(File("Program.cs"), 2);
-        breakpoints.Toggle(File("Other.cs"), 1);
+        breakpoints.Toggle(File("Program.src"), 1);
+        breakpoints.Toggle(File("Program.src"), 2);
+        breakpoints.Toggle(File("Other.src"), 1);
 
         document.Buffer.Insert(0, "zero\n");
-        Assert.Equal([2, 3], breakpoints.In(File("Program.cs")).Select(b => b.Line));
+        Assert.Equal([2, 3], breakpoints.In(File("Program.src")).Select(b => b.Line));
 
         document.Buffer.Delete(new TextSpan(5, "one\ntwo\n".Length));
-        Assert.Equal([1], breakpoints.In(File("Program.cs")).Select(b => b.Line));
-        Assert.Equal([1], breakpoints.In(File("Other.cs")).Select(b => b.Line));
+        Assert.Equal([1], breakpoints.In(File("Program.src")).Select(b => b.Line));
+        Assert.Equal([1], breakpoints.In(File("Other.src")).Select(b => b.Line));
     }
 
     [Fact]
     public void StatusesChangeWithoutChangingTheBreakpoints()
     {
         var breakpoints = Breakpoints(root, state);
-        var breakpoint = breakpoints.Toggle(File("Program.cs"), 3)!;
+        var breakpoint = breakpoints.Toggle(File("Program.src"), 3)!;
         var changed = 0;
         var statuses = 0;
         breakpoints.Changed += (_, _) => changed++;
@@ -139,11 +139,11 @@ public sealed class BreakpointServiceTests : IDisposable
             null!, null!);
         var registry = new CapturingRegistry();
         commands.Contribute(registry);
-        var target = new ContextMenuTarget(File("Program.cs")) { Lines = (7, 7) };
+        var target = new ContextMenuTarget(File("Program.src")) { Lines = (7, 7) };
 
         Assert.True(registry.CanRun(CommandIds.ToggleBreakpoint, target));
         registry.Run(CommandIds.ToggleBreakpoint, target);
-        Assert.Equal([6], breakpoints.In(File("Program.cs")).Select(b => b.Line));
+        Assert.Equal([6], breakpoints.In(File("Program.src")).Select(b => b.Line));
         registry.Run(CommandIds.ToggleBreakpoint, target);
         Assert.Empty(breakpoints.All);
         Assert.False(registry.CanRun(CommandIds.ToggleBreakpoint, new ContextMenuTarget(root, IsDirectory: true)));
@@ -158,7 +158,7 @@ public sealed class BreakpointServiceTests : IDisposable
     public void TheEditorShowsBreakpointsAndThePausedLine()
     {
         var breakpoints = Breakpoints(root, state);
-        var path = File("Program.cs");
+        var path = File("Program.src");
         breakpoints.Toggle(path, 0);
         breakpoints.Set(new LineBreakpoint(path, 1) { Condition = "x > 1" });
         breakpoints.Set(new LineBreakpoint(path, 2) { IsEnabled = false });
@@ -175,7 +175,7 @@ public sealed class BreakpointServiceTests : IDisposable
         Assert.All(markers, m => Assert.Equal(CommandIds.ToggleBreakpoint, m.CommandId));
         var line = Assert.Single(decorations.OfType<TextHighlight>());
         Assert.Equal(TextSpan.FromBounds(12, 21), line.Span);
-        Assert.Empty(DebugDecorations.Decorate(File("Other.cs"), snapshot, breakpoints, (path, 4)));
+        Assert.Empty(DebugDecorations.Decorate(File("Other.src"), snapshot, breakpoints, (path, 4)));
     }
 
     private sealed class FakeDocuments : IDocumentService

@@ -88,7 +88,7 @@ saves the file. When a file is not valid JSON, Runesmith uses the other scopes a
 | Trim trailing whitespace | `files.trimTrailingWhitespace` | `false` | Removes spaces and tabs at the ends of lines when saving. |
 | Insert a final newline | `files.insertFinalNewline` | `true` | Ends the file with a line break when saving. |
 | Line ending of new files | `files.defaultLineEnding` | `auto` | The line ending of new files and of files without line breaks: `auto` (the system's own), `lf` or `crlf`. |
-| Excluded files | `files.exclude` | `**/.git;**/bin;**/obj;**/node_modules;**/.vs;**/.idea` | Globs, separated by semicolons, that the Explorer, Quick Open and search leave out. See [globs](./search.mdx#choose-the-files). |
+| Excluded files | `files.exclude` | empty | Globs, separated by semicolons, that the Explorer, Quick Open and search leave out, besides what your plugins leave out, such as the output folders of their builds. See [globs](./search.mdx#choose-the-files). |
 
 ## Window
 
@@ -113,13 +113,13 @@ saves the file. When a file is not valid JSON, Runesmith uses the other scopes a
 
 ## Languages
 
-Each language server a plugin adds has two settings, named after the server's id and name. The C# analyzer runs inside Runesmith and
-has no settings here.
+Each language server a plugin adds has two settings, named after the server's id and name. An analyzer that runs inside Runesmith has
+no settings here.
 
 | Setting | Key | Default | What it does |
 | --- | --- | --- | --- |
 | Run *server* | `languageServers.<id>.enabled` | `true` | Starts the server for its languages. |
-| *Server* command | `languageServers.<id>.command` | empty | The executable to run instead of the server's own command from the `PATH` or the .NET tools folder, such as a full path. |
+| *Server* command | `languageServers.<id>.command` | empty | The executable to run instead of the server's own command from the `PATH`, such as a full path. |
 | Trace language servers | `languageServers.trace` | `false` | Writes every message to and from language servers to their output channels, to find out why a server misbehaves. |
 
 Changing a language server setting restarts the servers.

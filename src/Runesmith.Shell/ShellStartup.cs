@@ -72,6 +72,7 @@ public static class ShellStartup
 
         exports.GetExportedValue<LanguageServerManager>();
         exports.GetExportedValue<Editors.KeyHookPolicy>();
+        exports.GetExportedValue<Running.ConsoleLinkProviders>();
         exports.GetExportedValue<Languages.Analyzers.AnalyzerBridge>();
         exports.GetExportedValue<ProblemsToolWindow>().ShowCounts();
         exports.GetExportedValue<PerformanceMonitor>();

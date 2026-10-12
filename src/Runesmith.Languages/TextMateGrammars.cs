@@ -13,25 +13,25 @@ using SdkGrammarDefinition = Runesmith.Sdk.Languages.GrammarDefinition;
 
 namespace Runesmith.Languages;
 
-/// <summary>The TextMate grammars Runesmith ships and the ones plugins add, loaded once and shared by every highlighter.</summary>
+/// <summary>The TextMate grammars plugins bring, loaded once and shared by every highlighter. Runesmith ships the engine and no
+/// grammar.</summary>
 /// <remarks>Each color scheme has its own registry, because a grammar bakes the scheme's colors into the tokens it produces.</remarks>
 [Export]
 [Shared]
 public sealed class TextMateGrammars
 {
     private readonly ConcurrentDictionary<object, Lazy<ThemedRegistry>> registries = new();
-    private readonly GrammarLocator locator;
+    private readonly Dictionary<string, SdkGrammarDefinition> grammars = new(StringComparer.Ordinal);
 
     [ImportingConstructor]
     public TextMateGrammars([ImportMany] IEnumerable<SdkGrammarDefinition> pluginGrammars)
     {
         ArgumentNullException.ThrowIfNull(pluginGrammars);
-        BuiltIn = new RegistryOptions(ThemeName.DarkPlus);
-        locator = new GrammarLocator(BuiltIn, pluginGrammars.ToDictionary(g => g.ScopeName, g => g.FilePath, StringComparer.Ordinal));
-    }
 
-    /// <summary>Gets the grammars and language configurations TextMateSharp ships.</summary>
-    internal RegistryOptions BuiltIn { get; }
+        // The first plugin that brings a scope keeps it.
+        foreach (var grammar in pluginGrammars)
+            grammars.TryAdd(grammar.ScopeName, grammar);
+    }
 
     /// <summary>Gets the registry that colors tokens with a scheme's TextMate theme, read from its JSON or its file.</summary>
     /// <exception cref="InvalidDataException">The theme cannot be read as a TextMate theme; asking again throws again.</exception>
@@ -39,7 +39,11 @@ public sealed class TextMateGrammars
     {
         ArgumentNullException.ThrowIfNull(scheme);
         object key = scheme.Json.IsEmpty ? scheme.FilePath : scheme.Json;
-        return registries.GetOrAdd(key, _ => new Lazy<ThemedRegistry>(() => new ThemedRegistry(locator, ReadTheme(scheme)))).Value;
+        return registries.GetOrAdd(key, _ => new Lazy<ThemedRegistry>(() =>
+        {
+            var theme = ReadTheme(scheme);
+            return new ThemedRegistry(new GrammarLocator(grammars, theme), theme);
+        })).Value;
     }
 
     private static IRawTheme ReadTheme(ColorScheme scheme)
@@ -59,22 +63,25 @@ public sealed class TextMateGrammars
         }
     }
 
-    private sealed class GrammarLocator(RegistryOptions builtIn, Dictionary<string, string> pluginGrammars) : IRegistryOptions
+    // Finds grammars by scope among those plugins brought. A scope no plugin brings has no grammar, so what would include it stays plain.
+    private sealed class GrammarLocator(Dictionary<string, SdkGrammarDefinition> grammars, IRawTheme theme) : IRegistryOptions
     {
         public IRawGrammar GetGrammar(string scopeName)
         {
-            if (!pluginGrammars.TryGetValue(scopeName, out var path))
-                return builtIn.GetGrammar(scopeName);
+            if (!grammars.TryGetValue(scopeName, out var grammar))
+                return null!;
 
-            using var reader = new StreamReader(path);
+            using var reader = new StreamReader(grammar.FilePath);
             return GrammarReader.ReadGrammarSync(reader);
         }
 
-        public ICollection<string> GetInjections(string scopeName) => builtIn.GetInjections(scopeName);
+        // Grammars are found by the scopes other grammars include; none is added to another from outside.
+        public ICollection<string> GetInjections(string scopeName) => null!;
 
-        public IRawTheme GetTheme(string scopeName) => builtIn.GetTheme(scopeName);
+        // A scheme is one whole theme; it includes no other.
+        public IRawTheme GetTheme(string scopeName) => null!;
 
-        public IRawTheme GetDefaultTheme() => builtIn.GetDefaultTheme();
+        public IRawTheme GetDefaultTheme() => theme;
     }
 }
 

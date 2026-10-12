@@ -32,7 +32,8 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
     private readonly IReadOnlyList<IProjectTemplateProvider> providers;
     private readonly OptionFormServices services;
     private readonly IOutputChannel log;
-    private readonly bool offerGit;
+    private readonly IReadOnlyList<IProjectCreationStep> steps;
+    private readonly Dictionary<string, bool> stepChoices;
     private readonly List<TemplateEntry> entries = [];
     private readonly SearchBox search = new SearchBox { Margin = new Thickness(12, 12, 8, 8) }.Localize(SearchBox.PlaceholderTextProperty, () => Strings.SettingsNewProjectSearch);
     private readonly WrapPanel languageChips = new() { ItemSpacing = 4, LineSpacing = 4, Margin = new Thickness(0, 12, 12, 8), VerticalAlignment = VerticalAlignment.Center };
@@ -53,21 +54,21 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
     private OptionForm? form;
     private string? typedName;
     private string? location;
-    private bool createGit;
     private bool isCreating;
     private bool isDisposed;
     private bool userPicked;
     private bool refilling;
 
-    public NewProjectDialog(IReadOnlyList<IProjectTemplateProvider> providers, OptionFormServices services, IOutputChannel log, bool offerGit, NewProjectSession session)
+    public NewProjectDialog(IReadOnlyList<IProjectTemplateProvider> providers, OptionFormServices services, IOutputChannel log, IReadOnlyList<IProjectCreationStep> steps,
+        NewProjectSession session)
     {
         this.providers = providers;
         this.services = services;
         this.log = log;
-        this.offerGit = offerGit;
+        this.steps = steps;
         this.session = session;
         location = session.Location is { } last && Directory.Exists(last) ? last : DefaultLocation();
-        createGit = session.CreateGitRepository;
+        stepChoices = new Dictionary<string, bool>(session.Steps ?? new Dictionary<string, bool>(), StringComparer.Ordinal);
 
         Header = Strings.SettingsNewProject;
         Width = 1040;
@@ -297,10 +298,10 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
         var values = NewProjectForm.InitialValues(template, remembered);
         values.Set(NewProjectForm.Name, typedName ?? NewProjectForm.SuggestName(template, location));
         values.Set(NewProjectForm.Location, location);
-        if (offerGit)
-            values.Set(NewProjectForm.Git, createGit ? "true" : "false");
+        foreach (var step in steps)
+            values.Set(NewProjectForm.Step(step), stepChoices.GetValueOrDefault(step.Id, step.IsOnByDefault) ? "true" : "false");
 
-        form = new OptionForm(NewProjectForm.Options(template, offerGit), values, services, NewProjectForm.Validate) { BeforeAdvanced = AboutSection(template) };
+        form = new OptionForm(NewProjectForm.Options(template, steps), values, services, NewProjectForm.Validate) { BeforeAdvanced = AboutSection(template) };
         var current = form;
         form.ValueChanged += (_, id) =>
         {
@@ -317,8 +318,8 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
     private void RememberDialogFields(OptionValues values)
     {
         location = values.Get(NewProjectForm.Location) ?? location;
-        if (offerGit)
-            createGit = values.GetBool(NewProjectForm.Git);
+        foreach (var step in steps)
+            stepChoices[step.Id] = values.GetBool(NewProjectForm.Step(step));
     }
 
     private static void UpdateLocationHint(OptionForm form) =>
@@ -343,7 +344,6 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
         RememberDialogFields(values);
         var name = values.Get(NewProjectForm.Name)!.Trim();
         var target = NewProjectForm.TargetFolder(values)!;
-        var gitRequested = offerGit && values.GetBool(NewProjectForm.Git);
         var request = new ProjectCreationRequest(name, values.Get(NewProjectForm.Location)!.Trim(), NewProjectForm.TemplateValues(values));
 
         var token = closing.Token;
@@ -353,13 +353,13 @@ internal sealed class NewProjectDialog : Dialog, IDisposable
         try
         {
             var result = await Task.Run(() => entry.Provider.CreateAsync(entry.Template, request, reporter, token), token);
-            if (gitRequested)
+            foreach (var step in steps.Where(step => stepChoices[step.Id]))
             {
-                ShowProgress(Strings.SettingsNewProjectCreatingGit, isError: false);
-                await Git.InitAsync(result.Folder, log, token);
+                ShowProgress(step.Title, isError: false);
+                await step.RunAsync(result, reporter, token);
             }
 
-            session = session.WithCreated(entry.Template.Id, request.Location, NewProjectForm.ChangedValues(entry.Template, values), gitRequested || (createGit && !offerGit));
+            session = session.WithCreated(entry.Template.Id, request.Location, NewProjectForm.ChangedValues(entry.Template, values), stepChoices);
             session.Save();
             Close(result);
         }

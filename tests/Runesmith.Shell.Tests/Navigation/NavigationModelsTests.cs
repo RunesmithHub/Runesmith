@@ -78,10 +78,10 @@ public sealed class NavigationModelsTests
     public async Task ReferencesAreGroupedByFileWithTheirLinesFromOpenDocumentsOrTheDisk()
     {
         var folder = Directory.CreateTempSubdirectory("runesmith-references-").FullName;
-        var onDisk = Path.Combine(folder, "src", "Disk.cs");
+        var onDisk = Path.Combine(folder, "src", "Disk.src");
         Directory.CreateDirectory(Path.GetDirectoryName(onDisk)!);
         await File.WriteAllTextAsync(onDisk, "class Disk\r\n{\r\n    Run();\r\n}\r\n", Token);
-        var open = Path.Combine(folder, "Open.cs");
+        var open = Path.Combine(folder, "Open.src");
         var openText = TextSnapshot.Create("void Run()\n{\n}\n// Run again\n");
         var model = new ReferencesModel();
 
@@ -90,11 +90,11 @@ public sealed class NavigationModelsTests
             new DocumentLocation(open, new TextPosition(3, 3), new TextPosition(3, 6)),
             new DocumentLocation(onDisk, new TextPosition(2, 4), new TextPosition(2, 7)),
             new DocumentLocation(open, new TextPosition(0, 5), new TextPosition(0, 8)),
-            new DocumentLocation(Path.Combine(folder, "Gone.cs"), new TextPosition(9, 0)),
+            new DocumentLocation(Path.Combine(folder, "Gone.src"), new TextPosition(9, 0)),
         ], path => path == open ? openText : null, folder, Token);
 
         Assert.Equal(("References to Run", "4 references in 3 files"), (model.Title, model.Summary));
-        Assert.Equal(["Gone.cs", "Open.cs", "Disk.cs"], model.Groups.Select(g => g.Name));
+        Assert.Equal(["Gone.src", "Open.src", "Disk.src"], model.Groups.Select(g => g.Name));
         Assert.Equal("src", model.Groups[2].Folder);
         var openItems = model.Groups[1].Items;
         Assert.Equal([0, 3], openItems.Select(i => i.Line));
@@ -160,7 +160,7 @@ public sealed class NavigationModelsTests
         });
         var window = new Window { Width = 800, Height = 400, Content = view };
         window.Show();
-        var place = new DocumentLocation("/work/A.cs", new TextPosition(0, 0), new TextPosition(0, 1));
+        var place = new DocumentLocation("/work/A.src", new TextPosition(0, 0), new TextPosition(0, 1));
 
         await model.ShowAsync("References to A", "reference", [place], _ => TextSnapshot.Create("A a;"), "/work", Token);
         view.Tree.SelectedItem = model.Groups[0].Items[0];
@@ -176,7 +176,7 @@ public sealed class NavigationModelsTests
     {
         var fakes = new FakeEditorServices();
         fakes.Navigation.Symbols = Symbols;
-        using var editor = new Editor.TextEditor(new FileTestDocument("/work/Program.cs", new string('x', 140)), fakes.Create());
+        using var editor = new Editor.TextEditor(new FileTestDocument("/work/Program.src", new string('x', 140)), fakes.Create());
         var tracker = new DocumentSymbols(fakes.Navigation).For(editor);
         await WaitAsync(() => tracker.Symbols is not null);
         var path = new Shell.Views.SymbolBreadcrumbs(editor, tracker);
@@ -203,9 +203,9 @@ public sealed class NavigationModelsTests
     }
 
     private static HierarchyItem Item(string name, int line = 0) =>
-        new(name, SymbolKind.Method, new DocumentLocation("/work/A.cs", new TextPosition(line, 0), new TextPosition(line + 2, 1)))
+        new(name, SymbolKind.Method, new DocumentLocation("/work/A.src", new TextPosition(line, 0), new TextPosition(line + 2, 1)))
         {
-            SelectionLocation = new DocumentLocation("/work/A.cs", new TextPosition(line, 6), new TextPosition(line, 6 + name.Length)),
+            SelectionLocation = new DocumentLocation("/work/A.src", new TextPosition(line, 6), new TextPosition(line, 6 + name.Length)),
         };
 
     private sealed class Hierarchies : FakeNavigationFeatures2
@@ -227,7 +227,7 @@ public sealed class NavigationModelsTests
         public override Task<IReadOnlyList<HierarchyItem>> GetSubtypesAsync(HierarchyItem item, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<HierarchyItem>>([Item("Circle", 1)]);
 
-        private static DocumentLocation At(int line, int column) => new("/work/A.cs", new TextPosition(line, column));
+        private static DocumentLocation At(int line, int column) => new("/work/A.src", new TextPosition(line, column));
     }
 }
 

@@ -9,9 +9,6 @@ public interface IWorkspace
     /// <summary>Gets the folder's name, or null when none is open.</summary>
     string? Name { get; }
 
-    /// <summary>Gets the solution or project files found at the top of the folder, such as <c>App.sln</c>.</summary>
-    IReadOnlyList<string> Solutions { get; }
-
     /// <summary>Opens a folder, closing the open one.</summary>
     /// <exception cref="DirectoryNotFoundException">The folder does not exist.</exception>
     Task OpenAsync(string folderPath);

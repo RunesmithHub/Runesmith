@@ -6,11 +6,11 @@ namespace Runesmith.Shell.Tests.Services;
 
 public sealed class SdkServiceTests
 {
-    private static readonly InstalledSdk Old = new("dotnet", "9.0.318", "/usr/lib/dotnet");
-    private static readonly InstalledSdk Newest = new("dotnet", "10.0.401", "/sdks/dotnet") { Source = SdkSource.Managed };
-    private static readonly InstalledSdk Preview = new("dotnet", "10.0.100-rc.2.25502.107", "/sdks/dotnet") { Source = SdkSource.Managed };
+    private static readonly InstalledSdk Old = new("acme", "9.0.318", "/usr/lib/acme");
+    private static readonly InstalledSdk Newest = new("acme", "10.0.401", "/sdks/acme") { Source = SdkSource.Managed };
+    private static readonly InstalledSdk Preview = new("acme", "10.0.100-rc.2.25502.107", "/sdks/acme") { Source = SdkSource.Managed };
 
-    private readonly FakeProvider dotnet = new("dotnet", Old, Preview, Newest);
+    private readonly FakeProvider acme = new("acme", Old, Preview, Newest);
     private readonly FakeSettings settings = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -22,13 +22,13 @@ public sealed class SdkServiceTests
         var changes = 0;
         service.Changed += (_, _) => changes++;
 
-        Assert.Equal([Newest, Preview, Old], await service.GetInstalledAsync("dotnet", Token));
-        await service.GetInstalledAsync("dotnet", Token);
-        Assert.Equal(1, dotnet.Searches);
+        Assert.Equal([Newest, Preview, Old], await service.GetInstalledAsync("acme", Token));
+        await service.GetInstalledAsync("acme", Token);
+        Assert.Equal(1, acme.Searches);
 
         await service.RefreshAsync(Token);
-        await service.GetInstalledAsync("dotnet", Token);
-        Assert.Equal(2, dotnet.Searches);
+        await service.GetInstalledAsync("acme", Token);
+        Assert.Equal(2, acme.Searches);
         Assert.Equal(1, changes);
     }
 
@@ -48,27 +48,27 @@ public sealed class SdkServiceTests
         var changes = 0;
         service.Changed += (_, _) => changes++;
 
-        Assert.Equal(Newest, await service.GetDefaultAsync("dotnet", Token));
+        Assert.Equal(Newest, await service.GetDefaultAsync("acme", Token));
 
         service.SetDefault(Old);
-        Assert.Equal("9.0.318|/usr/lib/dotnet", settings.Values[SdkService.DefaultKey("dotnet")]);
-        Assert.Equal(Old, await service.GetDefaultAsync("dotnet", Token));
+        Assert.Equal("9.0.318|/usr/lib/acme", settings.Values[SdkService.DefaultKey("acme")]);
+        Assert.Equal(Old, await service.GetDefaultAsync("acme", Token));
         Assert.True(service.IsChosenDefault(Old));
         Assert.Equal(1, changes);
 
-        settings.Set(SdkService.DefaultKey("dotnet"), "8.0.100|/gone");
-        Assert.Equal(Newest, await service.GetDefaultAsync("dotnet", Token));
+        settings.Set(SdkService.DefaultKey("acme"), "8.0.100|/gone");
+        Assert.Equal(Newest, await service.GetDefaultAsync("acme", Token));
     }
 
     [Fact]
     public void RegistersADefaultSettingPerKind()
     {
-        var definition = Assert.Single(new SdkSettings([dotnet, new FakeProvider("dotnet")]).Settings);
+        var definition = Assert.Single(new SdkSettings([acme, new FakeProvider("acme")]).Settings);
 
-        Assert.Equal(("sdks.default.dotnet", "SDKs", ""), (definition.Key, definition.Category, (string)definition.DefaultValue));
+        Assert.Equal(("sdks.default.acme", "SDKs", ""), (definition.Key, definition.Category, (string)definition.DefaultValue));
     }
 
-    private SdkService Service() => new([dotnet], settings);
+    private SdkService Service() => new([acme], settings);
 
     private sealed class FakeProvider(string kind, params InstalledSdk[] installed) : ISdkProvider
     {
@@ -97,7 +97,7 @@ public sealed class SdkServiceTests
     {
         public Dictionary<string, object> Values { get; } = new(StringComparer.Ordinal);
 
-        public IReadOnlyList<SettingDefinition> Definitions { get; } = [new(SdkService.DefaultKey("dotnet"), "Default .NET SDK", "SDKs", "")];
+        public IReadOnlyList<SettingDefinition> Definitions { get; } = [new(SdkService.DefaultKey("acme"), "Default Acme SDK", "SDKs", "")];
 
         public event EventHandler<SettingChangedEventArgs>? Changed;
 

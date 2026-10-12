@@ -33,8 +33,8 @@ While no folder and no file is open, the welcome screen fills the window under t
 
 ## The Explorer
 
-The **Explorer** panel lists the folder's files and folders, folders first. It leaves out what the `files.exclude` setting excludes, such as
-`bin`, `obj` and `.git`, and follows changes on disk as they happen.
+The **Explorer** panel lists the folder's files and folders, folders first. It leaves out what the `files.exclude` setting excludes and what your plugins leave out, such as the
+output folders of a build, and follows changes on disk as they happen.
 
 | To | Do |
 | --- | --- |
@@ -53,18 +53,12 @@ Each rename, delete and new file or folder is one step of the same undo history 
 <Keys>Ctrl+Z</Keys> in the Explorer takes back the last of them, whichever made it. Language servers hear of these changes too, and the ones
 that update references, such as the imports of a file you rename, do so in the same step.
 
-## Languages
+## Languages and tools
 
-Runesmith highlights more than 60 languages by itself. Completion, problems and builds for a language come from its plugin: install the
-official **C#** or **Java** plugin from **Tools › Plugins** or [hub.runesmith.dev](https://hub.runesmith.dev). When you open a C# or Java
-file without its plugin, a line over the editor offers to install it; see [Suggested plugins](./plugins.mdx#suggested-plugins).
-
-## Git and GitHub
-
-Runesmith ships with no plugins, so Git and GitHub come from official plugins too. When you open a folder that is a Git repository, a line
-over the editor area offers the **Git** plugin, and then the **GitHub** plugin when the repository has a remote on github.com. Click
-**Install** to open the plugin's page, or install them from **Tools › Plugins** or [hub.runesmith.dev](https://hub.runesmith.dev).
-[Version control](./version-control.mdx) shows what they add.
+Runesmith ships with no plugins and knows no language by itself, so a new install shows every file as plain text. Highlighting,
+completion, problems and builds for a language come from its plugin, and so does version control: install what you need from
+**Tools › Plugins** or [hub.runesmith.dev](https://hub.runesmith.dev). When you open a file or a folder that an official plugin is for,
+a line offers to install it; see [Suggested plugins](./plugins.mdx#suggested-plugins).
 
 ## The session
 

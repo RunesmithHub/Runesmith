@@ -2,8 +2,8 @@
   "id": "runesmith.typing-benchmark",
   "name": "Typing benchmark",
   "version": "0.1.0",
-  "apiVersion": "0.1",
+  "apiVersion": "0.2",
   "assembly": "Runesmith.TypingBenchmark.dll",
-  "description": "Opens a generated C# file of 10,000 lines, types into it and scrolls through it, and reports how fast Runesmith responded and the memory the file took. Does nothing unless RUNESMITH_TYPING_BENCHMARK is set.",
+  "description": "Opens a generated file of 10,000 lines in a sample language of its own, types into it and scrolls through it, and reports how fast Runesmith responded and the memory the file took. Does nothing unless RUNESMITH_TYPING_BENCHMARK is set.",
   "author": "Runesmith"
 }

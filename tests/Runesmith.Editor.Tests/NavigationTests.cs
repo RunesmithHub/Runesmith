@@ -10,7 +10,7 @@ public sealed class NavigationTests
 {
     private const string Code = "int count = 0;\ncount = count + 1;\nPrint(count);";
 
-    private static readonly string FilePath = Path.Combine(Path.GetTempPath(), "runesmith-tests", "Navigation.cs");
+    private static readonly string FilePath = Path.Combine(Path.GetTempPath(), "runesmith-tests", "Navigation.src");
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -113,7 +113,7 @@ public sealed class NavigationTests
     {
         var fakes = new FakeEditorServices();
         fakes.Navigation.References.Add(new DocumentLocation(FilePath, new TextPosition(1, 0), new TextPosition(1, 5)));
-        fakes.Navigation.Implementations.Add(new DocumentLocation("/other.cs", new TextPosition(3, 2)));
+        fakes.Navigation.Implementations.Add(new DocumentLocation("/other.src", new TextPosition(3, 2)));
         using var editor = new TextEditor(new FileTestDocument(FilePath, Code), fakes.Create());
         editor.CaretOffset = 6;
 
@@ -123,7 +123,7 @@ public sealed class NavigationTests
 
         Assert.Equal("count", editor.WordAtCaret());
         Assert.Null(await references);
-        Assert.Equal("/other.cs", Assert.Single(implementations!).FilePath);
+        Assert.Equal("/other.src", Assert.Single(implementations!).FilePath);
         fakes.Navigation.HoldReferences = false;
         Assert.Single((await editor.FindReferencesAsync())!);
     });

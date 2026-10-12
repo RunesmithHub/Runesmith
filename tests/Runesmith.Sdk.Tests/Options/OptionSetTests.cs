@@ -9,8 +9,8 @@ public sealed class OptionSetTests
         new Option("name", "Name", OptionKind.Text) { IsRequired = true, Pattern = "^[A-Za-z][A-Za-z0-9.]*$", PatternMessage = "Use letters." },
         new Option("framework", "Target framework", OptionKind.Choice)
         {
-            Default = "net10.0",
-            Choices = [new OptionChoice("net10.0", ".NET 10"), new OptionChoice("net9.0", ".NET 9")],
+            Default = "v10",
+            Choices = [new OptionChoice("v10", "Version 10"), new OptionChoice("v9", "Version 9")],
         },
         new Option("port", "Port", OptionKind.Number) { Minimum = 1, Maximum = 65535, Default = "8080" },
         new Option("https", "Use HTTPS", OptionKind.Toggle) { Default = "true" },
@@ -26,7 +26,7 @@ public sealed class OptionSetTests
     {
         var values = Set.Defaults();
 
-        Assert.Equal("net10.0", values.Get("framework"));
+        Assert.Equal("v10", values.Get("framework"));
         Assert.Equal(8080, values.GetNumber("port"));
         Assert.True(values.GetBool("https"));
         Assert.Null(values.Get("name"));
@@ -36,7 +36,7 @@ public sealed class OptionSetTests
     public void ValidationReportsRequiredPatternRangeAndChoiceProblems()
     {
         var values = Set.Defaults();
-        values.Set("framework", "net5.0");
+        values.Set("framework", "v5");
         values.Set("port", "70000");
 
         var problems = Set.Validate(values);
@@ -77,8 +77,8 @@ public sealed class OptionSetTests
     {
         var values = Set.Defaults();
         var copy = values.Copy();
-        copy.Set("framework", "net9.0");
+        copy.Set("framework", "v9");
 
-        Assert.Equal("net10.0", values.Get("framework"));
+        Assert.Equal("v10", values.Get("framework"));
     }
 }

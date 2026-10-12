@@ -12,9 +12,9 @@ public sealed class SdkDownloadDialogTests
 {
     private static readonly SdkRelease[] Releases =
     [
-        Release("Temurin", "25.0.1+8", "25", lts: true),
-        Release("Temurin", "25.0.0+36", "25", lts: true),
-        Release("Temurin", "21.0.9+10", "21", lts: true),
+        Release("Acme", "25.0.1+8", "25", lts: true),
+        Release("Acme", "25.0.0+36", "25", lts: true),
+        Release("Acme", "21.0.9+10", "21", lts: true),
         Release("Zulu", "25.0.1+8", "25", lts: true),
     ];
 
@@ -66,13 +66,13 @@ public sealed class SdkDownloadDialogTests
         (T)typeof(SdkDownloadDialog).GetField(name, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(dialog)!;
 
     private static SdkRelease Release(string vendor, string version, string line, bool lts) =>
-        new("jdk", version, vendor, new Uri($"https://example.com/{vendor}-{version}.tar.gz")) { Line = line, Architecture = "x64", IsLongTermSupport = lts };
+        new("acme", version, vendor, new Uri($"https://example.com/{vendor}-{version}.tar.gz")) { Line = line, Architecture = "x64", IsLongTermSupport = lts };
 
     private sealed class ReleasesProvider : ISdkProvider
     {
-        public string Kind => "jdk";
+        public string Kind => "acme";
 
-        public string Name => "JDK";
+        public string Name => "Acme SDK";
 
         public Task<IReadOnlyList<InstalledSdk>> FindInstalledAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<InstalledSdk>>([]);
 

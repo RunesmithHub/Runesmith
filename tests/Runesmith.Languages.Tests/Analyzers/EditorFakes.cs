@@ -97,8 +97,6 @@ internal sealed class TestWorkspace : IWorkspace
 
     public string? Name => RootPath is null ? null : Path.GetFileName(RootPath);
 
-    public IReadOnlyList<string> Solutions => [];
-
     public Task OpenAsync(string folderPath)
     {
         RootPath = folderPath;

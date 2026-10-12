@@ -17,10 +17,10 @@ public sealed class LanguageServerFileOperationsTests : IAsyncDisposable
         {
           "workspace": {
             "fileOperations": {
-              "willRename": { "filters": [ { "pattern": { "glob": "**/*.cs", "matches": "file" } }, { "pattern": { "glob": "**", "matches": "folder" } } ] },
+              "willRename": { "filters": [ { "pattern": { "glob": "**/*.src", "matches": "file" } }, { "pattern": { "glob": "**", "matches": "folder" } } ] },
               "didRename": { "filters": [ { "pattern": { "glob": "**", "matches": "folder" } } ] },
-              "willDelete": { "filters": [ { "pattern": { "glob": "**/*.cs", "matches": "file" } } ] },
-              "didDelete": { "filters": [ { "pattern": { "glob": "**/*.cs", "matches": "file" } } ] },
+              "willDelete": { "filters": [ { "pattern": { "glob": "**/*.src", "matches": "file" } } ] },
+              "didDelete": { "filters": [ { "pattern": { "glob": "**/*.src", "matches": "file" } } ] },
               "didCreate": { "filters": [ { "pattern": { "glob": "**", "matches": "folder" } } ] }
             }
           }
@@ -48,7 +48,7 @@ public sealed class LanguageServerFileOperationsTests : IAsyncDisposable
     [Fact]
     public async Task AsksTheServersBeforeTheFilesChangeAndAddsTheirChanges()
     {
-        var program = Write("Program.cs", "class Program { Models.Order order; }\n");
+        var program = Write("Program.src", "class Program { Models.Order order; }\n");
         var models = Directory.CreateDirectory(Path.Combine(folder, "Models")).FullName;
         var billing = Path.Combine(folder, "Billing");
         var (session, server) = await StartAsync("fake", fake => fake.Answer("workspace/willRenameFiles", _ => Change(program, 16, 22, "Billing")));
@@ -66,8 +66,8 @@ public sealed class LanguageServerFileOperationsTests : IAsyncDisposable
     [Fact]
     public async Task TellsTheServersAfterwardsAndRemembersWhetherDeletedPathsWereFolders()
     {
-        var file = Write("Order.cs", "class Order {}");
-        var oldFolder = Directory.CreateDirectory(Path.Combine(folder, "Old.cs")).FullName;
+        var file = Write("Order.src", "class Order {}");
+        var oldFolder = Directory.CreateDirectory(Path.Combine(folder, "Old.src")).FullName;
         var newFolder = Path.Combine(folder, "New");
         var (session, server) = await StartAsync("fake", fake => fake.Answer("workspace/willDeleteFiles", _ => "null"));
         var created = server.Listen("workspace/didCreateFiles");
@@ -89,8 +89,8 @@ public sealed class LanguageServerFileOperationsTests : IAsyncDisposable
     [Fact]
     public async Task LeavesOutTheChangesOfAServerThatIsLateAndSaysSo()
     {
-        var program = Write("Program.cs", "class Program {}\n");
-        var file = Write("A.cs", "class A {}");
+        var program = Write("Program.src", "class Program {}\n");
+        var file = Write("A.src", "class A {}");
         var (fast, _) = await StartAsync("fast", fake => fake.Answer("workspace/willRenameFiles", _ => Change(program, 0, 0, "// renamed\n")));
         var (slow, _) = await StartAsync("slow", fake => fake.Connection.OnRequest("workspace/willRenameFiles", async (_, cancellationToken) =>
         {
@@ -100,7 +100,7 @@ public sealed class LanguageServerFileOperationsTests : IAsyncDisposable
         var participant = new LanguageServerFileOperations(() => [fast, slow], documents) { ServerBudget = TimeSpan.FromMilliseconds(300) };
         var stopwatch = Stopwatch.StartNew();
 
-        var edit = await participant.WillApplyAsync([new RenameFileOperation(file, Path.Combine(folder, "B.cs"))], Token);
+        var edit = await participant.WillApplyAsync([new RenameFileOperation(file, Path.Combine(folder, "B.src"))], Token);
 
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10));
         Assert.Equal("// renamed\n", Assert.Single(Assert.Single(edit!.Documents).Changes).NewText);
@@ -112,8 +112,8 @@ public sealed class LanguageServerFileOperationsTests : IAsyncDisposable
     {
         var participant = new LanguageServerFileOperations(() => [], documents);
 
-        Assert.Null(await participant.WillApplyAsync([new CreateFileOperation(Path.Combine(folder, "A.cs"))], Token));
-        await participant.DidApplyAsync([new CreateFileOperation(Path.Combine(folder, "A.cs"))], Token);
+        Assert.Null(await participant.WillApplyAsync([new CreateFileOperation(Path.Combine(folder, "A.src"))], Token));
+        await participant.DidApplyAsync([new CreateFileOperation(Path.Combine(folder, "A.src"))], Token);
     }
 
     private async Task<(ServerSession Session, FakeServer Server)> StartAsync(string id, Action<FakeServer> answer)
@@ -124,7 +124,7 @@ public sealed class LanguageServerFileOperationsTests : IAsyncDisposable
         {
             StartClient = server.ConnectAsync,
         };
-        var session = new ServerSession(new LanguageServerDefinition(id, id, ["csharp"], "fake-server"), folder, context);
+        var session = new ServerSession(new LanguageServerDefinition(id, id, ["sample"], "fake-server"), folder, context);
         started.Add((session, server));
         session.Start();
         for (var i = 0; i < 400 && session.State != SessionState.Running; i++)

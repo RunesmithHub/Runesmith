@@ -85,9 +85,9 @@ files open in the editor at the line, and web addresses in the browser.
 
 | Written as | Example |
 | --- | --- |
-| A path with a line | `src/App.cs:12`, `src/App.cs:12:5` |
-| Compiler messages | `Program.cs(12,5): error CS0103: ...` |
-| Stack frames | `at App.Program.Main() in /src/App/Program.cs:line 17`, `at com.example.Main.run(Main.java:42)` |
+| A path with a line | `src/main.go:12`, `src/main.go:12:5` |
+| A path with the line in parentheses | `src/app.ts(12,5): error TS2304: ...` |
+| What plugins add | The frames of a language's stack traces, from the plugin of the language |
 | Web addresses | `https://example.com/docs` |
 
 Relative paths are found from the shell's folder and from the open folder.

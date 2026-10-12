@@ -103,7 +103,7 @@ the folder.
 
 ## Debuggers
 
-Each run configuration names the debugger it needs, such as the .NET debugger for a .NET project. A plugin that provides that debugger
+Each run configuration names the debugger it needs, such as the debugger of its runtime. A plugin that provides that debugger
 must be installed; the [plugin hub](./plugins.mdx) lists them. Starting a debugger starts a program, so its plugin declares the `process`
 capability.
 
@@ -111,7 +111,7 @@ When debugging does not start, the **Run** panel says why, for example:
 
 | Message | What to do |
 | --- | --- |
-| No installed plugin provides the `dotnet` debugger | Install a plugin that provides it. |
+| No installed plugin provides the debugger the configuration names | Install a plugin that provides it. |
 | *Debugger* could not start | The debugger is missing or failed to start, or its plugin does not declare the `process` capability; the rest of the message says which. The **Debugger** channel of the **Output** panel has the debugger's own log. |
 
 ## Related

@@ -48,7 +48,10 @@ internal sealed class TestWorkspace : IDisposable
 
 internal sealed class TestSettings : ISettingsService
 {
-    public Dictionary<string, object> Values { get; } = new(StringComparer.Ordinal) { [SettingKeys.Exclude] = CoreSettings.DefaultExclude };
+    public Dictionary<string, object> Values { get; } = new(StringComparer.Ordinal) { [SettingKeys.Exclude] = Excluded };
+
+    /// <summary>What the tests' user leaves out with <c>files.exclude</c>; Runesmith itself leaves out nothing.</summary>
+    public const string Excluded = "**/.vcs;**/out;**/tmp;**/deps";
 
     public IReadOnlyList<SettingDefinition> Definitions => [];
 

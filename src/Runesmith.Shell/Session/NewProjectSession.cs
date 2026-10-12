@@ -8,18 +8,18 @@ namespace Runesmith.Shell.Session;
 /// <param name="Location">The folder the last project was created in.</param>
 /// <param name="Recent">The ids of the templates used last, most recent first.</param>
 /// <param name="Values">The option values the user changed, by template id and option id.</param>
-/// <param name="CreateGitRepository">Whether Create Git repository was on.</param>
+/// <param name="Steps">Whether each step plugins add was on, by the step's id; a step that is not here was never shown.</param>
 internal sealed record NewProjectSession(
     string? Location,
     IReadOnlyList<string> Recent,
     IReadOnlyDictionary<string, Dictionary<string, string>> Values,
-    bool CreateGitRepository)
+    IReadOnlyDictionary<string, bool>? Steps = null)
 {
     /// <summary>The most templates Recent keeps.</summary>
     public const int MaximumRecent = 5;
 
     /// <summary>Gets an empty session, for the first use.</summary>
-    public static NewProjectSession Empty { get; } = new(null, [], new Dictionary<string, Dictionary<string, string>>(), true);
+    public static NewProjectSession Empty { get; } = new(null, [], new Dictionary<string, Dictionary<string, string>>());
 
     private static string FilePath => Path.Combine(RunesmithPaths.State, "new-project.json");
 
@@ -52,7 +52,7 @@ internal sealed record NewProjectSession(
     }
 
     /// <summary>Gets the session after a project was created from a template.</summary>
-    public NewProjectSession WithCreated(string templateId, string location, IReadOnlyDictionary<string, string> changedValues, bool createGitRepository)
+    public NewProjectSession WithCreated(string templateId, string location, IReadOnlyDictionary<string, string> changedValues, IReadOnlyDictionary<string, bool> steps)
     {
         var values = new Dictionary<string, Dictionary<string, string>>(Values, StringComparer.Ordinal);
         if (changedValues.Count > 0)
@@ -60,7 +60,7 @@ internal sealed record NewProjectSession(
         else
             values.Remove(templateId);
 
-        return new NewProjectSession(location, [templateId, .. Recent.Where(id => id != templateId).Take(MaximumRecent - 1)], values, createGitRepository);
+        return new NewProjectSession(location, [templateId, .. Recent.Where(id => id != templateId).Take(MaximumRecent - 1)], values, steps);
     }
 }
 

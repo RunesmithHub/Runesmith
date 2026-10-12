@@ -36,7 +36,7 @@ public sealed class PluginAccessTests : IDisposable
     }
 
     [Theory]
-    [InlineData("runesmith.github/session")]
+    [InlineData("runesmith.other/session")]
     [InlineData("acme.todo")]
     [InlineData("acme.todo.other/token")]
     public async Task APluginCannotUseAnotherPluginsSecrets(string key)

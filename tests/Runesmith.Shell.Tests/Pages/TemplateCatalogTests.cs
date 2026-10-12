@@ -9,12 +9,12 @@ public sealed class TemplateCatalogTests
 
     private static readonly TemplateEntry[] Entries =
     [
-        Entry("console", "Console App", "C#", TemplateCategories.Console, "minimal"),
-        Entry("xunit", "xUnit Test Project", "C#", TemplateCategories.Test),
-        Entry("webapi", "ASP.NET Core Web API", "C#", TemplateCategories.Web, "rest", "api"),
-        Entry("java.app", "Application", "Java", TemplateCategories.Console, "maven", "gradle"),
-        Entry("java.lib", "Library", "Java", TemplateCategories.Library),
-        Entry("odd", "Odd Thing", "C#", "Robots"),
+        Entry("console", "Console App", "Sample", TemplateCategories.Console, "minimal"),
+        Entry("unit", "Unit Test Project", "Sample", TemplateCategories.Test),
+        Entry("webapi", "Web API", "Sample", TemplateCategories.Web, "rest", "api"),
+        Entry("other.app", "Application", "Other", TemplateCategories.Console, "make", "ninja"),
+        Entry("other.lib", "Library", "Other", TemplateCategories.Library),
+        Entry("odd", "Odd Thing", "Sample", "Robots"),
     ];
 
     [Fact]
@@ -28,29 +28,29 @@ public sealed class TemplateCatalogTests
     [Fact]
     public void RecentlyUsedTemplatesComeFirstUnlessSearching()
     {
-        var rows = TemplateCatalog.Rows(Entries, ["java.lib", "missing"], null, null, null);
+        var rows = TemplateCatalog.Rows(Entries, ["other.lib", "missing"], null, null, null);
         Assert.Equal(new TemplateGroupRow(TemplateCatalog.RecentGroup, 1), rows[0]);
-        Assert.Equal("java.lib", ((TemplateRow)rows[1]).Entry.Template.Id);
+        Assert.Equal("other.lib", ((TemplateRow)rows[1]).Entry.Template.Id);
 
-        var searched = TemplateCatalog.Rows(Entries, ["java.lib"], "lib", null, null);
+        var searched = TemplateCatalog.Rows(Entries, ["other.lib"], "lib", null, null);
         Assert.DoesNotContain(searched.OfType<TemplateGroupRow>(), g => g.Title == TemplateCatalog.RecentGroup);
     }
 
     [Fact]
     public void EveryWordOfASearchMustMatchTheNameTagsLanguageOrKind()
     {
-        Assert.Equal(["java.app"], Ids(TemplateCatalog.Rows(Entries, [], "java gradle", null, null)));
+        Assert.Equal(["other.app"], Ids(TemplateCatalog.Rows(Entries, [], "other ninja", null, null)));
         Assert.Equal(["webapi"], Ids(TemplateCatalog.Rows(Entries, [], "REST", null, null)));
-        Assert.Equal(["xunit"], Ids(TemplateCatalog.Rows(Entries, [], "test c#", null, null)));
+        Assert.Equal(["unit"], Ids(TemplateCatalog.Rows(Entries, [], "test sample", null, null)));
         Assert.Empty(TemplateCatalog.Rows(Entries, [], "nothing like this", null, null));
     }
 
     [Fact]
     public void LanguageAndKindFiltersCombine()
     {
-        Assert.Equal(["java.app", "console"], Ids(TemplateCatalog.Rows(Entries, [], null, null, TemplateCategories.Console)));
-        Assert.Equal(["java.app"], Ids(TemplateCatalog.Rows(Entries, [], null, "java", TemplateCategories.Console)));
-        Assert.Equal(["C#", "Java"], TemplateCatalog.Languages(Entries));
+        Assert.Equal(["other.app", "console"], Ids(TemplateCatalog.Rows(Entries, [], null, null, TemplateCategories.Console)));
+        Assert.Equal(["other.app"], Ids(TemplateCatalog.Rows(Entries, [], null, "other", TemplateCategories.Console)));
+        Assert.Equal(["Sample", "Other"], TemplateCatalog.Languages(Entries));
         Assert.Equal(["Console", "Library", "Web", "Test", "Robots"], TemplateCatalog.Categories(Entries));
     }
 

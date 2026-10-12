@@ -9,11 +9,11 @@ public sealed class PathBreadcrumbsTests
     [Fact]
     public void ShowsAFileInTheFolderFromTheFolderDown()
     {
-        var file = Path.Combine(Root, "src", "Shell", "MainWindow.cs");
+        var file = Path.Combine(Root, "src", "Shell", "MainWindow.src");
 
         var parts = PathBreadcrumbs.Parts(file, Root);
 
-        Assert.Equal(["Runesmith", "src", "Shell", "MainWindow.cs"], parts.Select(p => p.Name));
+        Assert.Equal(["Runesmith", "src", "Shell", "MainWindow.src"], parts.Select(p => p.Name));
         Assert.Equal([Root, Path.Combine(Root, "src"), Path.Combine(Root, "src", "Shell"), file], parts.Select(p => p.Path));
     }
 

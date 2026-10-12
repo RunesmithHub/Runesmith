@@ -122,7 +122,7 @@ public sealed class SemanticHighlightingTests
         var settings = new TestSettings();
         settings.Set(SettingKeys.SemanticHighlighting, true);
         var features = new Tokens(snapshot => [new SemanticToken(new TextSpan(snapshot.GetText().IndexOf("shape", StringComparison.Ordinal), 5), SemanticTokenTypes.Variable)]);
-        using var provider = new TextMateHighlighterProvider(grammars, new LanguageRegistry([], grammars), new SyntaxColors(grammars), new Lazy<ISyntaxFeatures>(() => features), settings);
+        using var provider = new TextMateHighlighterProvider(grammars, new LanguageRegistry([]), new SyntaxColors(grammars), new Lazy<ISyntaxFeatures>(() => features), settings);
         var document = new TestDocument("/work/A.fake", "A.fake", "let shape = 1");
         var highlighter = Assert.IsType<SemanticHighlighter>(provider.Create(document));
         await WaitAsync(() => highlighter.OverlayOf(0).Count > 0);

@@ -16,23 +16,23 @@ public sealed class OptionFormRenderingTests
         new Option("name", "Name", OptionKind.Text) { IsRequired = true, Placeholder = "MyProject", Description = "The project's name." },
         new Option("system", "Build system", OptionKind.Choice)
         {
-            Default = "maven",
-            Choices = [new("maven", "Maven"), new("gradle", "Gradle"), new("none", "None")],
+            Default = "make",
+            Choices = [new("make", "Make"), new("ninja", "Ninja"), new("none", "None")],
         },
-        new Option("dsl", "Gradle DSL", OptionKind.Choice)
+        new Option("dsl", "Ninja script", OptionKind.Choice)
         {
             Default = "kotlin",
             Choices = [new("kotlin", "Kotlin"), new("groovy", "Groovy")],
-            VisibleWhen = new OptionCondition("system", ["gradle"]),
+            VisibleWhen = new OptionCondition("system", ["ninja"]),
         },
-        new Option("release", "Java release", OptionKind.Choice)
+        new Option("release", "Release", OptionKind.Choice)
         {
             Default = "25",
             Choices = [new("8", "8"), new("11", "11"), new("17", "17"), new("21", "21"), new("25", "25")],
         },
-        new Option("tests", "JUnit tests", OptionKind.Toggle) { Default = "true" },
+        new Option("tests", "Unit tests", OptionKind.Toggle) { Default = "true" },
         new Option("env", "Environment", OptionKind.List) { IsKeyValueList = true, Group = OptionGroup.Advanced, Default = "A=1\nB=2" },
-        new Option("jdk", "JDK", OptionKind.Sdk) { SdkKind = "jdk", Group = OptionGroup.Advanced },
+        new Option("toolkit", "Toolkit", OptionKind.Sdk) { SdkKind = "acme", Group = OptionGroup.Advanced },
     ]);
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class OptionFormRenderingTests
         var dsl = segmented[1];
         Assert.False(IsShown(dsl, form));
         segmented[0].SelectedIndex = 1;
-        Assert.Equal("gradle", values.Get("system"));
+        Assert.Equal("ninja", values.Get("system"));
         Assert.True(IsShown(dsl, form));
 
         var name = form.GetLogicalDescendants().OfType<TextBox>().First(box => box.PlaceholderText == "MyProject");
@@ -71,13 +71,13 @@ public sealed class OptionFormRenderingTests
     public Task AnSdkOptionWithoutAnSdkServiceIsAFolderField() => HeadlessSession.Value.Dispatch(() =>
     {
         var values = new OptionValues();
-        var form = new OptionForm(new OptionSet([new Option("jdk", "JDK", OptionKind.Sdk) { SdkKind = "jdk" }]), values);
+        var form = new OptionForm(new OptionSet([new Option("toolkit", "Toolkit", OptionKind.Sdk) { SdkKind = "acme" }]), values);
         var window = new Window { Width = 600, Height = 200, Content = form };
         window.Show();
 
         var box = Assert.Single(form.GetLogicalDescendants().OfType<TextBox>());
-        box.Text = "/usr/lib/jvm/25";
-        Assert.Equal("/usr/lib/jvm/25", values.Get("jdk"));
+        box.Text = "/usr/lib/acme/25";
+        Assert.Equal("/usr/lib/acme/25", values.Get("toolkit"));
         window.Close();
     }, CancellationToken.None);
 

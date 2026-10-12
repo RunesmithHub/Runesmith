@@ -59,11 +59,11 @@ public sealed class LspMappingTests : IDisposable
     [Fact]
     public void WorkspaceEditsUseOpenDocumentsAndReadOtherFilesWithoutCarriageReturns()
     {
-        var openPath = Path.Combine(folder, "Open.cs");
-        var closedPath = Path.Combine(folder, "Closed.cs");
+        var openPath = Path.Combine(folder, "Open.src");
+        var closedPath = Path.Combine(folder, "Closed.src");
         File.WriteAllText(closedPath, "one\r\ntwo\r\n");
         var documents = new TestDocuments();
-        var open = new TestDocument(openPath, "Open.cs", "alpha\nbeta");
+        var open = new TestDocument(openPath, "Open.src", "alpha\nbeta");
         documents.Add(open);
         var edit = new Protocol.WorkspaceEdit
         {
@@ -89,11 +89,11 @@ public sealed class LspMappingTests : IDisposable
     [Fact]
     public void WorkspaceEditsSentAsChangesReadEachFileToo()
     {
-        var openPath = Path.Combine(folder, "Open.cs");
-        var closedPath = Path.Combine(folder, "Closed.cs");
+        var openPath = Path.Combine(folder, "Open.src");
+        var closedPath = Path.Combine(folder, "Closed.src");
         File.WriteAllText(closedPath, "one\r\ntwo\r\n");
         var documents = new TestDocuments();
-        var open = new TestDocument(openPath, "Open.cs", "alpha\nbeta");
+        var open = new TestDocument(openPath, "Open.src", "alpha\nbeta");
         documents.Add(open);
         var edit = new Protocol.WorkspaceEdit
         {
@@ -115,10 +115,10 @@ public sealed class LspMappingTests : IDisposable
     [Fact]
     public void ResourceOperationsBecomeFileOperationsAndTextEditsNameTheirFilesAsTheyEndUp()
     {
-        var program = Path.Combine(folder, "Program.cs");
+        var program = Path.Combine(folder, "Program.src");
         File.WriteAllText(program, "class Program {}\r\n");
-        var main = Path.Combine(folder, "App", "Main.cs");
-        var created = Path.Combine(folder, "New.cs");
+        var main = Path.Combine(folder, "App", "Main.src");
+        var created = Path.Combine(folder, "New.src");
         var edit = new Protocol.WorkspaceEdit
         {
             DocumentChanges =
@@ -128,7 +128,7 @@ public sealed class LspMappingTests : IDisposable
                 new Protocol.TextDocumentEdit(new Protocol.OptionalVersionedTextDocumentIdentifier(LspUri.FromPath(main), null), [new Protocol.TextEdit(Range(0, 0, 0, 0), "// moved\n")]),
                 new Protocol.CreateFile(LspUri.FromPath(created)),
                 new Protocol.TextDocumentEdit(new Protocol.OptionalVersionedTextDocumentIdentifier(LspUri.FromPath(created), null), [new Protocol.TextEdit(Range(0, 0, 0, 0), "class New {}")]),
-                new Protocol.DeleteFile(LspUri.FromPath(Path.Combine(folder, "obj")), new Protocol.DeleteFileOptions(true, true)),
+                new Protocol.DeleteFile(LspUri.FromPath(Path.Combine(folder, "tmp")), new Protocol.DeleteFileOptions(true, true)),
             ],
         };
 
@@ -138,7 +138,7 @@ public sealed class LspMappingTests : IDisposable
             [
                 new RenameFileOperation(program, main) { Overwrite = true },
                 new CreateFileOperation(created),
-                new DeleteFileOperation(Path.Combine(folder, "obj")) { Recursive = true, IgnoreIfMissing = true },
+                new DeleteFileOperation(Path.Combine(folder, "tmp")) { Recursive = true, IgnoreIfMissing = true },
             ],
             converted.FileOperations);
         Assert.Equal([main, main, created], converted.Documents.Select(d => d.FilePath));

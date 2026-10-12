@@ -141,8 +141,8 @@ const config: Config = {
           items: [
             {label: 'Plugins', to: '/plugins'},
             {label: 'Create a plugin', to: '/plugins/create-a-plugin'},
-            {label: 'C# support', to: '/plugins/csharp'},
-            {label: 'Java support', to: '/plugins/java'},
+            {label: 'C# plugin', href: 'https://github.com/RunesmithHub/plugin-csharp'},
+            {label: 'Java plugin', href: 'https://github.com/RunesmithHub/plugin-java'},
           ],
         },
         {

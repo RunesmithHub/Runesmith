@@ -45,24 +45,20 @@ others are then hidden from **Browse**.
 
 ## Official plugins
 
-Runesmith ships with no plugins. The official ones, **Git**, **GitHub**, **C#**, **C# templates**, **Java**, **Java templates**, and
-**Gitea and Forgejo**, install from the hub like any other plugin: find them in **Browse**, or on
-[hub.runesmith.dev](https://hub.runesmith.dev). Runesmith suggests the ones that fit what you open.
+Runesmith ships with no plugins. The official ones, such as those for languages, version control and images, install from the hub like
+any other plugin: find them in **Browse**, or on [hub.runesmith.dev](https://hub.runesmith.dev). Runesmith suggests the ones that fit
+what you open.
 
 ## Suggested plugins
 
-When what you open needs an official plugin that is not installed, Runesmith suggests it. Opening a file of a language shows a line over
-the editor, such as **Install the C# plugin for completion, problems and builds.** Opening a folder that is a Git repository shows a line
-over the editor area that suggests the Git plugin, and once you close it, one for the GitHub plugin when the repository has a remote on
-github.com. A folder with a C# or Java project file at its top suggests that language's plugin the same way, after Git and GitHub. Each
-plugin is suggested once each time Runesmith runs, and never while it is installed or the hub is turned off.
+When you open a file that no installed plugin knows, and an official plugin on the hub is for it, Runesmith suggests the plugin in a line
+over the editor, such as **The Go plugin on the hub works with .go. Install it?** Opening a folder suggests, in a line over the editor
+area, the official plugins that are for a file or a folder at its top. Each plugin is suggested once each time Runesmith runs, and never
+while it is installed or the hub is turned off.
 
-| Plugin | Suggested for |
-| --- | --- |
-| C#, `runesmith.csharp` | `.cs`, `.csproj`, `.sln`, `.slnx` and `.razor` files, and a folder with a `.sln`, `.slnx` or `.csproj` file at its top |
-| Java, `runesmith.java` | `.java`, `pom.xml`, `build.gradle` and `build.gradle.kts` files, and a folder with a `pom.xml`, `build.gradle` or `build.gradle.kts` file at its top |
-| Git, `runesmith.git` | A folder with a `.git` folder or file at its top |
-| GitHub, `runesmith.github` | A Git repository with a remote whose address is on `github.com`, read from its `.git/config` |
+Runesmith has no list of its own of what each plugin is for. A plugin says so in the keywords of its listing on the hub: the plugin whose
+keywords hold a file's extension without the dot, such as `go`, or the name of a file or folder that has no extension, such as
+`dockerfile` or `git`, is the one suggested.
 
 **Install** opens the plugin's page in the plugin manager, where you install it. **Don't suggest again** stops the suggestion for that
 plugin and keeps the choice in your settings, as **Plugins not to suggest** (`plugins.hub.declinedSuggestions`). The close button

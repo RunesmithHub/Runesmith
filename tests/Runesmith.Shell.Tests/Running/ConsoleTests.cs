@@ -1,3 +1,4 @@
+using Runesmith.Sdk.Running;
 using Runesmith.Shell.Running;
 
 namespace Runesmith.Shell.Tests.Running;
@@ -105,12 +106,11 @@ public sealed class ConsoleTests : IDisposable
     }
 
     [Theory]
-    [InlineData("/src/App/Program.cs(12,5): error CS0103: The name 'x' does not exist", "/src/App/Program.cs", 12, 5)]
-    [InlineData("Program.cs(3): warning CS0168", "Program.cs", 3, 0)]
-    [InlineData("   at App.Program.Main(String[] args) in /home/me/App/Program.cs:line 17", "/home/me/App/Program.cs", 17, 0)]
-    [InlineData(@"   at App.Program.Main() in C:\src\App\Program.cs:line 9", @"C:\src\App\Program.cs", 9, 0)]
-    [InlineData("src/Main.java:7: error: ';' expected", "src/Main.java", 7, 0)]
-    public void FindsCompilerMessagesAndDotnetStackFrames(string line, string path, int number, int column)
+    [InlineData("/src/app/main.ts(12,5): error TS2304: Cannot find name 'x'", "/src/app/main.ts", 12, 5)]
+    [InlineData("main.ts(3): warning", "main.ts", 3, 0)]
+    [InlineData("src/main.go:7: syntax error", "src/main.go", 7, 0)]
+    [InlineData(@"C:\src\app\main.go:9:4: undefined: x", @"C:\src\app\main.go", 9, 4)]
+    public void FindsPathsWithALine(string line, string path, int number, int column)
     {
         var link = Assert.Single(ConsoleLinks.Find(line));
 
@@ -122,22 +122,6 @@ public sealed class ConsoleTests : IDisposable
     }
 
     [Fact]
-    public void FindsJavaStackFramesRelativeToTheirPackage()
-    {
-        var links = ConsoleLinks.Find("\tat com.example.app.Main$Inner.run(Main.java:42)");
-        var noPackage = ConsoleLinks.Find("\tat Main.main(Main.java:3)");
-        var module = ConsoleLinks.Find("\tat java.base/java.lang.Thread.run(Thread.java:1583)");
-
-        var link = Assert.Single(links);
-        Assert.Equal("com/example/app/Main.java", link.Path);
-        Assert.Equal(42, link.Line);
-        Assert.True(link.IsSourceRelative);
-        Assert.Equal("Main.java:42", "\tat com.example.app.Main$Inner.run(Main.java:42)".Substring(link.Start, link.Length));
-        Assert.Equal("Main.java", Assert.Single(noPackage).Path);
-        Assert.Equal("java/lang/Thread.java", Assert.Single(module).Path);
-    }
-
-    [Fact]
     public void IgnoresLinesWithoutLocations()
     {
         Assert.Empty(ConsoleLinks.Find("Console.WriteLine(12) is not a file"));
@@ -146,25 +130,25 @@ public sealed class ConsoleTests : IDisposable
     }
 
     [Fact]
-    public void ResolvesLinksAgainstTheFoldersAndJavaSourceRoots()
+    public void ResolvesLinksAgainstTheFoldersAndSourceRoots()
     {
-        var source = Path.Combine(root, "src", "main", "java", "com", "example");
+        var source = Path.Combine(root, "src", "main", "com", "example");
         Directory.CreateDirectory(source);
-        var java = Path.Combine(source, "Main.java");
-        var csharp = Path.Combine(root, "Program.cs");
-        File.WriteAllText(java, "");
-        File.WriteAllText(csharp, "");
+        var nested = Path.Combine(source, "Main.kt");
+        var top = Path.Combine(root, "main.go");
+        File.WriteAllText(nested, "");
+        File.WriteAllText(top, "");
         IReadOnlyList<string>? files = null;
         var resolver = new ConsoleLinkResolver(() => [root], () => files);
 
-        Assert.Equal(csharp, resolver.Resolve(new ConsoleLink(0, 1, "Program.cs", 1, 0)));
-        Assert.Equal(csharp, resolver.Resolve(new ConsoleLink(0, 1, csharp, 1, 0)));
-        Assert.Null(resolver.Resolve(new ConsoleLink(0, 1, "Missing.cs", 1, 0)));
-        Assert.Null(resolver.Resolve(new ConsoleLink(0, 1, "com/example/Main.java", 1, 0, IsSourceRelative: true)));
+        Assert.Equal(top, resolver.Resolve(new ConsoleLink(0, 1, "main.go", 1, 0)));
+        Assert.Equal(top, resolver.Resolve(new ConsoleLink(0, 1, top, 1, 0)));
+        Assert.Null(resolver.Resolve(new ConsoleLink(0, 1, "missing.go", 1, 0)));
+        Assert.Null(resolver.Resolve(new ConsoleLink(0, 1, "com/example/Main.kt", 1, 0, IsSourceRelative: true)));
 
-        files = [csharp, java];
-        Assert.Equal(java, resolver.Resolve(new ConsoleLink(0, 1, "com/example/Main.java", 1, 0, IsSourceRelative: true)));
-        Assert.Null(resolver.Resolve(new ConsoleLink(0, 1, "java/lang/Thread.java", 1, 0, IsSourceRelative: true)));
+        files = [top, nested];
+        Assert.Equal(nested, resolver.Resolve(new ConsoleLink(0, 1, "com/example/Main.kt", 1, 0, IsSourceRelative: true)));
+        Assert.Null(resolver.Resolve(new ConsoleLink(0, 1, "lang/Thread.kt", 1, 0, IsSourceRelative: true)));
     }
 
     public void Dispose() => Directory.Delete(root, recursive: true);

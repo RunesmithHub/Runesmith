@@ -18,7 +18,7 @@ public sealed class DebugModelsTests : IAsyncDisposable
 
     public DebugModelsTests()
     {
-        program = new ScriptedProgram(Path.Combine(root, "Program.cs"));
+        program = new ScriptedProgram(Path.Combine(root, "Program.src"));
         breakpoints = Breakpoints(root, state);
         debug = new DebugService([new Lazy<IDebugAdapterProvider>(() => new FakeEngine())], breakpoints, new FakeWorkspace(root), _ => null, _ => { }, _ => { },
             (_, _, _, _) => Task.FromResult((program.Client, (Func<ValueTask>)program.ReleaseAsync)));
@@ -35,7 +35,7 @@ public sealed class DebugModelsTests : IAsyncDisposable
 
     private async Task<DebugSession> PausedAsync()
     {
-        var session = (await debug.StartAsync("App", Plan(Path.Combine(root, "App.dll")), new ConsoleBuffer(), null, Token))!;
+        var session = (await debug.StartAsync("App", Plan(Path.Combine(root, "app.bin")), new ConsoleBuffer(), null, Token))!;
         await program.StopAtBreakpointAsync();
         await WaitAsync(() => session.State == DebugState.Paused);
         return session;
@@ -56,7 +56,7 @@ public sealed class DebugModelsTests : IAsyncDisposable
         Assert.Equal(["Main Thread (paused)", "Worker"], model.Threads.Select(t => t.Text));
         Assert.Equal(["System.Console.WriteLine()", "Program.Main()", "Program.<Main>()"], model.Frames.Select(f => f.Name));
         Assert.Equal([false, true, true], model.Frames.Select(f => f.HasSource));
-        Assert.Equal("Program.cs:5", model.Frames[1].Location);
+        Assert.Equal("Program.src:5", model.Frames[1].Location);
         Assert.Same(model.Frames[1], model.SelectedFrame);
         Assert.Empty(navigated);
 
@@ -142,13 +142,13 @@ public sealed class DebugModelsTests : IAsyncDisposable
     [Fact]
     public async Task TheBreakpointsListTurnsBreakpointsAndExceptionFiltersOnAndOff()
     {
-        var path = Path.Combine(root, "src", "Program.cs");
+        var path = Path.Combine(root, "src", "Program.src");
         breakpoints.Toggle(path, 4);
         breakpoints.Set(new LineBreakpoint(path, 9) { Condition = "x > 1", LogMessage = "x is {x}" });
         var model = new BreakpointsModel(breakpoints, debug, () => root);
         model.Refresh();
 
-        Assert.Equal(["Program.cs:5", "Program.cs:10"], model.Items.Select(i => $"{i.FileName}:{i.Line}"));
+        Assert.Equal(["Program.src:5", "Program.src:10"], model.Items.Select(i => $"{i.FileName}:{i.Line}"));
         Assert.Equal("src", model.Items[0].Folder);
         Assert.Equal("when x > 1  logs x is {x}", model.Items[1].Detail);
         Assert.Empty(model.ExceptionFilters);

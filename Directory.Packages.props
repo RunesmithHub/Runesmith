@@ -5,7 +5,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
     <AvaloniaVersion>12.1.4</AvaloniaVersion>
-    <!-- The TextMate engine and its bundled grammars and themes must match. -->
+    <!-- The TextMate engine; the grammars come from plugins. -->
     <TextMateSharpVersion>2.0.4</TextMateSharpVersion>
     <!-- The SDK's compiler extensions build against the compiler of the oldest .NET SDK plugins build with, .NET 10's first. -->
     <RoslynComponentVersion>5.0.0</RoslynComponentVersion>
@@ -41,7 +41,6 @@
   </ItemGroup>
   <ItemGroup Label="Languages">
     <PackageVersion Include="TextMateSharp" Version="$(TextMateSharpVersion)" />
-    <PackageVersion Include="TextMateSharp.Grammars" Version="$(TextMateSharpVersion)" />
   </ItemGroup>
   <ItemGroup Label="Analyzers">
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />

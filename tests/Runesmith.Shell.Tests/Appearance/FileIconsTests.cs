@@ -24,7 +24,7 @@ public sealed class FileIconsTests
         Folder = new FileIcon(Fold, "#E4A23C"),
         FileNames = new Dictionary<string, FileIcon> { ["Dockerfile"] = new(Box, "#2496ED") },
         Extensions = new Dictionary<string, FileIcon> { [".ts"] = new(Dot, "#3178C6"), [".test.ts"] = new(Bar, "#C63131") { LightColor = "#8A1F1F" } },
-        Languages = new Dictionary<string, FileIcon> { ["csharp"] = new(Ring, "#9B4F96") { IsFilled = true } },
+        Languages = new Dictionary<string, FileIcon> { ["sample"] = new(Ring, "#9B4F96") { IsFilled = true } },
         FolderNames = new Dictionary<string, FileIcon> { ["src"] = new(Box, "#22C55E") },
     };
 
@@ -36,9 +36,9 @@ public sealed class FileIconsTests
         Assert.Equal(Color.Parse("#2496ED"), icons.For("/repo/dockerfile").Color);
         Assert.Equal(Color.Parse("#C63131"), icons.For("/repo/a.test.ts").Color);
         Assert.Equal(Color.Parse("#3178C6"), icons.For("/repo/a.ts").Color);
-        var csharp = icons.For("/repo/Program.cs");
-        Assert.Equal(Color.Parse("#9B4F96"), csharp.Color);
-        Assert.True(csharp.IsFilled);
+        var sample = icons.For("/repo/Program.src");
+        Assert.Equal(Color.Parse("#9B4F96"), sample.Color);
+        Assert.True(sample.IsFilled);
         Assert.Null(icons.For("/repo/notes.txt").Color);
         Assert.Equal(Color.Parse("#22C55E"), icons.For("/repo/SRC", isDirectory: true).Color);
         Assert.Equal(Color.Parse("#E4A23C"), icons.For("/repo/docs", isDirectory: true).Color);
@@ -51,10 +51,10 @@ public sealed class FileIconsTests
         var (gone, settings, _) = Create("ember.missing");
 
         Assert.Same(Icons.Folder, partial.For("/repo/src", isDirectory: true).Data);
-        Assert.Same(Icons.FileCode, partial.For("/repo/Program.cs").Data);
+        Assert.Same(Icons.FileCode, partial.For("/repo/Program.src").Data);
         Assert.Equal(BuiltInAppearance.IconTheme, gone.Current.Theme.Id);
         Assert.Equal("ember.missing", settings.Get<string>(SettingKeys.FileIconTheme));
-        Assert.Same(Icons.FileCode, gone.For("/repo/Program.cs").Data);
+        Assert.Same(Icons.FileCode, gone.For("/repo/Program.src").Data);
     }, CancellationToken.None);
 
     [Fact]
@@ -109,12 +109,12 @@ public sealed class FileIconsTests
     private sealed class FakeLanguages : ILanguageRegistry
     {
         private static readonly LanguageDefinition Plain = new(ILanguageRegistry.PlainText, "Plain Text") { Icon = "file-text" };
-        private static readonly LanguageDefinition CSharp = new("csharp", "C#") { Extensions = [".cs"], Icon = "file-code" };
+        private static readonly LanguageDefinition Sample = new("sample", "Sample") { Extensions = [".src"], Icon = "file-code" };
 
-        public IReadOnlyList<LanguageDefinition> Languages => [Plain, CSharp];
+        public IReadOnlyList<LanguageDefinition> Languages => [Plain, Sample];
 
         public LanguageDefinition? Find(string languageId) => Languages.FirstOrDefault(l => l.Id == languageId);
 
-        public LanguageDefinition GetLanguageForFile(string filePath) => filePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ? CSharp : Plain;
+        public LanguageDefinition GetLanguageForFile(string filePath) => filePath.EndsWith(".src", StringComparison.OrdinalIgnoreCase) ? Sample : Plain;
     }
 }

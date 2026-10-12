@@ -49,7 +49,7 @@ public sealed class DependencyTests : IDisposable
     [Fact]
     public void APluginWhoseDependencyFailedDoesNotLoad()
     {
-        folder.Add(Greeters.Greeter with { RunesmithApi = "^0.2.0" });
+        folder.Add(Greeters.Greeter with { RunesmithApi = "^0.3.0" });
         folder.Add(Greeters.Welcome);
 
         var welcome = LoadAll().Single(p => p.Manifest.Id == "tests.welcome");

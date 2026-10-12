@@ -44,33 +44,33 @@ public sealed class SystemTrashTests : IDisposable
     }
 
     [Theory]
-    [InlineData(@"C:\Users\me\Order.cs", DriveType.Fixed, true, true)]
-    [InlineData("D:/work/Order.cs", DriveType.Fixed, true, true)]
-    [InlineData(@"E:\Order.cs", DriveType.Removable, true, false)]
-    [InlineData(@"Z:\Order.cs", DriveType.Network, true, false)]
-    [InlineData(@"\\server\share\Order.cs", DriveType.Fixed, true, false)]
-    [InlineData("Order.cs", DriveType.Fixed, true, false)]
-    [InlineData(@"C:\Users\me\Order.cs", DriveType.Fixed, false, false)]
+    [InlineData(@"C:\Users\me\Order.src", DriveType.Fixed, true, true)]
+    [InlineData("D:/work/Order.src", DriveType.Fixed, true, true)]
+    [InlineData(@"E:\Order.src", DriveType.Removable, true, false)]
+    [InlineData(@"Z:\Order.src", DriveType.Network, true, false)]
+    [InlineData(@"\\server\share\Order.src", DriveType.Fixed, true, false)]
+    [InlineData("Order.src", DriveType.Fixed, true, false)]
+    [InlineData(@"C:\Users\me\Order.src", DriveType.Fixed, false, false)]
     public void OnlyFilesOnLocalFixedDrivesGoToTheRecycleBin(string path, DriveType type, bool is64BitProcess, bool recyclable) =>
         Assert.Equal(recyclable, RecycleBin.CanRecycle(path, _ => type, is64BitProcess));
 
     [Fact]
     public void ReadsWhereARecycledItemCameFromInBothVersionsOfItsRecord()
     {
-        Assert.Equal(@"C:\Users\me\Old Order.cs", RecycleBin.OriginalPath(Record(2, @"C:\Users\me\Old Order.cs")));
-        Assert.Equal(@"C:\Users\me\Old Order.cs", RecycleBin.OriginalPath(Record(1, @"C:\Users\me\Old Order.cs")));
-        Assert.Null(RecycleBin.OriginalPath(Record(3, @"C:\Users\me\Old Order.cs")));
+        Assert.Equal(@"C:\Users\me\Old Order.src", RecycleBin.OriginalPath(Record(2, @"C:\Users\me\Old Order.src")));
+        Assert.Equal(@"C:\Users\me\Old Order.src", RecycleBin.OriginalPath(Record(1, @"C:\Users\me\Old Order.src")));
+        Assert.Null(RecycleBin.OriginalPath(Record(3, @"C:\Users\me\Old Order.src")));
         Assert.Null(RecycleBin.OriginalPath([2, 0, 0]));
-        Assert.Null(RecycleBin.OriginalPath([.. Record(2, @"C:\a.cs").Take(30)]));
+        Assert.Null(RecycleBin.OriginalPath([.. Record(2, @"C:\a.src").Take(30)]));
     }
 
     [Fact]
     public void FindsTheItemItRecycledAmongOlderOnesAndPutsItBack()
     {
-        var file = Write("Order.cs", "older");
+        var file = Write("Order.src", "older");
         var trash = new RecycleBin(_ => true, _ => Bin, Recycle);
         var older = trash.TryMoveToTrash(file);
-        Write("Order.cs", "newer");
+        Write("Order.src", "newer");
 
         var trashed = trash.TryMoveToTrash(file);
 
@@ -90,11 +90,11 @@ public sealed class SystemTrashTests : IDisposable
     [Fact]
     public void LeavesWhatItCannotRecycleToTheEditAndNoticesWhatWindowsDeletedForGood()
     {
-        var file = Write("Order.cs", "order");
+        var file = Write("Order.src", "order");
 
         Assert.Null(new RecycleBin(_ => false, _ => Bin, Recycle).TryMoveToTrash(file));
         Assert.Null(new RecycleBin(_ => true, _ => null, Recycle).TryMoveToTrash(file));
-        Assert.Null(new RecycleBin(_ => true, _ => Bin, Recycle).TryMoveToTrash(file, Path.Combine(root, "Elsewhere.cs")));
+        Assert.Null(new RecycleBin(_ => true, _ => Bin, Recycle).TryMoveToTrash(file, Path.Combine(root, "Elsewhere.src")));
         Assert.Null(new RecycleBin(_ => true, _ => Bin, _ => false).TryMoveToTrash(file));
         Assert.Equal("order", File.ReadAllText(file));
         Assert.Equal(0, recycled);

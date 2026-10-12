@@ -39,8 +39,8 @@ public sealed class WorkspaceFilesTests : IDisposable
     {
         await workspace.Workspace.OpenAsync(workspace.Root);
         var batches = new Batches();
-        using var watcher = Files.Watch(["**/*.cs"], batches.Add);
-        var program = Path.Combine(workspace.Root, "src", "Program.cs");
+        using var watcher = Files.Watch(["**/*.src"], batches.Add);
+        var program = Path.Combine(workspace.Root, "src", "Program.src");
 
         Files.Report(workspace.Root, [Created(program), Changed(program), Created(Path.Combine(workspace.Root, "notes.md"))], overflowed: false);
 
@@ -57,14 +57,14 @@ public sealed class WorkspaceFilesTests : IDisposable
         var everything = new Batches();
         using var first = Files.Watch([], plain.Add, new FileWatchOptions { Exclude = ["*.log"] });
         using var second = Files.Watch([], everything.Add, new FileWatchOptions { IncludeExcluded = true });
-        var output = Path.Combine(workspace.Root, "bin", "Debug", "App.dll");
+        var output = Path.Combine(workspace.Root, "out", "debug", "app.bin");
         var buildLog = Path.Combine(workspace.Root, "build.log");
-        var source = Path.Combine(workspace.Root, "App.cs");
+        var source = Path.Combine(workspace.Root, "App.src");
 
-        Files.Report(workspace.Root, [Created(output), Created(Path.Combine(workspace.Root, ".git", "index")), Created(buildLog), Changed(source)], overflowed: false);
+        Files.Report(workspace.Root, [Created(output), Created(Path.Combine(workspace.Root, ".vcs", "index")), Created(buildLog), Changed(source)], overflowed: false);
 
         Assert.Equal([new FileChangeEvent(FileChangeKind.Changed, source)], await plain.NextAsync());
-        Assert.Equal([output, Path.Combine(workspace.Root, ".git", "index"), buildLog, source], (await everything.NextAsync()).Select(e => e.Path));
+        Assert.Equal([output, Path.Combine(workspace.Root, ".vcs", "index"), buildLog, source], (await everything.NextAsync()).Select(e => e.Path));
     }
 
     [Fact]
@@ -72,10 +72,10 @@ public sealed class WorkspaceFilesTests : IDisposable
     {
         await workspace.Workspace.OpenAsync(workspace.Root);
         var batches = new Batches();
-        using var watcher = Files.Watch(["*.cs"], batches.Add);
-        var code = Path.Combine(workspace.Root, "A.cs");
+        using var watcher = Files.Watch(["*.src"], batches.Add);
+        var code = Path.Combine(workspace.Root, "A.src");
         var text = Path.Combine(workspace.Root, "A.txt");
-        var other = Path.Combine(workspace.Root, "B.cs");
+        var other = Path.Combine(workspace.Root, "B.src");
 
         Files.Report(workspace.Root, [Renamed(code, text)], overflowed: false);
         Assert.Equal([new FileChangeEvent(FileChangeKind.Deleted, code)], await batches.NextAsync());
@@ -95,7 +95,7 @@ public sealed class WorkspaceFilesTests : IDisposable
         var src = Directory.CreateDirectory(Path.Combine(workspace.Root, "src")).FullName;
         using var watcher = Files.Watch([], batches.Add, new FileWatchOptions { Folder = src, Delay = TimeSpan.FromMilliseconds(300) });
 
-        Files.Report(workspace.Root, [Created(Path.Combine(src, "A.cs"))], overflowed: false);
+        Files.Report(workspace.Root, [Created(Path.Combine(src, "A.src"))], overflowed: false);
         Files.Report(workspace.Root, [], overflowed: true);
 
         Assert.Equal([new FileChangeEvent(FileChangeKind.Rescan, src)], await batches.NextAsync());
@@ -107,7 +107,7 @@ public sealed class WorkspaceFilesTests : IDisposable
         await workspace.Workspace.OpenAsync(workspace.Root);
         var batches = new Batches();
         using var watcher = Files.Watch([], batches.Add, new FileWatchOptions { Delay = TimeSpan.FromMilliseconds(200) });
-        var file = Path.Combine(workspace.Root, "A.cs");
+        var file = Path.Combine(workspace.Root, "A.src");
 
         Files.Report(workspace.Root, [Created(file)], overflowed: false);
         Files.Report(workspace.Root, [Changed(file)], overflowed: false);
@@ -157,7 +157,7 @@ public sealed class WorkspaceFilesTests : IDisposable
         var watcher = Files.Watch([], batches.Add);
 
         watcher.Dispose();
-        Files.Report(workspace.Root, [Created(Path.Combine(workspace.Root, "A.cs"))], overflowed: false);
+        Files.Report(workspace.Root, [Created(Path.Combine(workspace.Root, "A.src"))], overflowed: false);
 
         Assert.False(watcher.IsWatching);
         Assert.False(await batches.AnyWithinAsync(TimeSpan.FromMilliseconds(200)));
@@ -166,14 +166,14 @@ public sealed class WorkspaceFilesTests : IDisposable
     [Fact]
     public async Task FollowsRealChangesOnDiskWithRenamesAndTheFilesOfAFolder()
     {
-        var old = workspace.Write(Path.Combine("src", "Old.cs"), "class Old {}");
-        workspace.Write(Path.Combine("lib", "One.cs"));
-        workspace.Write(Path.Combine("lib", "Two.cs"));
+        var old = workspace.Write(Path.Combine("src", "Old.src"), "class Old {}");
+        workspace.Write(Path.Combine("lib", "One.src"));
+        workspace.Write(Path.Combine("lib", "Two.src"));
         await workspace.Workspace.OpenAsync(workspace.Root);
         await workspace.Workspace.GetFilesAsync(Token);
         var events = new Batches();
-        using var watcher = Files.Watch(["**/*.cs"], events.Add);
-        var renamed = Path.Combine(workspace.Root, "src", "New.cs");
+        using var watcher = Files.Watch(["**/*.src"], events.Add);
+        var renamed = Path.Combine(workspace.Root, "src", "New.src");
 
         File.Move(old, renamed);
         var rename = await events.UntilAsync(e => e.Kind == FileChangeKind.Renamed);
@@ -181,20 +181,20 @@ public sealed class WorkspaceFilesTests : IDisposable
         Assert.Equal(renamed, rename.Path);
 
         Directory.Move(Path.Combine(workspace.Root, "lib"), Path.Combine(workspace.Root, "core"));
-        var moved = await events.UntilAsync(e => e.Path == Path.Combine(workspace.Root, "core", "Two.cs"));
-        Assert.Equal(Path.Combine(workspace.Root, "lib", "Two.cs"), moved.OldPath);
+        var moved = await events.UntilAsync(e => e.Path == Path.Combine(workspace.Root, "core", "Two.src"));
+        Assert.Equal(Path.Combine(workspace.Root, "lib", "Two.src"), moved.OldPath);
     }
 
     [Fact]
     public async Task AFolderThatIsDeletedOrRenamedComesWithTheFilesTheListKnewInsideItAsTheBatchLeftThem()
     {
-        var order = workspace.Write(Path.Combine("Billing", "Order.cs"));
-        var invoice = workspace.Write(Path.Combine("Billing", "Invoice.cs"));
+        var order = workspace.Write(Path.Combine("Billing", "Order.src"));
+        var invoice = workspace.Write(Path.Combine("Billing", "Invoice.src"));
         await workspace.Workspace.OpenAsync(workspace.Root);
-        var index = new FileIndex(workspace.Root, GlobMatcher.Parse(CoreSettings.DefaultExclude));
+        var index = new FileIndex(workspace.Root, GlobMatcher.Parse(TestSettings.Excluded));
         await index.GetFilesAsync(Token);
         var billing = Path.Combine(workspace.Root, "Billing");
-        var moved = Path.Combine(workspace.Root, "Models", "Order.cs");
+        var moved = Path.Combine(workspace.Root, "Models", "Order.src");
 
         var expanded = Runesmith.Workspace.Files.Workspace.Expand(index,
             [new FileChange(WatcherChangeTypes.Renamed, moved, order), new FileChange(WatcherChangeTypes.Deleted, billing)]);
@@ -233,7 +233,7 @@ public sealed class WorkspaceFilesTests : IDisposable
         using var two = Files.Watch(["*.json"], second.Add, new FileWatchOptions { Folder = outside });
         var settings = Path.Combine(outside, "settings.json");
 
-        Files.Report(outside, [Created(settings), Created(Path.Combine(outside, "node_modules", "x.json"))], overflowed: false);
+        Files.Report(outside, [Created(settings), Created(Path.Combine(outside, "deps", "x.json"))], overflowed: false);
 
         Assert.Equal([new FileChangeEvent(FileChangeKind.Created, settings)], await first.NextAsync());
         Assert.Equal([new FileChangeEvent(FileChangeKind.Created, settings)], await second.NextAsync());
