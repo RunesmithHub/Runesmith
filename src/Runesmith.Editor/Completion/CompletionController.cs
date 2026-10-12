@@ -73,6 +73,9 @@ internal sealed class CompletionController : IDisposable
         };
     }
 
+    /// <summary>Raised when an accepted suggestion's text is in the document.</summary>
+    public event EventHandler? Inserted;
+
     /// <summary>Gets the popup, which the editor places in its visual tree so it gets the theme's styles.</summary>
     public Avalonia.Controls.Primitives.Popup Popup => popup;
 
@@ -381,12 +384,19 @@ internal sealed class CompletionController : IDisposable
         Close();
         if (item.IsSnippet)
         {
-            _ = area.InsertSnippetAsync(text, main.Span, changes[1..]);
+            _ = InsertSnippetAsync(text, main.Span, changes[1..]);
             return;
         }
 
         changes.Sort((a, b) => a.Span.Start.CompareTo(b.Span.Start));
         area.ApplyChanges(changes, EditorSelection.At(start + shift + text.Length));
+        Inserted?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task InsertSnippetAsync(string text, TextSpan span, IReadOnlyList<TextChange> additionalChanges)
+    {
+        await area.InsertSnippetAsync(text, span, additionalChanges);
+        Inserted?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Offers a snippet tab stop's choices in the list; accepting one replaces the tab stop's text.</summary>

@@ -32,6 +32,11 @@ are highlighted in each suggestion, and the selected one shows its documentation
 | <Keys>Enter</Keys> or <Keys>Tab</Keys> | Insert the selected suggestion. |
 | <Keys>Escape</Keys> | Close the list. |
 
+A suggestion for a method or a constructor inserts its parentheses too, where the code must call it, as after `new`. The caret goes
+between them when the call takes arguments, and signature help shows them; it goes after them when the call takes none. Type `)` to step
+over the closing parenthesis. Where a method's name can stand alone, such as in `nameof(...)` or when it is passed as a delegate, only the
+name is inserted.
+
 Some suggestions also accept characters such as `(` or `;`: typing one inserts the suggestion and then the character. Turn **Suggest while
 typing** (`editor.completionOnType`) off to show completion only on <Keys>Ctrl+Space</Keys> and after characters such as `.`.
 

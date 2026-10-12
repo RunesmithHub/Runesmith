@@ -50,6 +50,7 @@ public sealed partial class TextEditor : UserControl, IEditorView, IDisposable
         hover = new HoverController(Area, services.Features);
         changePopup = new ChangePopup(Area);
         Area.SnippetChoicesRequested += (_, target) => completion.ShowChoices(target.Span, target.Choices!);
+        completion.Inserted += (_, _) => signatureHelp.OnCompletionInserted();
         changePopup.ShowDiffRequested += (_, _) => ShowChangesRequested?.Invoke(this, EventArgs.Empty);
         Area.LineChangeClicked += (_, change) =>
         {

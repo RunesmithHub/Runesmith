@@ -15,6 +15,9 @@ internal sealed class FakeAnalyzer : ILanguageAnalyzer
 
     public bool ThrowOnComplete { get; set; }
 
+    /// <summary>Gets the snippets suggested words insert, by word.</summary>
+    public Dictionary<string, string> Snippets { get; } = [];
+
     public bool ThrowOnDiagnostics { get; set; }
 
     public IReadOnlyList<string> LanguageIds => ["fake"];
@@ -47,7 +50,12 @@ internal sealed class FakeAnalyzer : ILanguageAnalyzer
             throw new InvalidOperationException("broken");
 
         foreach (var word in words)
-            sink.Add(new CompletionCandidate(word, CompletionKind.Text));
+        {
+            sink.Add(Snippets.TryGetValue(word, out var snippet)
+                ? new CompletionCandidate(word, CompletionKind.Method, InsertText: snippet) { IsSnippet = true }
+                : new CompletionCandidate(word, CompletionKind.Text));
+        }
+
         return ValueTask.CompletedTask;
     }
 

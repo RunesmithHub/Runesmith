@@ -37,7 +37,13 @@ public readonly record struct CompletionCandidate(
     string? Detail = null,
     string? InsertText = null,
     string? FilterText = null,
-    object? Data = null);
+    object? Data = null)
+{
+    /// <summary>Gets whether <see cref="InsertText"/> is a snippet, with tab stops and placeholders as the SDK's <c>SnippetString</c>
+    /// describes, such as <c>Add($0)</c> to put the caret between the parentheses of a call.</summary>
+    /// <remarks>Added in plugin API 0.1.4.</remarks>
+    public bool IsSnippet { get; init; }
+}
 
 /// <summary>A suggestion in a completion result, ranked.</summary>
 public sealed class CompletionEntry
@@ -50,6 +56,7 @@ public sealed class CompletionEntry
         Detail = candidate.Detail;
         InsertText = candidate.InsertText;
         FilterText = candidate.FilterText;
+        IsSnippet = candidate.IsSnippet;
         Data = candidate.Data;
         Score = score;
     }
@@ -66,6 +73,10 @@ public sealed class CompletionEntry
     public string? InsertText { get; }
 
     public string? FilterText { get; }
+
+    /// <summary>Gets whether <see cref="InsertText"/> is a snippet.</summary>
+    /// <remarks>Added in plugin API 0.1.4.</remarks>
+    public bool IsSnippet { get; }
 
     public object? Data { get; }
 

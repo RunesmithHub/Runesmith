@@ -162,6 +162,44 @@ public sealed class SnippetTests
     });
 
     [Fact]
+    public Task ACallsSnippetPutsTheCaretBetweenItsParenthesesAndAsksForSignatureHelp() => Run(async (editor, fakes) =>
+    {
+        editor.Area.InsertText("list.Ad");
+        fakes.Language.SignatureHelpTriggers = "(";
+        fakes.Language.Completions = new CompletionList([new CompletionItem("Add", CompletionItemKind.Method) { InsertText = "Add($0)", IsSnippet = true }]);
+        var popup = editor.GetVisualDescendants().OfType<CompletionPopup>().Single();
+
+        editor.TriggerCompletion();
+        await WaitAsync(() => popup.IsOpen);
+        Press(editor, Key.Enter);
+
+        Assert.Equal("list.Add()", Text(editor));
+        Assert.Equal(9, editor.CaretOffset);
+        Assert.False(editor.Area.IsInSnippet);
+        await WaitAsync(() => fakes.Language.SignatureHelpRequests.Contains(9));
+        Type(editor, "x");
+        Assert.Equal("list.Add(x)", Text(editor));
+    });
+
+    [Fact]
+    public Task ACallWithoutArgumentsPutsTheCaretAfterItsParenthesesAndAsksForNoSignatureHelp() => Run(async (editor, fakes) =>
+    {
+        editor.Area.InsertText("list.Cl");
+        fakes.Language.SignatureHelpTriggers = "(";
+        fakes.Language.Completions = new CompletionList([new CompletionItem("Clear", CompletionItemKind.Method) { InsertText = "Clear()", IsSnippet = true }]);
+        var popup = editor.GetVisualDescendants().OfType<CompletionPopup>().Single();
+
+        editor.TriggerCompletion();
+        await WaitAsync(() => popup.IsOpen);
+        Press(editor, Key.Enter);
+
+        Assert.Equal("list.Clear()", Text(editor));
+        Assert.Equal(12, editor.CaretOffset);
+        await Task.Delay(50);
+        Assert.Empty(fakes.Language.SignatureHelpRequests);
+    });
+
+    [Fact]
     public void ARangeGrowsWithTypingAtItsEdgeOnlyWhileItIsTheCurrentStop()
     {
         var expansion = SnippetExpansion.Create(SnippetParser.Parse("$1$2"), _ => null);

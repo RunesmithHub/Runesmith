@@ -48,6 +48,21 @@ public sealed class CompletionSinkTests
     }
 
     [Fact]
+    public void ASnippetKeepsItsInsertTextAndSaysItIsASnippet()
+    {
+        var snapshot = TextSnapshot.Create("Ad");
+        var sink = new CompletionSink(snapshot, 2);
+        sink.Add(new CompletionCandidate("Add", CompletionKind.Method, InsertText: "Add($0)") { IsSnippet = true });
+        sink.Add(new CompletionCandidate("Address", CompletionKind.Property));
+
+        var items = sink.ToResult(1).Items;
+
+        Assert.True(items.Single(item => item.Label == "Add").IsSnippet);
+        Assert.Equal("Add($0)", items.Single(item => item.Label == "Add").InsertText);
+        Assert.False(items.Single(item => item.Label == "Address").IsSnippet);
+    }
+
+    [Fact]
     public void FiltersByTheFilterTextWhenGiven()
     {
         var snapshot = TextSnapshot.Create("ov");

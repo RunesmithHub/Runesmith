@@ -69,6 +69,7 @@ Completion does the expensive work once per word and the cheap work per key pres
    offset, the trigger (`Invoked`, `Character` or `Incomplete`) and the typed character.
 2. **Candidates.** The analyzer sets the span of the word being completed with `SetWordSpan` when it differs from the identifier before
    the offset, and adds `CompletionCandidate` values to the sink: a label, a kind, a sort group and data to resolve it later, nothing more.
+   A candidate whose `InsertText` is a snippet, such as `Add($0)` for a call that needs its parentheses, sets `IsSnippet`.
 3. **Filter.** The sink matches each candidate against the typed part of the word with `CompletionMatcher`, the same matcher the editor
    uses. A 64-bit mask of the characters a label contains rejects most candidates with one AND, before any scoring.
 4. **Rank and cap.** The matches are ranked by score, then sort group, then label, and the list is cut at 300 items. Only a cut list is

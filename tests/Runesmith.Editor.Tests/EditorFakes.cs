@@ -162,12 +162,21 @@ internal sealed class FakeLanguageFeatures : ILanguageFeatures
     public Task<IReadOnlyList<DocumentLocation>> GetDefinitionsAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<DocumentLocation>>([]);
 
-    public bool IsSignatureHelpTrigger(IDocument document, char character) => false;
+    /// <summary>Gets or sets the characters that open signature help.</summary>
+    public string SignatureHelpTriggers { get; set; } = "";
+
+    /// <summary>Gets the offsets signature help was asked for at.</summary>
+    public List<int> SignatureHelpRequests { get; } = [];
+
+    public bool IsSignatureHelpTrigger(IDocument document, char character) => SignatureHelpTriggers.Contains(character, StringComparison.Ordinal);
 
     public bool IsSignatureHelpRetrigger(IDocument document, char character) => false;
 
-    public Task<SignatureHelpInfo?> GetSignatureHelpAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken) =>
-        Task.FromResult<SignatureHelpInfo?>(null);
+    public Task<SignatureHelpInfo?> GetSignatureHelpAsync(IDocument document, TextSnapshot snapshot, int offset, CancellationToken cancellationToken)
+    {
+        SignatureHelpRequests.Add(offset);
+        return Task.FromResult<SignatureHelpInfo?>(null);
+    }
 }
 
 internal sealed class NoHighlighting : ISyntaxHighlighterProvider
