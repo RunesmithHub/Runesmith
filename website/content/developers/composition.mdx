@@ -31,7 +31,8 @@ who change it; plugin authors need only [Plugins](/plugins).
    Older manifests may also use Runesmith's other assemblies, such as `Runesmith.LanguageServices`.
 4. **Compose.** `RunesmithComposition` discovers the parts of Runesmith's host assemblies (`Runesmith.Sdk`, `Runesmith.Workspace`,
    `Runesmith.Languages`, `Runesmith.Editor` and `Runesmith.Shell`) and of each plugin's implementation assembly, in dependency order.
-   A plugin whose parts cannot be read fails, and so do the plugins that depend on it. It checks that every import has a fitting export, and
+   A plugin whose parts cannot be read fails, and so do the plugins that depend on it. The reason is what stopped the scan, such as an
+   assembly that would not load, reported once for all the types it stopped. It checks that every import has a fitting export, and
    creates an export provider. Parts with errors are left out and their errors reported; the rest works.
 
 </Steps>

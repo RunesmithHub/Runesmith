@@ -37,7 +37,7 @@ public static class RunesmithComposition
 
         var discovery = new AttributedPartDiscovery(resolver, isNonPublicSupported: true);
         var hostParts = await discovery.CreatePartsAsync(options.HostAssemblies, progress: null, cancellationToken);
-        var errors = hostParts.DiscoveryErrors.Select(error => error.Message).ToList();
+        var errors = DiscoveryFailures.Describe(hostParts.DiscoveryErrors);
         var catalog = ComposableCatalog.Create(resolver).AddParts(hostParts);
         foreach (var (index, assembly) in loaded)
         {
@@ -51,8 +51,9 @@ public static class RunesmithComposition
             var parts = await discovery.CreatePartsAsync([assembly], progress: null, cancellationToken);
             if (parts.DiscoveryErrors.Count > 0)
             {
-                plugins[index] = plugins[index].Fail(parts.DiscoveryErrors[0].Message);
-                errors.AddRange(parts.DiscoveryErrors.Select(error => error.Message));
+                var failures = DiscoveryFailures.Describe(parts.DiscoveryErrors);
+                plugins[index] = plugins[index].Fail(string.Join(" ", failures));
+                errors.AddRange(failures.Select(failure => $"{plugins[index].Manifest.Name}: {failure}"));
                 continue;
             }
 

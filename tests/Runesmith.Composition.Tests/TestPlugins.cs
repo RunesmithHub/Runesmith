@@ -23,6 +23,9 @@ internal sealed record TestPlugin(string Id, string Root)
     /// <summary>Gets the plugins whose contracts its code is built against, declared or not.</summary>
     public IReadOnlyList<TestPlugin> BuiltAgainst { get; init; } = [];
 
+    /// <summary>Gets libraries from <see cref="TestPluginFolder.AddLibrary"/> that its code is built against without carrying them.</summary>
+    public IReadOnlyList<string> References { get; init; } = [];
+
     public IReadOnlyList<string> Capabilities { get; init; } = [];
 
     public IReadOnlyList<string> NetworkHosts { get; init; } = [];
@@ -51,6 +54,9 @@ internal sealed class TestPluginFolder : IDisposable
     /// <summary>Gets the plugins folder.</summary>
     public string PluginsPath { get; } = Directory.CreateTempSubdirectory("runesmith-plugins-").FullName;
 
+    /// <summary>Gets the folder libraries are built into, apart from any plugin.</summary>
+    public string LibrariesPath { get; } = Directory.CreateTempSubdirectory("runesmith-libraries-").FullName;
+
     /// <summary>Builds a plugin with a packaged manifest into its own folder, with the contracts it is built against copied next to it as a
     /// build would.</summary>
     /// <param name="folder">The name of the plugin's folder, or null for its id.</param>
@@ -60,7 +66,7 @@ internal sealed class TestPluginFolder : IDisposable
         var lib = Directory.CreateDirectory(Path.Combine(PluginsPath, folder, "lib")).FullName;
         var others = plugin.BuiltAgainst.Select(other => built[other.Root + ".Contracts"]).ToList();
         var contracts = Compile(plugin.Root + ".Contracts", plugin.Contracts, others, lib);
-        var implementation = Compile(plugin.Root, plugin.Implementation, [contracts, .. others], lib);
+        var implementation = Compile(plugin.Root, plugin.Implementation, [contracts, .. others, .. plugin.References], lib);
         foreach (var other in others)
             File.Copy(other, Path.Combine(lib, Path.GetFileName(other)));
 
@@ -95,6 +101,10 @@ internal sealed class TestPluginFolder : IDisposable
         return Path.Combine(PluginsPath, folder);
     }
 
+    /// <summary>Builds a library outside the plugins folder, for plugins to be built against.</summary>
+    /// <returns>The library's path.</returns>
+    public string AddLibrary(string name, string source, params string[] references) => Compile(name, source, references, LibrariesPath);
+
     /// <summary>Builds a plugin with a manifest in the older format, without a <c>schemaVersion</c>.</summary>
     public string AddLegacy(string id, string assemblyName, string source, string apiVersion = "0.2")
     {
@@ -121,6 +131,7 @@ internal sealed class TestPluginFolder : IDisposable
         try
         {
             Directory.Delete(PluginsPath, recursive: true);
+            Directory.Delete(LibrariesPath, recursive: true);
         }
         catch (UnauthorizedAccessException)
         {
