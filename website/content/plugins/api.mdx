@@ -149,6 +149,16 @@ The editor's menu has items from plugins only for files saved on disk. A command
 as `CommandIds.RollbackLines`, moves into your group instead of showing twice. When the same command runs from the palette or a key, its
 argument is null.
 
+### Ways to get a project
+
+A command that gets the user a project, such as cloning a repository, belongs in `ContextMenus.Project`. The Welcome page shows it as a
+button and the project button's menu as an item, after **New Project** and **Open Folder**, with the command's title and icon. The command
+gets no argument.
+
+```csharp
+registry.AddMenuItem(new MenuItemDefinition(ContextMenus.Project, "docker.openContainer"));
+```
+
 ## Panels
 
 Export an `IToolWindowProvider`. Its `ToolWindowDefinition` gives the id, title, icon and the area it opens in until the user moves it:
@@ -707,6 +717,13 @@ against it:
 | `IProjectCreationStep` | A toggle in the New Project dialog that does something to every new project, such as making it a repository. |
 | `ISdkProvider.HasVendors`, `PreferredVendor`, `DownloadDescription` | How the SDKs page names a kind's SDKs and what its download dialog asks and says. |
 | `LanguageServerDefinition.Environment` | Environment variables a language server starts with. |
+
+| Added in 0.2.1 | What it is |
+| --- | --- |
+| `ContextMenus.Project` | The Welcome page's buttons and the project button's menu, for commands that get the user a project. |
+
+API 0.2.1 also removes `CommandIds.CloneRepository`: cloning is the Git plugin's command, whose id is `GitCommandIds.CloneRepository` in
+`Runesmith.Git.Contracts`. Plugins built against 0.2.0 keep working.
 
 The versions before 0.2.0 added the following, all of which 0.2.0 has.
 

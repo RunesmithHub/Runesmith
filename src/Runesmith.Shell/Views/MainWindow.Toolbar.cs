@@ -120,8 +120,8 @@ public partial class MainWindow
         if (commands!.Find(CommandIds.NewProject) is not null)
             menu.Items.Add(CommandItem(CommandIds.NewProject, Strings.ShellNewProject, Icons.FilePlus));
         menu.Items.Add(CommandItem(CommandIds.OpenFolder, Strings.ShellOpenFolder, Icons.FolderOpen));
-        if (commands.Find(CommandIds.CloneRepository) is not null)
-            menu.Items.Add(CommandItem(CommandIds.CloneRepository, Strings.ShellCloneRepository, Icons.Import));
+        foreach (var command in MenuBuilder.ContributedCommands(commands, ContextMenus.Project))
+            menu.Items.Add(CommandItem(command.Id, command.Title, Icons.Find(command.Icon) ?? Icons.FolderPlus));
         menu.Items.Add(CommandItem(CommandIds.CloseFolder, Strings.ShellCloseFolder, Icons.X));
     }
 
