@@ -12,13 +12,14 @@ public sealed class ApiCompatibilityTests : IDisposable
     [Fact]
     public void TheApiIsVersionZeroPointTwoAndRunsPluginsBuiltForZeroPointTwo()
     {
-        Assert.Equal(new Version(0, 2, 0), RunesmithApi.Version);
+        Assert.Equal(new Version(0, 2, 1), RunesmithApi.Version);
         Assert.Equal(new Version(0, 2, 0), RunesmithApi.OldestSupported);
-        Assert.Equal("0.2.0", PluginDiscovery.ApiVersion.ToString());
+        Assert.Equal("0.2.1", PluginDiscovery.ApiVersion.ToString());
     }
 
     [Theory]
     [InlineData("^0.2.0")]
+    [InlineData("^0.2.1")]
     [InlineData(">=0.2.0 <0.2.5")]
     public void APluginBuiltForAnApiOfThisLineUpToThisOneLoads(string range)
     {
@@ -32,12 +33,12 @@ public sealed class ApiCompatibilityTests : IDisposable
     [Fact]
     public void APluginBuiltForANewerPatchOfTheApiDoesNotLoad()
     {
-        folder.Add(Greeters.Greeter with { RunesmithApi = "^0.2.1" });
+        folder.Add(Greeters.Greeter with { RunesmithApi = "^0.2.2" });
 
         var plugin = Assert.Single(folder.Discover());
 
         Assert.Equal(PluginState.Failed, plugin.State);
-        Assert.Contains("this Runesmith has API 0.2.0", plugin.Error, StringComparison.Ordinal);
+        Assert.Contains("this Runesmith has API 0.2.1", plugin.Error, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -67,7 +68,7 @@ public sealed class ApiCompatibilityTests : IDisposable
         var plugin = Assert.Single(folder.Discover());
 
         Assert.Equal(PluginState.Failed, plugin.State);
-        Assert.Contains("this Runesmith has API 0.2.0", plugin.Error, StringComparison.Ordinal);
+        Assert.Contains("this Runesmith has API 0.2.1", plugin.Error, StringComparison.Ordinal);
     }
 
     [Fact]

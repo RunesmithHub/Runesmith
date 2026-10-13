@@ -125,8 +125,6 @@ public static class CommandIds
 
     public const string Sdks = "tools.sdks";
 
-    public const string CloneRepository = "vcs.clone";
-
     public const string KeyboardShortcuts = "help.keyboardShortcuts";
     public const string About = "help.about";
 }

@@ -93,7 +93,7 @@ notification history.
 ### Welcome screen
 
 With no folder open, the window shows a welcome screen instead of an empty editor: a list of recent projects with search, and the actions
-New Project, Open and Clone. A left column switches between Projects, Customize (theme, font, keymap) and Plugins.
+New Project and Open, followed by the ways to get a project that plugins add, such as Clone. A left column switches between Projects, Customize (theme, font, keymap) and Plugins.
 
 ## Options and forms
 

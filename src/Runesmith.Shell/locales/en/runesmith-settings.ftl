@@ -109,7 +109,6 @@ settings-ago-days =
 settings-ago-date = { DATETIME($date, dateStyle: "medium") }
 settings-welcome-new-project = New Project
 settings-welcome-open = Open
-settings-welcome-clone = Clone
 settings-welcome-no-recent = No recent projects
 settings-welcome-no-match = No project matches
 settings-welcome-no-recent-hint = Open a folder or create a project; it shows here next time.

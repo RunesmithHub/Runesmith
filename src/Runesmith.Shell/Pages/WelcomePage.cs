@@ -179,15 +179,15 @@ internal sealed class WelcomePage : Grid
         };
     }
 
-    // Clone shows only once a plugin provides it, such as version control.
+    // After New Project and Open come the ways to get a project that plugins add, such as cloning a repository.
     private void FillActions()
     {
         actions.Children.Clear();
         if (commands.Find(CommandIds.NewProject) is not null)
             actions.Children.Add(ActionButton(Strings.SettingsWelcomeNewProject, CommandIds.NewProject, Icons.Plus, primary: true));
         actions.Children.Add(ActionButton(Strings.SettingsWelcomeOpen, CommandIds.OpenFolder, Icons.FolderOpen, primary: false));
-        if (commands.Find(CommandIds.CloneRepository) is not null)
-            actions.Children.Add(ActionButton(Strings.SettingsWelcomeClone, CommandIds.CloneRepository, Icons.Import, primary: false));
+        foreach (var command in MenuBuilder.ContributedCommands(commands, ContextMenus.Project))
+            actions.Children.Add(ActionButton(command.Title, command.Id, Icons.Find(command.Icon) ?? Icons.FolderPlus, primary: false));
     }
 
     private Button ActionButton(string text, string commandId, Geometry icon, bool primary)

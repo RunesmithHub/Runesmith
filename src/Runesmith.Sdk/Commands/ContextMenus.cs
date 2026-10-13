@@ -10,6 +10,10 @@ public static class ContextMenus
     /// <summary>The Explorer's context menu on a file or folder; the target has its path.</summary>
     public const string Explorer = "#explorer";
 
+    /// <summary>The ways to get a project that plugins add, such as cloning a repository: the Welcome page shows them as buttons and the
+    /// project button's menu as items, after New Project and Open Folder. Their commands get no target.</summary>
+    public const string Project = "#project";
+
     /// <summary>Whether a menu name is a context menu's rather than one of the main menu's.</summary>
     public static bool IsContextMenu(string menu) => menu.StartsWith('#');
 }

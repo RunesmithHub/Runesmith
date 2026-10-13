@@ -137,6 +137,14 @@ internal static class MenuBuilder
         return menu;
     }
 
+    /// <summary>Gets the commands plugins placed in a menu, in the order of their groups and their places in them.</summary>
+    public static IEnumerable<CommandDefinition> ContributedCommands(CommandService commands, string menu) => commands.MenuItems
+        .Where(i => i.Menu == menu)
+        .OrderBy(i => i.Group, StringComparer.Ordinal)
+        .ThenBy(i => i.Order)
+        .Select(i => commands.Find(i.CommandId))
+        .OfType<CommandDefinition>();
+
     /// <summary>Gets the items plugins added to a context menu whose commands can run on the target, each group after a separator, the first
     /// included.</summary>
     public static List<Control> ContributedItems(CommandService commands, string contextMenu, object target)

@@ -77,7 +77,6 @@ public sealed class CoreCommands(
         Add(CommandIds.NewProject, Strings.ShellNewProject, Strings.ShellCategoryFile, "folder-plus", "Ctrl+Shift+N", () => newProject.Value.ShowAsync(), menu: Menus.File, group: "1-new");
         Add(CommandIds.OpenFile, Strings.ShellOpenFile, Strings.ShellCategoryFile, "file", "Ctrl+O", OpenFileAsync, menu: Menus.File, group: "1-new");
         Add(CommandIds.OpenFolder, Strings.ShellOpenFolder, Strings.ShellCategoryFile, "folder-open", "Ctrl+Shift+O", OpenFolderAsync, menu: Menus.File, group: "1-new");
-        registry.AddMenuItem(new MenuItemDefinition(Menus.File, CommandIds.CloneRepository, "1-new", order++));
         Add(CommandIds.Save, Strings.ShellSave, Strings.ShellCategoryFile, "save", "Ctrl+S", () => customEditors.Active is { } custom ? customEditors.SaveAsync(custom) : editors.SaveAsync(Editor!.Document), () => HasCustomEditor() || HasEditor(), Menus.File, "2-save");
         Add(CommandIds.SaveAs, Strings.ShellSaveAs, Strings.ShellCategoryFile, null, "Ctrl+Shift+S", () => editors.SaveAsAsync(Editor!.Document), HasEditor, Menus.File, "2-save");
         Add(CommandIds.SaveAll, Strings.ShellSaveAll, Strings.ShellCategoryFile, null, "Ctrl+Alt+S", editors.SaveAllAsync, menu: Menus.File, group: "2-save");

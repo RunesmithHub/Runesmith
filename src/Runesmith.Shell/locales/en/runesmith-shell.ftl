@@ -386,7 +386,6 @@ shell-build-description = Build the selected run configuration's project, or the
 
 ## Leftovers of the toolbar, status bar and appearance
 
-shell-clone-repository = Clone Repository...
 shell-go-to-line-tip = Go to line
 shell-current = Current
 shell-name-required = Type a name.
