@@ -35,4 +35,16 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Runesmith.App.Tests" />
   </ItemGroup>
+
+  <!-- An incremental build can skip a project whose only change is its version and leave its older assembly in the output. -->
+  <Target Name="CheckSharedAssemblyVersions" AfterTargets="Build">
+    <ItemGroup>
+      <_RunesmithSharedAssembly Include="$(OutDir)Runesmith.Sdk.dll;$(OutDir)Runesmith.Text.dll;$(OutDir)Runesmith.LanguageServices.dll" />
+    </ItemGroup>
+    <GetAssemblyIdentity AssemblyFiles="@(_RunesmithSharedAssembly)">
+      <Output TaskParameter="Assemblies" ItemName="_RunesmithSharedIdentity" />
+    </GetAssemblyIdentity>
+    <Error Condition="'%(_RunesmithSharedIdentity.Version)' != '$(RunesmithSdkVersion).0'"
+           Text="%(_RunesmithSharedIdentity.Name) in the output is version %(_RunesmithSharedIdentity.Version), and the plugin API is $(RunesmithSdkVersion). Rebuild the solution, such as with dotnet build --no-incremental." />
+  </Target>
 </Project>

@@ -36,6 +36,7 @@ public sealed class App : Application
                 Link = Program.Arguments.Link,
                 PluginFolders = Program.PluginFolders,
             };
+            Program.Guard.Reached(StartupStep.CreatingWindow);
             var window = ShellStartup.CreateMainWindow(composition, options, Program.Timings);
             window.Icon = new WindowIcon(new Bitmap(AssetLoader.Open(new Uri("avares://Runesmith.Shell/Assets/runesmith.png"))));
             var notifications = composition.Exports.GetExportedValue<NotificationService>();
@@ -48,6 +49,7 @@ public sealed class App : Application
             window.Opened += async (_, _) =>
             {
                 Program.Guard.Shown();
+                Program.Watchdog?.Dispose();
                 var stable = new DispatcherTimer { Interval = StartupGuard.StableAfter };
                 stable.Tick += (_, _) =>
                 {
@@ -56,7 +58,9 @@ public sealed class App : Application
                 };
                 stable.Start();
                 await ShellStartup.OnShownAsync(composition.Exports, options);
-                if (Program.Guard.Offer is { } offer)
+                if (Program.HostMismatches.Count > 0)
+                    await IncompleteBuildDialog.ShowAsync(notifications.Dialogs, Program.HostMismatches);
+                else if (Program.Guard.Offer is { } offer)
                     await SafeModeDialog.ShowAsync(notifications.Dialogs, offer.Reason, [.. offer.Plugins.Select(p => (p.Name, p.Version))], () => restart.Restart(safeMode: false));
             };
 

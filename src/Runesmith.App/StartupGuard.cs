@@ -7,6 +7,8 @@ namespace Runesmith.App;
 
 /// <summary>Remembers how the last starts went, so that after two starts in a row that failed, or crashed within a minute of the window
 /// showing, the next start can offer safe mode and name the plugins that were loading.</summary>
+/// <remarks>A start that a signal ended before its window showed, such as one stopped from an IDE or with <c>kill</c> while it hung, failed:
+/// only closing Runesmith or running for a minute after the window showed makes a start good.</remarks>
 internal sealed class StartupGuard
 {
     /// <summary>How long Runesmith must run after its window shows for a start to count as good.</summary>
@@ -47,8 +49,15 @@ internal sealed class StartupGuard
         return guard;
     }
 
-    /// <summary>Records the plugins that were loading.</summary>
-    public void Loaded(IEnumerable<SuspectPlugin> plugins) => Change(record => record with { Plugins = [.. plugins] });
+    /// <summary>Records the step the start has reached.</summary>
+    public void Reached(StartupStep step) => Change(record => record with { Step = step });
+
+    /// <summary>Records that a plugin started to load or to be read, so a start that hangs or crashes there names it.</summary>
+    public void Starting(SuspectPlugin plugin) =>
+        Change(record => record with { Plugin = plugin, Plugins = record.Plugins.Any(p => p.Id == plugin.Id) ? record.Plugins : [.. record.Plugins, plugin] });
+
+    /// <summary>Records the plugins that were loading, once they all have.</summary>
+    public void Loaded(IEnumerable<SuspectPlugin> plugins) => Change(record => record with { Plugins = [.. plugins], Plugin = null });
 
     public void Shown() => Change(record => record with { ShownAt = time.GetUtcNow() });
 
@@ -56,6 +65,19 @@ internal sealed class StartupGuard
     public void Stable() => Change(record => record with { StableAt = time.GetUtcNow() });
 
     public void Exited() => Change(record => record with { ExitedAt = time.GetUtcNow() });
+
+    /// <summary>Records that a signal, such as SIGTERM, ended Runesmith.</summary>
+    public void Signaled() => Change(record => record with { ExitedAt = time.GetUtcNow(), EndedBySignal = true });
+
+    /// <summary>Records that the window had not shown in the time the watchdog allows.</summary>
+    public void Stuck() => Change(record => record with { StuckAt = time.GetUtcNow() });
+
+    /// <summary>Gets how far this start has got.</summary>
+    public StartRecord Progress()
+    {
+        lock (gate)
+            return Current;
+    }
 
     /// <summary>Records a crash, and the plugins whose code is on its stack traces.</summary>
     /// <param name="pluginOf">Tells which plugin an assembly belongs to, or null for Runesmith's own and .NET's.</param>
@@ -84,13 +106,16 @@ internal sealed class StartupGuard
 
         var suspects = history[^1].Suspects.Concat(history[^2].Suspects).DistinctBy(s => s.Id).ToList();
         if (suspects.Count == 0)
+            suspects = [.. new[] { history[^1].Plugin, history[^2].Plugin }.OfType<SuspectPlugin>().DistinctBy(s => s.Id)];
+        if (suspects.Count == 0)
             suspects = [.. history[^1].Plugins.Concat(history[^2].Plugins).DistinctBy(s => s.Id)];
 
         var neverShown = history[^1].ShownAt is null && history[^2].ShownAt is null;
         return new SafeModeOffer(neverShown ? Strings.AppFailedTwice : Strings.AppClosedTwice, suspects);
     }
 
-    private static bool IsBad(StartRecord record) => !record.SafeMode && record.ExitedAt is null && record.StableAt is null;
+    private static bool IsBad(StartRecord record) =>
+        !record.SafeMode && record.StableAt is null && (record.ExitedAt is null || (record.EndedBySignal && record.ShownAt is null));
 
     private void Change(Func<StartRecord, StartRecord> change)
     {
@@ -143,11 +168,36 @@ internal sealed record StartRecord
 
     public DateTimeOffset? CrashedAt { get; init; }
 
+    /// <summary>Gets when the watchdog found the window still not shown.</summary>
+    public DateTimeOffset? StuckAt { get; init; }
+
+    /// <summary>Gets whether a signal ended Runesmith, rather than closing it.</summary>
+    public bool EndedBySignal { get; init; }
+
+    /// <summary>Gets the last step the start reached.</summary>
+    public StartupStep? Step { get; init; }
+
+    /// <summary>Gets the plugin that was loading or being read, until they all have.</summary>
+    public SuspectPlugin? Plugin { get; init; }
+
     /// <summary>Gets the plugins that loaded.</summary>
     public IReadOnlyList<SuspectPlugin> Plugins { get; init; } = [];
 
     /// <summary>Gets the plugins whose code was on the stack when Runesmith crashed.</summary>
     public IReadOnlyList<SuspectPlugin> Suspects { get; init; } = [];
+}
+
+/// <summary>The steps of a start before the window shows.</summary>
+internal enum StartupStep
+{
+    /// <summary>Applying the plugin hub's pending changes and checking its plugins.</summary>
+    PreparingPlugins,
+
+    /// <summary>Loading the plugins and composing them with Runesmith's own parts.</summary>
+    LoadingPlugins,
+
+    /// <summary>Creating the main window, which creates the parts it uses.</summary>
+    CreatingWindow,
 }
 
 /// <summary>A plugin that may have stopped Runesmith from starting.</summary>
@@ -156,6 +206,6 @@ internal sealed record SuspectPlugin(string Id, string Name, string Version);
 /// <summary>Why the start offers safe mode, and the plugins that were loading.</summary>
 internal sealed record SafeModeOffer(string Reason, IReadOnlyList<SuspectPlugin> Plugins);
 
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, UseStringEnumConverter = true)]
 [JsonSerializable(typeof(List<StartRecord>))]
 internal sealed partial class StartupJson : JsonSerializerContext;

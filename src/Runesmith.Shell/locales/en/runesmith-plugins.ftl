@@ -557,6 +557,19 @@ plugins-safe-mode-explanation = Runesmith started in safe mode, which loads no p
 plugins-start-normally = Start normally
 plugins-stay-safe-mode = Stay in safe mode
 plugins-safe-mode-header = Runesmith didn't start properly
+plugins-incomplete-header = This build of Runesmith is incomplete
+plugins-incomplete-explanation = Some of Runesmith's own files come from another build, so plugins built for this version would fail. Runesmith started in safe mode, which loads no plugins. Rebuild Runesmith or install it again, then restart.
+# Variables:
+#   $user - the Runesmith file built against the other version
+#   $assembly - the Runesmith file whose version is wrong
+#   $expected - the version it should have
+#   $found - the version this build has
+plugins-incomplete-built-against = { $user } was built against { $assembly } { $expected }, and this build has { $found }.
+# Variables:
+#   $assembly - the Runesmith file whose version is wrong
+#   $expected - the plugin API version
+#   $found - the version this build has
+plugins-incomplete-api = { $assembly } is { $found }, and the plugin API is { $expected }.
 
 ## Status lines and badges
 

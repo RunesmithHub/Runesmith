@@ -22,4 +22,19 @@ public sealed class StartupSettingsTests : IDisposable
 
         Assert.Equal(expected, StartupSettings.AllowLocalOverrides(UserSettings));
     }
+
+    [Theory]
+    [InlineData(null, 30)]
+    [InlineData("""{ "window.stuckStartSeconds": 90 }""", 90)]
+    [InlineData("""{ "window.stuckStartSeconds": 0 }""", 0)]
+    [InlineData("""{ "window.stuckStartSeconds": -5 }""", 0)]
+    [InlineData("""{ "window.stuckStartSeconds": 100000 }""", 600)]
+    [InlineData("""{ "window.stuckStartSeconds": "90" }""", 30)]
+    public void TheWatchdogWaitsForTheUsersSettingWithinItsLimits(string? json, int seconds)
+    {
+        if (json is not null)
+            File.WriteAllText(UserSettings, json);
+
+        Assert.Equal(TimeSpan.FromSeconds(seconds), StartupSettings.WatchdogLimit(UserSettings));
+    }
 }

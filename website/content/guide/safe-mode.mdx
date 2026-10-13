@@ -11,7 +11,16 @@ In safe mode Runesmith loads no plugins. Use it when a plugin you installed keep
 - Or start Runesmith with `runesmith --safe-mode`.
 
 When Runesmith failed to start twice in a row, or closed unexpectedly within a minute of starting twice in a row, it starts in safe mode by
-itself and names the plugins that were loading. **Stay in safe mode** keeps it that way; **Start normally** restarts with every plugin.
+itself and names the plugins that were loading. A start you ended before its window showed, such as one you stopped because it hung,
+counts as failed. When a start hung or crashed while a plugin was loading, Runesmith names that plugin. **Stay in safe mode** keeps it that
+way; **Start normally** restarts with every plugin.
+
+## When Runesmith is incomplete
+
+Before it loads anything, Runesmith checks that its own files come from one build. When one is older or newer than the rest, such as after
+an update that did not finish or a build that left an old file behind, plugins built for this version would fail. Runesmith then starts in
+safe mode and shows **This build of Runesmith is incomplete**, with each file and its version. Install Runesmith again, or rebuild it if you
+built it yourself, then restart. The same list goes to the terminal and to a file in the `logs` folder of the cache folder.
 
 ## Find the plugin
 
