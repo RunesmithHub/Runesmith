@@ -67,18 +67,15 @@ public sealed class App : Application
             if (Program.Instance is { } instance)
             {
                 var workbench = composition.Exports.GetExportedValue<Workbench>();
-                instance.Received += (paths, folder) => Dispatcher.UIThread.Post(async () =>
-                {
-                    Bring(window);
-                    await workbench.OpenArgumentsAsync(paths, folder);
-                });
                 var hub = composition.Exports.GetExportedValue<HubService>();
-                instance.LinkReceived += link => Dispatcher.UIThread.Post(() =>
+                instance.Listen(message => Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     Bring(window);
-                    hub.OpenLink(link);
-                });
-                instance.Listen();
+                    if (message.Paths.Length > 0 || message.Link is null)
+                        Dispatcher.UIThread.Post(async () => await workbench.OpenArgumentsAsync(message.Paths, message.WorkingDirectory));
+                    if (message.Link is { } link)
+                        Dispatcher.UIThread.Post(() => hub.OpenLink(link));
+                }).GetTask());
             }
         }
 

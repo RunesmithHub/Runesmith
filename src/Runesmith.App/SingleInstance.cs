@@ -7,42 +7,81 @@ using Runesmith.Sdk;
 
 namespace Runesmith.App;
 
+/// <summary>What became of handing a start over to the running Runesmith.</summary>
+internal enum HandOverResult
+{
+    /// <summary>No Runesmith is running; this start continues.</summary>
+    NoneRunning,
+
+    /// <summary>The running Runesmith took the paths or link.</summary>
+    HandedOver,
+
+    /// <summary>A Runesmith is running but did not take them in time, such as one whose window is frozen.</summary>
+    NotResponding,
+}
+
 /// <summary>Keeps one Runesmith per user: a second start hands its paths or link to the running one over a pipe only the same user can open,
 /// and exits.</summary>
+/// <remarks>A handover is one line of JSON. The running Runesmith answers with one byte once its window has taken the handover, so a start
+/// can tell a running Runesmith from a frozen one. A start that sends the line and closes the pipe without waiting is still understood.</remarks>
 internal sealed class SingleInstance : IDisposable
 {
     /// <summary>The largest handover the running instance reads; anything longer is dropped.</summary>
     public const int MaxMessageBytes = 64 * 1024;
 
+    /// <summary>How long a start waits for the running Runesmith to take its handover.</summary>
+    public static readonly TimeSpan AnswerTimeout = TimeSpan.FromSeconds(2);
+
+    private const byte Taken = 1;
+
     private readonly CancellationTokenSource stop = new();
-    private readonly string pipeName = PipeName();
+    private readonly string pipeName;
 
-    /// <summary>Raised, on a background thread, when another start hands over paths and its working folder.</summary>
-    public event Action<IReadOnlyList<string>, string>? Received;
+    public SingleInstance()
+        : this(PipeName())
+    {
+    }
 
-    /// <summary>Raised, on a background thread, when another start hands over a link; the link is not checked yet beyond its length.</summary>
-    public event Action<string>? LinkReceived;
+    internal SingleInstance(string pipeName) => this.pipeName = pipeName;
 
-    /// <summary>Hands paths and a link to the running Runesmith; returns false when none is running.</summary>
-    public static bool TryHandOver(IReadOnlyList<string> paths, string workingDirectory, string? link = null)
+    /// <summary>Hands paths and a link to the running Runesmith.</summary>
+    public static HandOverResult TryHandOver(IReadOnlyList<string> paths, string workingDirectory, string? link = null) =>
+        TryHandOver(PipeName(), new Message([.. paths], workingDirectory) { Link = link }, AnswerTimeout);
+
+    internal static HandOverResult TryHandOver(string pipeName, Message message, TimeSpan answerTimeout)
     {
         try
         {
-            using var client = new NamedPipeClientStream(".", PipeName(), PipeDirection.Out);
+            using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
             client.Connect(250);
-            var message = JsonSerializer.Serialize(new Message([.. paths], workingDirectory) { Link = link }, MessageJson.Default.Message);
-            using var writer = new StreamWriter(client, new UTF8Encoding(false));
-            writer.Write(message);
-            return true;
+            var line = JsonSerializer.SerializeToUtf8Bytes(message, MessageJson.Default.Message);
+            client.Write(line);
+            client.WriteByte((byte)'\n');
+            client.Flush();
+
+            using var timeout = new CancellationTokenSource(answerTimeout);
+            var answer = new byte[1];
+            return client.ReadAsync(answer, timeout.Token).AsTask().GetAwaiter().GetResult() == 1 && answer[0] == Taken
+                ? HandOverResult.HandedOver
+                : HandOverResult.NotResponding;
         }
-        catch (Exception exception) when (exception is TimeoutException or IOException or UnauthorizedAccessException)
+        catch (TimeoutException)
         {
-            return false;
+            return HandOverResult.NoneRunning;
+        }
+        catch (OperationCanceledException)
+        {
+            return HandOverResult.NotResponding;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return HandOverResult.NoneRunning;
         }
     }
 
     /// <summary>Listens for later starts until disposed.</summary>
-    public void Listen() => _ = Task.Run(ListenAsync);
+    /// <param name="take">Takes a handover; the start that sent it learns it was taken when the returned task completes.</param>
+    public void Listen(Func<Message, Task> take) => _ = Task.Run(() => ListenAsync(take));
 
     public void Dispose()
     {
@@ -68,42 +107,43 @@ internal sealed class SingleInstance : IDisposable
         }
     }
 
-    private async Task ListenAsync()
+    private async Task ListenAsync(Func<Message, Task> take)
     {
         while (!stop.IsCancellationRequested)
         {
             try
             {
-                await using var server = new NamedPipeServerStream(pipeName, PipeDirection.In, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+                await using var server = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
                 await server.WaitForConnectionAsync(stop.Token);
-                if (Read(await ReadLimitedAsync(server, stop.Token)) is not { } message)
+                if (Read(await ReadLineAsync(server, stop.Token)) is not { } message)
                     continue;
 
-                if (message.Paths.Length > 0 || message.Link is null)
-                    Received?.Invoke(message.Paths, message.WorkingDirectory);
-                if (message.Link is { } link)
-                    LinkReceived?.Invoke(link);
+                await take(message);
+                server.WriteByte(Taken);
+                await server.FlushAsync(stop.Token);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (stop.IsCancellationRequested)
             {
                 return;
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            catch (Exception) when (!stop.IsCancellationRequested)
             {
-                // A broken handover is dropped; the next start connects again.
+                // A broken handover, or one the window failed to take, is dropped; the next start connects again.
             }
         }
     }
 
-    private static async Task<byte[]> ReadLimitedAsync(Stream stream, CancellationToken cancellationToken)
+    // Reads up to the end of the line, or of the stream for a start that closes the pipe after writing.
+    private static async Task<byte[]> ReadLineAsync(Stream stream, CancellationToken cancellationToken)
     {
         using var buffer = new MemoryStream();
         var chunk = new byte[8192];
         int read;
         while ((read = await stream.ReadAsync(chunk, cancellationToken)) > 0)
         {
-            buffer.Write(chunk, 0, read);
-            if (buffer.Length > MaxMessageBytes)
+            var end = Array.IndexOf(chunk, (byte)'\n', 0, read);
+            buffer.Write(chunk, 0, end < 0 ? read : end);
+            if (end >= 0 || buffer.Length > MaxMessageBytes)
                 break;
         }
 

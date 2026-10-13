@@ -64,8 +64,18 @@ internal static class Program
             return 0;
         }
 
-        if (!Arguments.IsNewInstance && SingleInstance.TryHandOver(Arguments.Paths, Environment.CurrentDirectory, Arguments.Link))
-            return 0;
+        if (!Arguments.IsNewInstance)
+        {
+            switch (SingleInstance.TryHandOver(Arguments.Paths, Environment.CurrentDirectory, Arguments.Link))
+            {
+                case HandOverResult.HandedOver:
+                    return 0;
+                case HandOverResult.NotResponding:
+                    Console.Error.WriteLine($"Runesmith is already running but did not answer within {SingleInstance.AnswerTimeout.TotalSeconds:0} seconds. "
+                        + "If its window does not respond, close it, or start another Runesmith with --new-instance.");
+                    return 1;
+            }
+        }
 
         HostMismatches = HostIntegrity.Check();
         if (HostMismatches.Count > 0)

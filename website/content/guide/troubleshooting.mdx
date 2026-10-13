@@ -47,6 +47,9 @@ When the window has not shown after 30 seconds, Runesmith writes where the start
 **Report a stuck start after (seconds)** (`window.stuckStartSeconds`) sets the time. Close Runesmith; after two starts that failed, the next
 starts in [safe mode](./safe-mode.mdx) and names the plugin.
 
+When starting Runesmith prints that it is already running but not responding, another Runesmith is frozen; see
+[One Runesmith at a time](./command-line.mdx#one-runesmith-at-a-time).
+
 ## Find out what happens at startup
 
 `runesmith --diagnostics` writes how long each startup step took, whether the composition came from the cache, every plugin with its state
