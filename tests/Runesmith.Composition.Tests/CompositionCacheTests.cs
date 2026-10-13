@@ -29,7 +29,8 @@ public sealed class CompositionCacheTests : IDisposable
         (await ComposeAsync()).Dispose();
         var contracts = folder.AddLibrary("Tests.Greeter.Contracts", Greeters.Greeter.Contracts + " public interface IFarewell { }");
         var installed = Path.Combine(plugin, "lib", "Tests.Greeter.Contracts.dll");
-        File.Delete(installed);
+        // Windows refuses to delete or overwrite a loaded assembly, but lets it be renamed.
+        File.Move(installed, installed + ".old");
         File.Copy(contracts, installed);
 
         using var second = await ComposeAsync();
