@@ -13,11 +13,14 @@ internal sealed class PluginLoader
     private readonly List<PluginInfo> plugins;
     private readonly Dictionary<string, int> byId = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, PluginInfo> pluginAssemblies = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Action<PluginInfo>? starting;
 
     /// <param name="plugins">The plugins discovery found; the loader records in it which fail.</param>
-    public PluginLoader(List<PluginInfo> plugins)
+    /// <param name="starting">Called with each plugin before its assemblies load.</param>
+    public PluginLoader(List<PluginInfo> plugins, Action<PluginInfo>? starting = null)
     {
         this.plugins = plugins;
+        this.starting = starting;
         for (var i = 0; i < plugins.Count; i++)
         {
             var plugin = plugins[i];
@@ -54,6 +57,7 @@ internal sealed class PluginLoader
             if (plugins[index].Manifest.IsLanguagePack)
                 continue;
 
+            starting?.Invoke(plugins[index]);
             try
             {
                 if (HostVersionCheck.Problem(plugins[index]) is { } outdated)
@@ -65,7 +69,7 @@ internal sealed class PluginLoader
                 if (LoadPlugin(plugins[index]) is { } assembly)
                     loaded.Add((index, assembly));
             }
-            catch (Exception exception) when (exception is IOException or BadImageFormatException or UnauthorizedAccessException)
+            catch (Exception exception) when (exception is not OperationCanceledException)
             {
                 plugins[index] = plugins[index].Fail($"The assembly could not be loaded: {exception.Message}");
             }

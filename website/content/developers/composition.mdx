@@ -38,7 +38,12 @@ who change it; plugin authors need only [Plugins](/plugins).
    assembly that would not load, reported once for all the types it stopped. It checks that every import has a fitting export, and
    creates an export provider. Parts with errors are left out and their errors reported; the rest works.
 
+   Any other error while one plugin loads or is read fails that plugin alone, with the error as its reason; the rest still load.
+
 </Steps>
+
+`CompositionOptions.PluginStarting` is called as each plugin starts to load and to be read. The app records it in the start record, so a
+start that hangs or crashes there names the plugin; see [Safe mode](/guide/safe-mode).
 
 The result, a `CompositionResult`, has the export provider, every plugin found with its state, and the errors. The app writes the errors and
 the plugins that could not load to the standard error output and the shell lists failed plugins in the **Plugins** output channel.
@@ -54,9 +59,11 @@ with older manifests declare no capabilities and pass the capability checks, but
 ## The cache
 
 Checking every import against every export takes a while. Runesmith saves the composed result in the `composition` folder of the cache
-folder, in a file named after a key of every assembly that took part: its name, its module version id, its size and its write time, plus the
-version of VS-MEF. When any of them changes, the key changes, and Runesmith composes from scratch and replaces the cache. A cache it cannot
-read, such as one from another build, is deleted and rebuilt. A composition with errors is not cached.
+folder, in a file named after a key of every assembly that took part: Runesmith's host assemblies, and the implementation and contracts
+assemblies of the plugins found in this start, each by name, module version id, size and write time. The key also covers the assemblies
+Runesmith shares with plugins, such as `Runesmith.Text` and Avalonia, by file, whether loaded yet or not, and the version of VS-MEF. When
+any of them changes, the key changes, and Runesmith composes from scratch and replaces the cache. A cache it cannot read, such as one from
+another build, is deleted and rebuilt. A composition with errors is not cached.
 
 With `--diagnostics`, the **Diagnostics** channel says whether the composition came from the cache and how long it took.
 

@@ -83,6 +83,15 @@ public sealed class ApiCompatibilityTests : IDisposable
     }
 
     [Fact]
+    public void TheAssembliesRunesmithSharesWithPluginsAreTheOnesPluginsArePackagedWithout()
+    {
+        Assert.Equal(
+            ["Runesmith.Sdk", "Runesmith.Text", "Runesmith.LanguageServices", "HammerUI", "Microsoft.Extensions.Logging.Abstractions", "SkiaSharp", "HarfBuzzSharp", "Tmds.DBus.Protocol", "MicroCom.Runtime"],
+            RunesmithHub.Protocol.HostAssemblies.Names);
+        Assert.Equal(["Avalonia", "Microsoft.VisualStudio.Composition", "System.Composition", "MessagePack"], RunesmithHub.Protocol.HostAssemblies.FamilyPrefixes);
+    }
+
+    [Fact]
     public void AnOlderManifestForAnotherApiDoesNotLoad()
     {
         folder.AddLegacy("acme.todo", "Acme.Todo", "namespace Acme.Todo; public sealed class Todo { }", apiVersion: "0.3");

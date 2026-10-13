@@ -23,4 +23,8 @@ public sealed record CompositionOptions(
     /// <summary>Gets whether a copy in the user's plugins folder of a plugin the hub installed runs in its place; when
     /// false, such a copy is refused.</summary>
     public bool AllowLocalOverrides { get; init; }
+
+    /// <summary>Gets what to call as each plugin starts to load and as its parts start to be read, on the thread that composes; Runesmith
+    /// records it so that a start that hangs can name the plugin.</summary>
+    public Action<PluginInfo>? PluginStarting { get; init; }
 }

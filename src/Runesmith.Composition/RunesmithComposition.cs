@@ -22,7 +22,7 @@ public static class RunesmithComposition
         var resolver = new Resolver(loader);
 
         var plugins = PluginDiscovery.Discover(options.PluginFolders, options.DisabledPlugins, options.HubPlugins, options.WithheldPlugins, options.AllowLocalOverrides).ToList();
-        var pluginLoader = new PluginLoader(plugins);
+        var pluginLoader = new PluginLoader(plugins, options.PluginStarting);
         var loaded = pluginLoader.Load();
         foreach (var contracts in pluginLoader.Contracts.Assemblies)
             loader.Add(contracts);
@@ -31,7 +31,8 @@ public static class RunesmithComposition
 
         var assemblies = new List<Assembly>(options.HostAssemblies);
         assemblies.AddRange(loaded.Select(plugin => plugin.Assembly));
-        var cachePath = options.CacheDirectory is { } directory ? Path.Combine(directory, CachePrefix + CacheKey(assemblies) + ".cache") : null;
+        assemblies.AddRange(pluginLoader.Contracts.Assemblies);
+        var cachePath = options.CacheDirectory is { } directory ? Path.Combine(directory, CachePrefix + CacheKey(assemblies, HostRuntime.SharedFiles()) + ".cache") : null;
         if (cachePath is not null && await TryLoadCacheAsync(cachePath, resolver, cancellationToken) is { } cached)
             return new CompositionResult(cached.CreateExportProvider(), plugins, [], fromCache: true, stopwatch.Elapsed);
 
@@ -48,7 +49,20 @@ public static class RunesmithComposition
                 continue;
             }
 
-            var parts = await discovery.CreatePartsAsync([assembly], progress: null, cancellationToken);
+            options.PluginStarting?.Invoke(plugins[index]);
+            DiscoveredParts parts;
+            try
+            {
+                parts = await discovery.CreatePartsAsync([assembly], progress: null, cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                var cause = DiscoveryFailures.Cause(exception);
+                plugins[index] = plugins[index].Fail(cause);
+                errors.Add($"{plugins[index].Manifest.Name}: {cause}");
+                continue;
+            }
+
             if (parts.DiscoveryErrors.Count > 0)
             {
                 var failures = DiscoveryFailures.Describe(parts.DiscoveryErrors);
@@ -71,18 +85,24 @@ public static class RunesmithComposition
         return new CompositionResult(factory.CreateExportProvider(), plugins, errors, fromCache: false, stopwatch.Elapsed);
     }
 
-    private static string CacheKey(IEnumerable<Assembly> assemblies)
+    /// <param name="assemblies">The loaded assemblies that took part: Runesmith's, and the plugins' implementations and contracts.</param>
+    /// <param name="sharedFiles">The assemblies Runesmith shares with plugins, by path, whether loaded yet or not.</param>
+    private static string CacheKey(IEnumerable<Assembly> assemblies, IEnumerable<string> sharedFiles)
     {
         var text = new StringBuilder();
         text.AppendLine(typeof(ExportProvider).Assembly.GetName().Version?.ToString());
         foreach (var assembly in assemblies.OrderBy(a => a.FullName, StringComparer.Ordinal))
-        {
-            var file = new FileInfo(assembly.Location);
-            text.Append(assembly.FullName).Append('|').Append(assembly.ManifestModule.ModuleVersionId).Append('|')
-                .Append(file.Exists ? file.Length : 0).Append('|').AppendLine(file.Exists ? file.LastWriteTimeUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture) : "");
-        }
+            text.Append(assembly.FullName).Append('|').Append(assembly.ManifestModule.ModuleVersionId).Append('|').AppendLine(Stamp(assembly.Location));
+        foreach (var path in sharedFiles.Order(StringComparer.Ordinal))
+            text.Append(Path.GetFileName(path)).Append('|').AppendLine(Stamp(path));
 
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())))[..16];
+    }
+
+    private static string Stamp(string path)
+    {
+        var file = new FileInfo(path);
+        return file.Exists ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{file.Length}|{file.LastWriteTimeUtc.Ticks}") : "0|";
     }
 
     private static async Task<IExportProviderFactory?> TryLoadCacheAsync(string path, Resolver resolver, CancellationToken cancellationToken)

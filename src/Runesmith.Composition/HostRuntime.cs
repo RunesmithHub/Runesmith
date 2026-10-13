@@ -39,6 +39,9 @@ internal static class HostRuntime
                 && string.Equals(Path.GetDirectoryName(entry.Value), AppDirectory, StringComparison.Ordinal))
             .Select(entry => (entry.Key, entry.Value));
 
+    /// <summary>Gets the paths of the assemblies Runesmith shares with every plugin.</summary>
+    public static IEnumerable<string> SharedFiles() => Trusted.Value.Where(entry => IsShared(entry.Key)).Select(entry => entry.Value);
+
     /// <summary>Gets the version of the assembly the host loads for a name, or null when the host has none.</summary>
     public static Version? VersionOf(string name)
     {
