@@ -5,18 +5,22 @@ namespace Runesmith.Composition;
 
 /// <summary>Loads plugins in dependency order, each into its own load context, with every plugin's contracts in one shared context.</summary>
 /// <remarks>A plugin loads after the plugins it depends on, and does not load when one of them is missing, turned off, of a version
-/// outside its range or failed; its <see cref="PluginInfo.Error"/> says which. A language pack counts as loaded without its assemblies being
+/// outside its range or failed, nor when it was built against a newer version of an assembly Runesmith gives it; its
+/// <see cref="PluginInfo.Error"/> says which. A language pack counts as loaded without its assemblies being
 /// loaded: Runesmith reads its translations from the file.</remarks>
 internal sealed class PluginLoader
 {
     private readonly List<PluginInfo> plugins;
     private readonly Dictionary<string, int> byId = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, PluginInfo> pluginAssemblies = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Action<PluginInfo>? starting;
 
     /// <param name="plugins">The plugins discovery found; the loader records in it which fail.</param>
-    public PluginLoader(List<PluginInfo> plugins)
+    /// <param name="starting">Called with each plugin before its assemblies load.</param>
+    public PluginLoader(List<PluginInfo> plugins, Action<PluginInfo>? starting = null)
     {
         this.plugins = plugins;
+        this.starting = starting;
         for (var i = 0; i < plugins.Count; i++)
         {
             var plugin = plugins[i];
@@ -53,12 +57,19 @@ internal sealed class PluginLoader
             if (plugins[index].Manifest.IsLanguagePack)
                 continue;
 
+            starting?.Invoke(plugins[index]);
             try
             {
+                if (HostVersionCheck.Problem(plugins[index]) is { } outdated)
+                {
+                    plugins[index] = plugins[index].Fail(outdated);
+                    continue;
+                }
+
                 if (LoadPlugin(plugins[index]) is { } assembly)
                     loaded.Add((index, assembly));
             }
-            catch (Exception exception) when (exception is IOException or BadImageFormatException or UnauthorizedAccessException)
+            catch (Exception exception) when (exception is not OperationCanceledException)
             {
                 plugins[index] = plugins[index].Fail($"The assembly could not be loaded: {exception.Message}");
             }

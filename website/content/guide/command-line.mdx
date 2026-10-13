@@ -44,6 +44,9 @@ The first Runesmith you start keeps running for your user; starting it again han
 `--new-instance` starts a separate Runesmith anyway. A Runesmith with its own `RUNESMITH_HOME` is separate from the others, see
 [Files and folders](./files-and-folders.mdx).
 
+When the running Runesmith does not take the paths within two seconds, such as when its window is frozen, the new start prints that it is
+not responding and exits with code 1 instead of opening anything. Close the frozen Runesmith, or start another one with `--new-instance`.
+
 ## Related
 
 - [Troubleshooting](./troubleshooting.mdx), for `--diagnostics` and `--disable-plugins`.

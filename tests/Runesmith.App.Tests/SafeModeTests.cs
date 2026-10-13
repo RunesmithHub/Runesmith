@@ -80,6 +80,70 @@ public sealed class SafeModeTests : IDisposable
         Assert.Null(Begin().Offer);
     }
 
+    [Fact]
+    public void TwoStartsThatASignalEndedBeforeTheWindowShowedOfferSafeMode()
+    {
+        Begin().Signaled();
+        Begin().Signaled();
+
+        var offer = Begin().Offer;
+
+        Assert.NotNull(offer);
+        Assert.Equal("Runesmith failed to start twice in a row.", offer.Reason);
+    }
+
+    [Fact]
+    public void AStartThatASignalEndedAfterTheWindowShowedIsGood()
+    {
+        for (var i = 0; i < 2; i++)
+        {
+            var guard = Begin();
+            guard.Shown();
+            guard.Signaled();
+        }
+
+        Assert.Null(Begin().Offer);
+    }
+
+    [Fact]
+    public void AStartThatHungNamesThePluginItWasAt()
+    {
+        for (var i = 0; i < 2; i++)
+        {
+            var guard = Begin();
+            guard.Reached(StartupStep.LoadingPlugins);
+            guard.Starting(Pixel);
+            guard.Starting(Lumen);
+            guard.Signaled();
+        }
+
+        var offer = Begin().Offer!;
+
+        Assert.Equal([Lumen], offer.Plugins);
+    }
+
+    [Fact]
+    public void TheStartRecordsHowFarItGot()
+    {
+        var guard = Begin();
+        guard.Reached(StartupStep.LoadingPlugins);
+        guard.Starting(Pixel);
+        guard.Starting(Pixel);
+        Assert.Equal(Pixel, guard.Progress().Plugin);
+        Assert.Equal([Pixel], guard.Progress().Plugins);
+
+        guard.Loaded([Pixel, Lumen]);
+        guard.Reached(StartupStep.CreatingWindow);
+        guard.Stuck();
+
+        var progress = guard.Progress();
+        Assert.Null(progress.Plugin);
+        Assert.Equal([Pixel, Lumen], progress.Plugins);
+        Assert.Equal(StartupStep.CreatingWindow, progress.Step);
+        Assert.Equal(time.Now, progress.StuckAt);
+        Assert.Contains("\"step\":\"CreatingWindow\"", System.IO.File.ReadAllText(File), StringComparison.Ordinal);
+    }
+
     private StartupGuard Begin() => StartupGuard.Begin(File, time, safeMode: false);
 
     private static InvalidOperationException Thrown()

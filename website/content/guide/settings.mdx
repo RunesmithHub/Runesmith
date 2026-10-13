@@ -95,6 +95,7 @@ saves the file. When a file is not valid JSON, Runesmith uses the other scopes a
 | Setting | Key | Default | What it does |
 | --- | --- | --- | --- |
 | Restore the session | `window.restoreSession` | `true` | Opens the last folder and its files again when Runesmith starts. |
+| Report a stuck start after (seconds) | `window.stuckStartSeconds` | `30` | When the window has not shown after this many seconds, writes where the start is stuck, and with which plugin, to a log file and the terminal. `0` turns it off. Only your user settings count, and it applies when Runesmith starts. |
 | Menus | `window.menuBar` | `toolbar` | Where the menus are: `toolbar`, behind the menu button at the left of the toolbar, or `separate`, in a menu bar of their own under it. |
 | Title bar | `window.titleBar` | `custom` | `custom` makes the toolbar the window's title bar on Windows and Linux; `system` keeps the system's title bar above it. Applies when Runesmith starts. |
 

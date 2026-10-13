@@ -28,6 +28,12 @@ internal static class StartupSettings
     /// turn this on.</summary>
     public static bool AllowLocalOverrides(string? userSettings = null) => Read(CoreSettings.AllowLocalOverrides, userSettings) is { ValueKind: JsonValueKind.True };
 
+    /// <summary>Gets how long the window may take to show before Runesmith reports a stuck start; zero turns the report off.</summary>
+    public static TimeSpan WatchdogLimit(string? userSettings = null) =>
+        TimeSpan.FromSeconds(Read(CoreSettings.StuckStartSeconds, userSettings) is { ValueKind: JsonValueKind.Number } value && value.TryGetInt32(out var seconds)
+            ? Math.Clamp(seconds, 0, CoreSettings.MaximumStuckStartSeconds)
+            : CoreSettings.DefaultStuckStartSeconds);
+
     private static string? ReadString(string key) => Read(key) is { ValueKind: JsonValueKind.String } value ? value.GetString() : null;
 
     private static JsonElement? Read(string key, string? path = null)

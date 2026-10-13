@@ -60,6 +60,24 @@ dotnet build Runesmith.slnx -warnaserror
 The build has no warnings, and CI treats any warning as an error. Analyzers run at the `latest-recommended` level, and `BannedSymbols.txt`
 rejects calls that are easy to get wrong; each entry says why and what to use instead.
 
+After a build, `Runesmith.App` checks that `Runesmith.Sdk`, `Runesmith.Text` and `Runesmith.LanguageServices` in its output carry the plugin
+API version, `RunesmithSdkVersion`. An incremental build can skip a project whose only change is its version, which leaves the older
+assembly behind; the build then fails and names it. Rebuild the solution, such as with `dotnet build Runesmith.slnx --no-incremental`, or
+Rebuild in your IDE. When Runesmith starts, `HostIntegrity` makes the same check, and also that each of its assemblies finds the versions it
+was built against; an incomplete build starts in [safe mode](/guide/safe-mode#when-runesmith-is-incomplete).
+
+### Runesmith never starts from the IDE
+
+Rider's Dynamic Program Analysis starts the app with `DOTNET_DiagnosticPorts` set to `...,connect,suspend`: the runtime waits for Rider
+before it runs any code. When Rider stops answering, the app waits for good, with no window, no log and no record in `startups.json`, and
+with only about five threads. Check the environment of the waiting process:
+
+```bash
+tr '\0' '\n' < /proc/<pid>/environ | grep DOTNET_
+```
+
+Turn off Dynamic Program Analysis or restart Rider, then start Runesmith again.
+
 ## Official plugins
 
 Runesmith ships with no plugins, and building it fetches none. The official plugins, such as Git, GitHub, C# and Java, live in their own

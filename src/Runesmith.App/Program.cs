@@ -28,6 +28,12 @@ internal static class Program
     /// <summary>Gets whether this start is in safe mode, which loads no plugins.</summary>
     public static bool IsSafeMode { get; private set; }
 
+    /// <summary>Gets the assemblies of this Runesmith whose versions do not fit together; any of them starts Runesmith in safe mode.</summary>
+    public static IReadOnlyList<HostMismatch> HostMismatches { get; private set; } = [];
+
+    /// <summary>Gets the watchdog that reports a start whose window does not show; dispose it once the window shows.</summary>
+    public static StartupWatchdog? Watchdog { get; private set; }
+
     /// <summary>Gets what the plugin hub decided before plugins loaded.</summary>
     public static HubStartupReport HubReport { get; private set; } = HubStartupReport.Empty;
 
@@ -58,11 +64,27 @@ internal static class Program
             return 0;
         }
 
-        if (!Arguments.IsNewInstance && SingleInstance.TryHandOver(Arguments.Paths, Environment.CurrentDirectory, Arguments.Link))
-            return 0;
+        if (!Arguments.IsNewInstance)
+        {
+            switch (SingleInstance.TryHandOver(Arguments.Paths, Environment.CurrentDirectory, Arguments.Link))
+            {
+                case HandOverResult.HandedOver:
+                    return 0;
+                case HandOverResult.NotResponding:
+                    Console.Error.WriteLine($"Runesmith is already running but did not answer within {SingleInstance.AnswerTimeout.TotalSeconds:0} seconds. "
+                        + "If its window does not respond, close it, or start another Runesmith with --new-instance.");
+                    return 1;
+            }
+        }
 
-        Guard = StartupGuard.Begin(Path.Combine(RunesmithPaths.State, "startups.json"), TimeProvider.System, Arguments.IsSafeMode);
-        IsSafeMode = Arguments.IsSafeMode || Guard.Offer is not null;
+        HostMismatches = HostIntegrity.Check();
+        if (HostMismatches.Count > 0)
+            StartupReports.IncompleteBuild(HostMismatches);
+
+        var safeMode = Arguments.IsSafeMode || HostMismatches.Count > 0;
+        Guard = StartupGuard.Begin(Path.Combine(RunesmithPaths.State, "startups.json"), TimeProvider.System, safeMode);
+        IsSafeMode = safeMode || Guard.Offer is not null;
+        Watchdog = new StartupWatchdog(Guard, StartupSettings.WatchdogLimit(), TimeProvider.System, report => StartupReports.Stuck(report, Guard.Progress()));
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
             if (e.ExceptionObject is Exception exception)
@@ -71,7 +93,7 @@ internal static class Program
                 Guard.Crashed(exception, assembly => PluginCallers.Of(assembly) is { } plugin ? new SuspectPlugin(plugin.Manifest.Id, plugin.Manifest.Name, plugin.Manifest.Version) : null);
             }
         };
-        terminationSignals = [.. new[] { PosixSignal.SIGTERM, PosixSignal.SIGINT, PosixSignal.SIGHUP }.Select(signal => PosixSignalRegistration.Create(signal, _ => Guard.Exited()))];
+        terminationSignals = [.. new[] { PosixSignal.SIGTERM, PosixSignal.SIGINT, PosixSignal.SIGHUP }.Select(signal => PosixSignalRegistration.Create(signal, _ => Guard.Signaled()))];
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
             CrashLog.Write(e.Exception, "A background task failed");
@@ -113,6 +135,7 @@ internal static class Program
 
     private static async Task<CompositionResult> ComposeAsync()
     {
+        Guard.Reached(StartupStep.PreparingPlugins);
         var stopwatch = Stopwatch.StartNew();
         var hub = new HubPaths(RunesmithPaths.Hub);
         HubReport = HubStartup.Run(HubConfiguration.Load(AppContext.BaseDirectory), hub, StartupSettings.HubEnabled(), TimeProvider.System);
@@ -134,7 +157,9 @@ internal static class Program
             HubPlugins = HubReport.HubPlugins,
             WithheldPlugins = HubReport.Withheld,
             AllowLocalOverrides = StartupSettings.AllowLocalOverrides(),
+            PluginStarting = plugin => Guard.Starting(new SuspectPlugin(plugin.Manifest.Id, plugin.Manifest.Name, plugin.Manifest.Version)),
         };
+        Guard.Reached(StartupStep.LoadingPlugins);
         var result = await RunesmithComposition.CreateAsync(options);
         foreach (var plugin in result.Plugins.Where(p => p.State == PluginState.Failed))
             Console.Error.WriteLine($"Plugin {plugin.Manifest.Id} could not load: {plugin.Error}");

@@ -19,10 +19,20 @@ public sealed class CoreSettings : ISettingContributor
     /// when Runesmith starts.</summary>
     public const string AllowLocalOverrides = PluginDiscovery.AllowLocalOverridesSetting;
 
+    /// <summary>How many seconds the window may take to show before Runesmith reports a stuck start; read from the user's settings alone
+    /// when Runesmith starts.</summary>
+    public const string StuckStartSeconds = "window.stuckStartSeconds";
+
+    /// <summary>The value of <see cref="StuckStartSeconds"/> when the user has not set it.</summary>
+    public const int DefaultStuckStartSeconds = 30;
+
+    /// <summary>The largest value of <see cref="StuckStartSeconds"/>.</summary>
+    public const int MaximumStuckStartSeconds = 600;
+
     /// <summary>Gets the settings that count only in the user's settings, never in an open folder's.</summary>
     public static IReadOnlySet<string> UserOnly { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
-        AllowLocalOverrides, SettingKeys.Language, SettingKeys.UntranslatedPlugins, SettingKeys.MinimumCoverage, SettingKeys.PseudoLocalization,
+        AllowLocalOverrides, StuckStartSeconds, SettingKeys.Language, SettingKeys.UntranslatedPlugins, SettingKeys.MinimumCoverage, SettingKeys.PseudoLocalization,
     };
 
     /// <summary>The globs <see cref="SettingKeys.Exclude"/> starts with: none. Plugins leave out the folders of their own tools.</summary>
@@ -92,6 +102,12 @@ public sealed class CoreSettings : ISettingContributor
         },
 
         new(SettingKeys.RestoreSession, Strings.WorkspaceRestoreTheSession, Window, true) { Description = Strings.WorkspaceRestoreTheSessionDescription },
+        new(StuckStartSeconds, Strings.WorkspaceReportAStuckStart, Window, DefaultStuckStartSeconds)
+        {
+            Description = Strings.WorkspaceReportAStuckStartDescription,
+            Minimum = 0,
+            Maximum = MaximumStuckStartSeconds,
+        },
 
         new(AllowLocalOverrides, Strings.WorkspaceLocalCopiesReplacePlugins, Plugins, false)
         {

@@ -58,6 +58,8 @@ workspace-excluded-files = Excluded files
 workspace-excluded-files-description = Globs, separated by semicolons, of files and folders that the Explorer, Quick Open and search leave out, besides the ones your plugins leave out.
 workspace-restore-the-session = Restore the session
 workspace-restore-the-session-description = Open the last folder and its files again when Runesmith starts.
+workspace-report-a-stuck-start = Report a stuck start after (seconds)
+workspace-report-a-stuck-start-description = When the window has not shown after this many seconds, Runesmith writes where it is stuck, and with which plugin, to a log file and to the terminal. 0 turns this off. Only your user settings count. Takes effect when Runesmith starts again.
 workspace-local-copies-replace-plugins = Local copies replace plugins
 workspace-local-copies-replace-plugins-description = Let a plugin in your plugins folder run in place of the plugin with the same id from the hub, such as a build of it you work on. The local copy gets its own secrets and storage. Only your user settings can turn this on. Takes effect when Runesmith starts again.
 
