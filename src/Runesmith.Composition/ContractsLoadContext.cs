@@ -1,7 +1,5 @@
 using System.Collections.Concurrent;
 using System.Reflection;
-using System.Reflection.Metadata;
-using System.Reflection.PortableExecutable;
 using System.Runtime.Loader;
 
 namespace Runesmith.Composition;
@@ -20,7 +18,7 @@ internal sealed class ContractsLoadContext() : AssemblyLoadContext("Plugin contr
     public string? Add(PluginInfo plugin, IReadOnlySet<string> dependencyContracts)
     {
         var path = plugin.ContractsPath ?? throw new ArgumentException("The plugin has no contracts.", nameof(plugin));
-        foreach (var reference in References(path))
+        foreach (var (reference, _) in AssemblyReferences.Read(path))
         {
             if (!HostRuntime.IsFramework(reference) && !HostRuntime.IsShared(reference) && !dependencyContracts.Contains(reference))
                 return $"Its contracts use {reference}, which is not .NET, a library Runesmith shares or the contracts of a plugin it depends on.";
@@ -39,15 +37,4 @@ internal sealed class ContractsLoadContext() : AssemblyLoadContext("Plugin contr
     public PluginInfo? OwnerOf(Assembly assembly) => owners.TryGetValue(assembly, out var plugin) ? plugin : null;
 
     protected override Assembly? Load(AssemblyName assemblyName) => assemblyName.Name is { } name ? Get(name) : null;
-
-    private static List<string> References(string path)
-    {
-        using var stream = File.OpenRead(path);
-        using var reader = new PEReader(stream);
-        if (!reader.HasMetadata)
-            throw new BadImageFormatException($"{path} is not an assembly.", path);
-
-        var metadata = reader.GetMetadataReader();
-        return [.. metadata.AssemblyReferences.Select(handle => metadata.GetString(metadata.GetAssemblyReference(handle).Name))];
-    }
 }

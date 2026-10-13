@@ -33,6 +33,12 @@ internal static class HostRuntime
     /// <summary>Gets whether Runesmith itself ships an assembly, apart from .NET.</summary>
     public static bool IsHostOnly(string name) => Trusted.Value.ContainsKey(name) && !IsFramework(name) && !IsShared(name);
 
+    /// <summary>Gets the name and path of each of Runesmith's own assemblies: the ones beside it whose names start with <c>Runesmith.</c>.</summary>
+    public static IEnumerable<(string Name, string Path)> OwnAssemblies() =>
+        Trusted.Value.Where(entry => entry.Key.StartsWith("Runesmith.", StringComparison.Ordinal)
+                && string.Equals(Path.GetDirectoryName(entry.Value), AppDirectory, StringComparison.Ordinal))
+            .Select(entry => (entry.Key, entry.Value));
+
     /// <summary>Gets the version of the assembly the host loads for a name, or null when the host has none.</summary>
     public static Version? VersionOf(string name)
     {

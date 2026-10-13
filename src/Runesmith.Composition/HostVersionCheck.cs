@@ -1,6 +1,3 @@
-using System.Reflection.Metadata;
-using System.Reflection.PortableExecutable;
-
 namespace Runesmith.Composition;
 
 /// <summary>Finds assemblies a plugin was built against in a newer version than the one Runesmith loads for it.</summary>
@@ -24,7 +21,7 @@ internal static class HostVersionCheck
 
         foreach (var path in paths)
         {
-            foreach (var (name, wanted) in References(path))
+            foreach (var (name, wanted) in AssemblyReferences.Read(path))
             {
                 if (!FromHost(name, folder, plugin.Manifest.IsLegacy) || HostRuntime.VersionOf(name) is not { } host || host >= wanted)
                     continue;
@@ -46,31 +43,5 @@ internal static class HostVersionCheck
         // A plugin's own copy of a .NET or Runesmith library loads in place of an older one from the host.
         var hostHasIt = HostRuntime.IsFramework(name) || (seesHost && HostRuntime.IsHostOnly(name));
         return hostHasIt && !File.Exists(Path.Combine(folder, name + ".dll"));
-    }
-
-    private static List<(string Name, Version Version)> References(string path)
-    {
-        using var stream = File.OpenRead(path);
-        using var reader = new PEReader(stream);
-        try
-        {
-            if (!reader.HasMetadata)
-                return [];
-
-            var metadata = reader.GetMetadataReader();
-            if (!metadata.IsAssembly)
-                return [];
-
-            return
-            [
-                .. metadata.AssemblyReferences.Select(handle => metadata.GetAssemblyReference(handle))
-                    .Select(reference => (metadata.GetString(reference.Name), reference.Version)),
-            ];
-        }
-        catch (BadImageFormatException)
-        {
-            // A native library the plugin carries has no references to check.
-            return [];
-        }
     }
 }
