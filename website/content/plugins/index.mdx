@@ -180,7 +180,8 @@ The [plugin manager](/guide/plugins#the-plugin-manager) lists every plugin Runes
 **Plugins** channel of the **Output** panel says why a plugin failed. `--diagnostics` writes the same list to the **Diagnostics** channel.
 
 The usual reasons are a manifest with a missing or wrong field, a `runesmithApi` range this Runesmith does not support, an assembly that
-does not exist, a second plugin with the same id, or a dependency that did not load.
+does not exist, a second plugin with the same id, a dependency that did not load, or a plugin built against a newer version of
+Runesmith's SDK or another assembly Runesmith provides than this Runesmith has.
 
 ## Related
 

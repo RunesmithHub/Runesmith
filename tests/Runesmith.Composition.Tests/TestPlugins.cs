@@ -26,6 +26,9 @@ internal sealed record TestPlugin(string Id, string Root)
     /// <summary>Gets libraries from <see cref="TestPluginFolder.AddLibrary"/> that its code is built against without carrying them.</summary>
     public IReadOnlyList<string> References { get; init; } = [];
 
+    /// <summary>Gets libraries from <see cref="TestPluginFolder.AddLibrary"/> that it carries beside its implementation.</summary>
+    public IReadOnlyList<string> Bundled { get; init; } = [];
+
     public IReadOnlyList<string> Capabilities { get; init; } = [];
 
     public IReadOnlyList<string> NetworkHosts { get; init; } = [];
@@ -66,8 +69,8 @@ internal sealed class TestPluginFolder : IDisposable
         var lib = Directory.CreateDirectory(Path.Combine(PluginsPath, folder, "lib")).FullName;
         var others = plugin.BuiltAgainst.Select(other => built[other.Root + ".Contracts"]).ToList();
         var contracts = Compile(plugin.Root + ".Contracts", plugin.Contracts, others, lib);
-        var implementation = Compile(plugin.Root, plugin.Implementation, [contracts, .. others, .. plugin.References], lib);
-        foreach (var other in others)
+        var implementation = Compile(plugin.Root, plugin.Implementation, [contracts, .. others, .. plugin.References, .. plugin.Bundled], lib);
+        foreach (var other in others.Concat(plugin.Bundled))
             File.Copy(other, Path.Combine(lib, Path.GetFileName(other)));
 
         var manifest = new JsonObject
@@ -101,7 +104,7 @@ internal sealed class TestPluginFolder : IDisposable
         return Path.Combine(PluginsPath, folder);
     }
 
-    /// <summary>Builds a library outside the plugins folder, for plugins to be built against.</summary>
+    /// <summary>Builds a library outside the plugins folder, for plugins to be built against or carry.</summary>
     /// <returns>The library's path.</returns>
     public string AddLibrary(string name, string source, params string[] references) => Compile(name, source, references, LibrariesPath);
 

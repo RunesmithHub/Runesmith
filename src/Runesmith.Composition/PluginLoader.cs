@@ -5,7 +5,8 @@ namespace Runesmith.Composition;
 
 /// <summary>Loads plugins in dependency order, each into its own load context, with every plugin's contracts in one shared context.</summary>
 /// <remarks>A plugin loads after the plugins it depends on, and does not load when one of them is missing, turned off, of a version
-/// outside its range or failed; its <see cref="PluginInfo.Error"/> says which. A language pack counts as loaded without its assemblies being
+/// outside its range or failed, nor when it was built against a newer version of an assembly Runesmith gives it; its
+/// <see cref="PluginInfo.Error"/> says which. A language pack counts as loaded without its assemblies being
 /// loaded: Runesmith reads its translations from the file.</remarks>
 internal sealed class PluginLoader
 {
@@ -55,6 +56,12 @@ internal sealed class PluginLoader
 
             try
             {
+                if (HostVersionCheck.Problem(plugins[index]) is { } outdated)
+                {
+                    plugins[index] = plugins[index].Fail(outdated);
+                    continue;
+                }
+
                 if (LoadPlugin(plugins[index]) is { } assembly)
                     loaded.Add((index, assembly));
             }

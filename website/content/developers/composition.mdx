@@ -28,7 +28,10 @@ who change it; plugin authors need only [Plugins](/plugins).
    host-shared assemblies and the contracts of the plugins it declares. Its implementation loads into a `PluginLoadContext` of its own,
    which resolves the plugin's own assemblies, its own and its dependencies' contracts from the contracts context, the host-shared
    assemblies (`HostAssemblies` in `RunesmithHub.Protocol`) and .NET, and refuses another plugin's implementation or undeclared contracts.
-   Older manifests may also use Runesmith's other assemblies, such as `Runesmith.LanguageServices`.
+   Older manifests may also use Runesmith's other assemblies, such as `Runesmith.LanguageServices`. Before any of a plugin's code loads, its
+   implementation, its contracts and the other assemblies beside them are read: a plugin built against a newer version of an assembly
+   Runesmith gives it, such as `Runesmith.Text` 0.2.1 when Runesmith has 0.2.0, fails with a reason that names both versions. A plugin's
+   own newer copy of a .NET library does not count, since that copy loads instead.
 4. **Compose.** `RunesmithComposition` discovers the parts of Runesmith's host assemblies (`Runesmith.Sdk`, `Runesmith.Workspace`,
    `Runesmith.Languages`, `Runesmith.Editor` and `Runesmith.Shell`) and of each plugin's implementation assembly, in dependency order.
    A plugin whose parts cannot be read fails, and so do the plugins that depend on it. The reason is what stopped the scan, such as an
