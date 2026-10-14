@@ -97,13 +97,15 @@ public sealed class LanguageServerFileOperationsTests : IAsyncDisposable
             await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
             return null;
         }));
-        var participant = new LanguageServerFileOperations(() => [fast, slow], documents) { ServerBudget = TimeSpan.FromMilliseconds(300) };
+        // Long enough for the fast server's first answer on a loaded runner; the slow one never answers within it.
+        var participant = new LanguageServerFileOperations(() => [fast, slow], documents) { ServerBudget = TimeSpan.FromSeconds(2) };
         var stopwatch = Stopwatch.StartNew();
 
         var edit = await participant.WillApplyAsync([new RenameFileOperation(file, Path.Combine(folder, "B.src"))], Token);
 
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10));
-        Assert.Equal("// renamed\n", Assert.Single(Assert.Single(edit!.Documents).Changes).NewText);
+        Assert.NotNull(edit);
+        Assert.Equal("// renamed\n", Assert.Single(Assert.Single(edit.Documents).Changes).NewText);
         Assert.Contains(output.Lines, line => line.Contains("slow did not answer workspace/willRenameFiles within", StringComparison.Ordinal));
     }
 
