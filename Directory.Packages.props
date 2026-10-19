@@ -30,7 +30,7 @@
     <PackageVersion Include="System.Composition.TypedParts" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
     <!-- VS-MEF brings MessagePack 2.5.192, which has known vulnerabilities; 2.5.301 and later fix them. -->
-    <PackageVersion Include="MessagePack" Version="3.1.11" />
+    <PackageVersion Include="MessagePack" Version="3.1.12" />
     <PackageVersion Include="MessagePack.Annotations" Version="3.1.11" />
   </ItemGroup>
   <ItemGroup Label="Plugin hub">
