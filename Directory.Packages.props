@@ -23,12 +23,12 @@
   <ItemGroup Label="Composition">
     <PackageVersion Include="Microsoft.VisualStudio.Composition" Version="17.13.41" />
     <!-- Plugins share these with Runesmith, so the whole family has one version, new enough for the C# compiler's own composition. -->
-    <PackageVersion Include="System.Composition.AttributedModel" Version="10.0.13" />
-    <PackageVersion Include="System.Composition.Convention" Version="10.0.13" />
-    <PackageVersion Include="System.Composition.Hosting" Version="10.0.13" />
-    <PackageVersion Include="System.Composition.Runtime" Version="10.0.13" />
-    <PackageVersion Include="System.Composition.TypedParts" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
+    <PackageVersion Include="System.Composition.AttributedModel" Version="10.0.14" />
+    <PackageVersion Include="System.Composition.Convention" Version="10.0.14" />
+    <PackageVersion Include="System.Composition.Hosting" Version="10.0.14" />
+    <PackageVersion Include="System.Composition.Runtime" Version="10.0.14" />
+    <PackageVersion Include="System.Composition.TypedParts" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
     <!-- VS-MEF brings MessagePack 2.5.192, which has known vulnerabilities; 2.5.301 and later fix them. -->
     <PackageVersion Include="MessagePack" Version="3.1.11" />
     <PackageVersion Include="MessagePack.Annotations" Version="3.1.11" />
