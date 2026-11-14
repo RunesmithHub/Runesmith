@@ -23,12 +23,12 @@
   <ItemGroup Label="Composition">
     <PackageVersion Include="Microsoft.VisualStudio.Composition" Version="17.13.41" />
     <!-- Plugins share these with Runesmith, so the whole family has one version, new enough for the C# compiler's own composition. -->
-    <PackageVersion Include="System.Composition.AttributedModel" Version="10.0.13" />
-    <PackageVersion Include="System.Composition.Convention" Version="10.0.13" />
-    <PackageVersion Include="System.Composition.Hosting" Version="10.0.13" />
-    <PackageVersion Include="System.Composition.Runtime" Version="10.0.13" />
-    <PackageVersion Include="System.Composition.TypedParts" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
+    <PackageVersion Include="System.Composition.AttributedModel" Version="10.0.15" />
+    <PackageVersion Include="System.Composition.Convention" Version="10.0.15" />
+    <PackageVersion Include="System.Composition.Hosting" Version="10.0.15" />
+    <PackageVersion Include="System.Composition.Runtime" Version="10.0.15" />
+    <PackageVersion Include="System.Composition.TypedParts" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.15" />
     <!-- VS-MEF brings MessagePack 2.5.192, which has known vulnerabilities; 2.5.301 and later fix them. -->
     <PackageVersion Include="MessagePack" Version="3.1.11" />
     <PackageVersion Include="MessagePack.Annotations" Version="3.1.11" />
@@ -50,8 +50,8 @@
   <ItemGroup Label="Testing and measurement">
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <!-- The composition tests compile their test plugins with the C# compiler. -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.9.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.12.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.12.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="2.5.1" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
